@@ -1,0 +1,24 @@
+/* Keep legacy page-wide pseudo layers out of the workspace from the first paint.
+   The dedicated workspace surface provides the visible background treatment. */
+html body.workspace-page::before,
+html body.workspace-page::after {
+  display: none !important;
+}
+
+html body.workspace-page .liquid-ambient {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 0 !important;
+}
+
+html body.workspace-page .liquid-ambient::before,
+html body.workspace-page .liquid-ambient::after {
+  display: none !important;
+  animation: none !important;
+}
+
+html body.workspace-page .hidden {
+  display: none !important;
+}

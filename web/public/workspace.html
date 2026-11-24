@@ -1,0 +1,1242 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e9eff8" />
+    <style id="workspace-pseudo-reset">
+      html body.workspace-page::before,
+      html body.workspace-page::after { display: none !important; }
+      html body.workspace-page .liquid-ambient {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        min-height: 0 !important;
+      }
+      html body.workspace-page .liquid-ambient::before,
+      html body.workspace-page .liquid-ambient::after {
+        display: none !important;
+        animation: none !important;
+      }
+      html body.workspace-page .hidden { display: none !important; }
+    </style>
+    <meta name="description" content="辰思AI内容创作、素材库管理、视频制作与账号发布工作台" />
+    <title>辰思AI · 内容创作与账号管理</title>
+    <link rel="icon" type="image/png" href="/assets/brand/chensi-mark-blue.png" />
+    <link rel="stylesheet" href="/workspace-pseudo.css?v=20260829-pseudo3" />
+    <link rel="stylesheet" href="/styles.css?v=20260919-web-jianying1" />
+    <link rel="stylesheet" href="/liquid-glass.css?v=20260904-loading-dots2" />
+    <link rel="stylesheet" href="/liquid-system.css?v=20260829-perf1" />
+    <link rel="stylesheet" href="/workspace-liquid.css?v=20260829-perf1" />
+    <link rel="stylesheet" href="/liquid-overhaul.css?v=20260829-perf1" />
+    <link rel="stylesheet" href="/optical-glass.css?v=20260830-switch-shell3" />
+    <link rel="stylesheet" href="/light-liquid-overhaul.css?v=20260919-web-jianying1" />
+  </head>
+  <body class="workspace-page">
+    <div class="app-shell workspace-shell">
+      <aside class="sidebar">
+        <a class="brand-lockup workspace-home-link" href="/">
+          <img class="brand-logo-mark" src="/assets/brand/chensi-mark-blue.png" alt="" width="512" height="512" aria-hidden="true" />
+          <div>
+            <div class="brand-name">辰思AI</div>
+            <div class="brand-sub">内容创作与账号管理</div>
+          </div>
+        </a>
+        <div class="workspace-label">创作工作台<span class="workspace-mode">AI CONTENT</span></div>
+        <nav class="nav-list" aria-label="主导航">
+          <button class="nav-item" data-view="chat">
+            <span class="nav-icon" data-icon="✧"></span>AI 对话
+          </button>
+          <div class="nav-section-label">IP与创作</div>
+          <button class="nav-item active" data-view="overview">
+            <span class="nav-icon" data-icon="◎"></span>总览
+          </button>
+          <button class="nav-item" data-view="strategy">
+            <span class="nav-icon" data-icon="✦"></span>IP 档案
+          </button>
+          <button class="nav-item" data-view="benchmark">
+            <span class="nav-icon" data-icon="▶"></span>爆款复刻
+          </button>
+          <button class="nav-item" data-view="copy">
+            <span class="nav-icon" data-icon="≡"></span>AI 文案库
+          </button>
+          <div class="nav-section-label nav-section-spaced">生产与发布</div>
+          <button class="nav-item" data-view="media">
+            <span class="nav-icon" data-icon="♫"></span>媒体实验室          </button>
+          <button class="nav-item" data-view="render">
+            <span class="nav-icon" data-icon="✂"></span>视频工坊
+          </button>
+          <button class="nav-item" data-view="publish">
+            <span class="nav-icon" data-icon="↗"></span>账号发布
+          </button>
+          <button class="nav-item" data-view="library">
+            <span class="nav-icon" data-icon="▤"></span>文案库          </button>
+          <button class="nav-item" data-view="assets">
+            <span class="nav-icon" data-icon="▦"></span>素材库          </button>
+          <button class="nav-item" data-view="account">
+            <span class="nav-icon" data-icon="●"></span>账号与团队          </button>
+          <button class="nav-item" data-view="support">
+            <span class="nav-icon" data-icon="⚙"></span>工单与权益          </button>
+          <button class="nav-item" data-view="templates">
+            <span class="nav-icon" data-icon="✎"></span>许愿清单          </button>
+          <button class="nav-item" data-view="history">
+            <span class="nav-icon" data-icon="↻"></span>生成记录
+          </button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="health-card">
+            <div class="health-line">
+              <span class="status-dot" id="healthDot"></span
+              ><span id="healthText">本地服务检查中</span>
+            </div>
+            <div class="health-meta">本地数据工作台</div>
+          </div>
+          <div class="user-chip">
+            <span class="avatar" id="userAvatar">IP</span
+            ><span class="user-copy"
+              ><span class="user-info-row user-name-row"
+                ><span class="user-info-label">用户</span
+                ><strong id="currentUserName">登录用户</strong></span
+              ><small id="currentUserMeta" class="user-meta-lines"
+                ><span class="user-info-row"
+                  ><span class="user-info-label">身份</span
+                  ><span id="currentUserType">正在读取身份</span></span
+                ><span class="user-info-row"
+                  ><span class="user-info-label">算力</span
+                  ><span id="currentUserCompute">正在读取算力</span></span
+              ></small></span
+            >
+            <a class="user-action" id="adminEntry" href="/admin.html" title="后台管理">管理</a>
+            <button class="user-action" id="logoutButton" title="退出登录">退出</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="page-heading-copy">
+            <div class="eyebrow">辰思AI / 当前 IP</div>
+            <h1 id="pageTitle">尚未选择项目</h1>
+            <div class="page-context" id="pageContext">AI 内容创作工作台</div>
+          </div>
+          <div class="top-actions">
+            <div class="project-switcher"><label class="switcher-label" for="projectSelect">当前项目</label><select class="project-select" id="projectSelect"></select></div
+            ><button class="icon-button" id="refreshButton" title="刷新数据">
+              </button
+            ><button class="secondary-button" id="newProjectButton">+ 新建档案</button
+          </div>
+        </header>
+
+        <section class="content-view" id="overviewView">
+          <div class="hero-panel">
+            <div>
+              <div class="section-kicker">CONTENT OPERATING SYSTEM</div>
+              <h2>把一个人的经验，变成持续生产的内容资产</h2>
+              <p>
+                IP 档案、文案库、素材库和成片在一个工作区流转，团队成员共享清晰的创作进度              </p>
+            </div>
+            <div class="hero-actions">
+              <button class="primary-button" id="guidedStartButton" type="button" data-guided-start data-go="strategy">
+                一键开始 <span class="button-arrow"></span>
+              </button>
+            </div>
+            <div class="hero-console" aria-label="项目状态摘要">
+              <div class="hero-console-top"><span>CREATION STATUS</span><strong id="heroProjectSignal">初始化中</strong></div>
+              <div class="hero-progress"><span id="heroProgressBar"></span></div>
+              <div class="hero-console-bottom"><span>核心环节</span><strong id="heroProgressText">0 / 4</strong><span class="hero-console-divider"></span><span>真实数据</span><i class="signal-live"></i></div>
+            </div>
+          </div>
+          <div class="workflow-strip" aria-label="内容生产流程">
+            <button class="workflow-step" data-go="strategy"><span class="step-number">01</span><span><strong>资料与定位</strong><small id="workflowStrategyStatus">待开始</small></span></button><span class="step-connector" id="workflowConnectorOne"></span><button class="workflow-step" data-go="benchmark"><span class="step-number">02</span><span><strong>对标与拆解</strong><small id="workflowBenchmarkStatus">待开始</small></span></button><span class="step-connector" id="workflowConnectorTwo"></span><button class="workflow-step" data-go="copy"><span class="step-number">03</span><span><strong>文案与生成</strong><small id="workflowCopyStatus">待开始</small></span></button><span class="step-connector" id="workflowConnectorThree"></span><button class="workflow-step" data-go="render"><span class="step-number">04</span><span><strong>成片与发布</strong><small id="workflowRenderStatus">待开始</small></span></button>
+          </div>
+          <div class="summary-grid">
+            <article class="metric-card accent-teal">
+              <div class="metric-label">核心闭环完成</div>
+              <div class="metric-value" id="completionValue">0%</div>
+              <div class="metric-foot">
+                已完成                <span class="metric-highlight" id="completedStepCount">0</span>
+                个核心环节              </div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-label">对标视频</div>
+              <div class="metric-value" id="benchmarkCount">00</div>
+              <div class="metric-foot">
+                真实拆解
+                <span class="metric-highlight" id="benchmarkReadyCount">0</span>
+                              </div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-label">可用素材</div>
+              <div class="metric-value" id="assetCount">00</div>
+              <div class="metric-foot">仅统计已落盘文件</div>
+            </article>
+            <article class="metric-card accent-coral">
+              <div class="metric-label">生成任务</div>
+              <div class="metric-value" id="taskCount">00</div>
+              <div class="metric-foot">成功与失败均可追溯</div>
+            </article>
+          </div>
+          <div class="section-heading">
+            <div>
+              <div class="section-kicker">CREATION CAPABILITIES</div>
+              <h2>创作能力</h2>
+            </div>
+            <span class="step-status" id="stepStatus">0 / 4 核心环节</span>
+          </div>
+          <div class="feature-grid" id="featureGrid"></div>
+          <div class="overview-bottom">
+            <section class="panel task-panel">
+              <div class="panel-header">
+                <div>
+              <div class="section-kicker">NEXT ACTIONS</div>
+                  <h2>下一步</h2>
+                </div>
+                <span class="live-badge">当前项目</span>
+              </div>
+              <div class="next-action-list" id="nextActionList"></div>
+            </section>
+            <section class="panel output-panel">
+              <div class="panel-header">
+                <div>
+              <div class="section-kicker">LATEST OUTPUT</div>
+                  <h2>最近产出</h2>
+                </div>
+                <button class="quiet-button" data-go="history">查看全部</button>
+              </div>
+              <div id="latestOutput"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="content-view hidden" id="strategyView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">01 / IP PROFILE</div>
+              <h2>IP 档案与创作定位</h2>
+              <p>建立门面、业务、客户与表达方式的专属档案，作为后续创作参考</p>
+            </div>
+            <span class="live-badge">结构化资料</span>
+          </div>
+          <div class="workspace-grid">
+            <section class="panel profile-panel">
+              <div class="panel-header">
+                <div>
+                  <div class="section-kicker">PROFILE INTAKE</div>
+                  <h2>IP 基础资料</h2>
+                </div>
+                <button class="quiet-button" id="saveProfileButton">
+                  保存档案
+                </button>
+              </div>
+              <div class="form-grid">
+                <label class="field field-span-2"
+                  ><span>身份定位</span
+                  ><input
+                    id="identityInput"
+                    placeholder="填写本人或品牌的真实身份" /></label
+                ><label class="field field-span-2"
+                  ><span>业务与服务范围</span
+                  ><input
+                    id="businessInput"
+                    placeholder="所在业务、服务边界和交付方式" /></label
+                ><label class="field field-span-2"
+                  ><span>核心产品 / 服务</span
+                  ><input
+                    id="productsInput"
+                    placeholder="具体卖什么、解决什么问题" /></label
+                ><label class="field"
+                  ><span>目标客户</span
+                  ><input id="customersInput" placeholder="客户画像" /></label
+                ><label class="field"
+                  ><span>表达风格</span
+                  ><input
+                    id="styleInput"
+                    placeholder="填写实际表达风格" /></label
+                ><label class="field field-span-2"
+                  ><span>客户痛点</span
+                  ><textarea
+                    id="painPointsInput"
+                    rows="2"
+                    placeholder="客户在购买前最担心什么"
+                  ></textarea></label
+                ><label class="field field-span-2"
+                  ><span>案例与背景</span
+                  ><textarea
+                    id="casesInput"
+                    rows="2"
+                    placeholder="只填写可验证的案例、结果或交付能力"
+                  ></textarea>
+                </label>
+              </div>
+              <div class="panel-footer">
+                <span class="save-hint" id="profileHint"
+                  >资料会保存到当前项目</span
+                ><div class="guided-step-actions"><button class="primary-button small" id="positioningButton" data-task-cost-kind="positioning">
+                  生成 IP 定位                 </button>
+                  <button class="secondary-button small" id="strategyNextStepButton" type="button" disabled>
+                    下一步：爆款复刻
+                  </button></div>
+              </div>
+            </section>
+            <section class="panel positioning-panel">
+              <div class="panel-header">
+                <div>
+                  <div class="section-kicker">POSITIONING TABLE</div>
+                  <h2>IP 定位</h2>
+                </div>
+                <span class="live-badge" id="positioningBadge">待生成</span>
+              </div>
+              <div class="positioning-result">
+                <div class="result-block dark-result">
+                  <span class="result-label">一句话人设</span
+                  ><strong id="personaValue"></strong>
+                  <p id="promiseValue"></p>
+                </div>
+                <div class="result-block">
+                  <span class="result-label">身份 / 核心产品 / 目标客户</span>
+                  <div class="profile-summary">
+                    <p id="identityValue"></p>
+                    <p id="coreProductValue"></p>
+                    <p id="targetCustomerValue"></p>
+                  </div>
+                </div>
+                <div class="result-block">
+                  <span class="result-label">客户痛点</span>
+                  <div class="tag-list" id="painPointTags"></div>
+                </div>
+                <div class="result-block">
+                  <span class="result-label">差异化表达</span>
+                  <p id="differentiatorValue"></p>
+                </div>
+                <div class="result-block">
+                  <span class="result-label">可持续内容方向</span>
+                  <div class="tag-list" id="angleTags"></div>
+                </div>
+                <div class="result-block">
+                  <span class="result-label">平台搜索词</span>
+                  <div class="keyword-list" id="keywordList"></div>
+                </div>
+                <div class="result-block">
+                  <span class="result-label">适合对标的账号类型</span>
+                  <div class="account-list" id="accountList"></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="content-view hidden" id="benchmarkView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">02 / VIRAL REMIX</div>
+              <h2>爆款复刻</h2>
+              <p>粘贴支持平台的分享链接，或上传本地视频拆解文案与视频结构；确认后再手动保存到文案库</p>
+            </div>
+          </div>
+          <section class="panel">
+            <div class="benchmark-input-row">
+              <textarea
+                id="benchmarkInput"
+                rows="2"
+                placeholder="粘贴抖音 / 小红书 / 视频号分享文案"
+              ></textarea><select id="platformSelect">
+                <option>抖音</option>
+                <option>小红书</option>
+                <option>视频号</option></select
+              ><button
+                class="secondary-button small"
+                id="benchmarkUploadButton"
+              >
+                上传视频</button
+              ><input
+                id="benchmarkFileInput"
+                type="file"
+                hidden
+                accept="video/*"
+              /><button
+                class="primary-button small"
+                id="analyzeBenchmarkButton"
+                data-task-cost-kind="video_analysis"
+              >
+                加入拆解队列
+              </button>
+            </div>
+            <div class="ingest-note">
+              <span class="status-dot ok"></span>
+              支持从整段分享文案中自动提取链接；其他平台请上传本地视频            </div>
+            <div class="benchmark-list large" id="benchmarkList"></div>
+            <div class="guided-next-row">
+              <button class="secondary-button" id="benchmarkNextStepButton" type="button" disabled>下一步：AI 文案创作</button>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <div><div class="section-kicker">DOUYIN ACCOUNT PROFILE</div><h2>抖音账号级拆解</h2></div>
+              <span class="soft-badge">真实公开作品</span>
+            </div>
+            <div class="account-analysis-form">
+              <input id="accountAnalysisInput" placeholder="填写抖音账号名称、主页链接或账号标识" />
+              <button class="primary-button" id="accountAnalysisButton" data-task-cost-kind="account_analysis">读取作品并拆解</button>
+            </div>
+            <p class="field-hint">输入主页链接或抖音号，读取真实公开作品并逐条拆解，不使用固定样本代替账号分析</p>
+            <div class="account-analysis-list" id="accountAnalysisList"></div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="copyView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">03 / AI COPY</div>
+              <h2>AI 文案创作</h2>
+              <p>默认参考最近文案库风格，并自动沿用最近一次真实拆解的结构生成原创文案</p>
+            </div>
+            <button class="primary-button" id="copyButton" data-task-cost-kind="copy">
+              重新生成整套文案库
+            </button>
+          </div>
+          <section class="panel copy-editor-panel">
+            <div class="copy-toolbar">
+              <div class="copy-mode-group">
+                <span class="copy-control-label">生成模式</span>
+                <div class="copy-modes">
+                <button class="copy-mode active" data-copy-mode="standard">
+                  标准口播</button
+                ><button class="copy-mode" data-copy-mode="qa">
+                  问答脚本
+                </button>
+                </div>
+              </div>
+              <span class="quality-pill">原创改写 · 合规检查</span>
+            </div>
+            <div class="copy-source-controls">
+              <label class="field">
+                <span>半成品文案库（可选）</span>
+                <textarea id="copyDraftInput" rows="4" placeholder="粘贴未写完的文案库，AI 会保留已提供的事实并继续创作"></textarea>
+              </label>
+              <div class="copy-source-options">
+                <label class="check-row"><input id="copyUseHistoryInput" type="checkbox" checked />参考本人最近的文案库风格</label>
+                <label class="check-row"><input id="copyUseBenchmarkReferenceInput" type="checkbox" checked />调用最近一次真实拆解参考</label>
+                <label class="check-row"><input id="copyInheritTitleInput" type="checkbox" checked />调用拆解时沿用拆解标题</label>
+                <small>历史内容仅用于语气与节奏参考；相似度检查范围为当前项目的本地文案库</small>
+              </div>
+            </div>
+            <div class="copy-benchmark-references" id="copyBenchmarkReferences"></div>
+            <div id="copyContent" class="copy-content rich"></div>
+            <div class="panel-footer">
+              <span class="save-hint">生成结果会自动留存；真实拆解需手动保存后才进入文案库</span
+              ><div class="copy-result-actions"><button class="secondary-button" id="copyResultButton" type="button">
+                复制文案              </button
+              ><button class="secondary-button" id="copyExportButton" type="button">
+                导出文案库              </button>
+              ><button class="primary-button" id="copyNextStepButton" type="button" disabled>
+                下一步：媒体实验室
+              </button>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="chatView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">PROJECT COPILOT</div>
+              <h2>AI 项目助手</h2>
+              <p>围绕当前 IP 项目持续讨论策略、文案、素材、视频与发布</p>
+            </div>
+            <div class="view-heading-actions">
+              <span class="soft-badge" id="chatModelStatus">读取模型配置</span>
+              <button class="secondary-button" id="clearChatButton" type="button">新对话</button>
+            </div>
+          </div>
+          <section class="panel chat-panel">
+            <div class="chat-toolbar">
+              <label class="field chat-preset-field"><span>助手角色</span><select id="chatPresetSelect" aria-label="AI 助手角色"></select></label>
+              <div class="chat-preset-summary"><strong id="chatPresetName">内容策略顾问</strong><small id="chatPresetDescription">根据当前项目资料提供建议</small></div>
+            </div>
+            <div class="chat-message-list" id="chatMessageList" role="log" aria-live="polite" aria-label="AI 对话记录"></div>
+            <form class="chat-composer" id="chatComposer">
+              <label class="sr-only" for="chatMessageInput">发送消息</label>
+              <textarea id="chatMessageInput" rows="2" maxlength="12000" placeholder="向当前项目助手提问"></textarea>
+              <button class="primary-button chat-send-button" id="chatSendButton" type="submit" data-task-cost-kind="chat">发送</button>
+            </form>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="libraryView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">COPY LIBRARY</div>
+              <h2>文案库</h2>
+              <p>集中查看、创建和维护所有项目文案库；真实拆解不会自动进入这里</p>
+            </div>
+            <div class="view-heading-actions">
+              <span class="soft-badge" id="copyLibraryCount">0 篇文案</span>
+              <button class="primary-button" id="createCopyButton">+ 新建文案库</button>
+            </div>
+          </div>
+          <div class="asset-toolbar copy-library-toolbar">
+            <input id="copyLibrarySearchInput" placeholder="搜索当前项目的标题或正文" />
+            <select id="copyLibraryProjectFilter" aria-label="当前项目文案" disabled><option value="">当前项目</option></select>
+            <span class="toolbar-count" id="copyLibraryVisibleCount">0 篇结果</span>
+          </div>
+          <div class="copy-library-list" id="copyLibraryList"></div>
+        </section>
+
+        <section class="content-view hidden" id="mediaView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">04 / DIGITAL HUMAN</div>
+              <h2>数字人、声音与封面</h2>
+              <p>形象、声音和封面图在同一处配置并复用，口播语言在成片时选择</p>
+            </div>
+            <div class="view-heading-actions"><span class="live-badge">授权状态单独记录</span><button class="secondary-button" id="mediaNextStepButton" type="button">下一步：视频工坊</button></div>
+          </div>
+          <div class="dual-grid">
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="section-kicker">AVATAR</div>
+                  <h2>数字人形象库</h2>
+                </div>
+              </div>
+              <div class="form-grid">
+                <label class="field"
+                  ><span>形象名称</span
+                  ><input
+                    id="avatarNameInput"
+                    placeholder="填写形象名称" /></label
+                ><label class="field"
+                  ><span>数字人模</span
+                  ><select id="avatarPoseInput">
+                    <option>站立</option>
+                    <option>坐姿</option>
+                    <option>走动</option>
+                  </select></label
+                ><label class="field"
+                  ><span>呈现风格</span
+                  ><select id="avatarStyleInput">
+                    <option>自然口播</option>
+                    <option>专业讲解</option>
+                    <option>影视质感</option>
+                  </select></label
+                ><label class="field hidden" aria-hidden="true"
+                  ><span>授权状态</span
+                  ><select id="avatarConsentInput"><option value="yes" selected>本人已授权</option></select></label
+                ><label class="field field-span-2"
+                  ><span>参考视</span
+                  ><select id="avatarVideoAssetInput"></select
+                  ><small class="field-hint"
+                    >默认按“本人已授权”处理。请确认你拥有形象、肖像及相关素材的合法使用权；侵权或其他权利纠纷由上传者自行承担，平台仅提供技术服务。</small
+                  ></label
+              </div>
+              <p class="field-hint media-consent-note avatar-consent-note">形象创建默认按“本人已授权”处理。请确认你拥有形象、肖像及参考素材的合法使用权；因侵权或其他权利纠纷产生的责任由上传者承担。</p>
+              <button class="primary-button full" id="avatarCreateButton" data-task-cost-kind="avatar_create">
+                仅创建形象              </button>
+              <div class="mini-list" id="avatarList"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="section-kicker">VOICE CLONE</div>
+                  <h2>声音克隆</h2>
+                </div>
+              </div>
+              <div class="form-grid">
+                <label class="field"
+                  ><span>音色名称</span
+                  ><input
+                    id="voiceNameInput"
+                    placeholder="填写音色名称" /></label
+                ><label class="field"
+                  ><span>情绪表达</span
+                  ><select id="voiceEmotionInput">
+                    <option>自然</option>
+                    <option>专业</option>
+                    <option>有感染力</option>
+                    <option>平静</option>
+                  </select></label
+                ><label class="field field-span-2"
+                  ><span>素材库声音样</span
+                  ><select id="voiceAudioAssetInput"></select></label
+                ><label class="field field-span-2"
+                  ><span>外部声音样本（可选）</span
+                  ><input
+                    id="voiceSampleInput"
+                    placeholder="也可填写本机路径或可直接访问的文件地址"
+                /></label>
+                <p class="field-hint media-consent-note">创建音色即表示你已确认拥有声音样本及声音使用授权；未经授权的声音、肖像或身份使用可能产生侵权责任，由使用者自行承担。</p>
+              </div>
+              <label class="check-row hidden" aria-hidden="true"
+                ><input id="voiceConsentInput" type="checkbox" checked />
+                我确认拥有该声音的使用授权</label
+              ><button class="primary-button full" id="voiceButton" data-task-cost-kind="voice_clone">
+                仅克隆并保存声音
+              </button>
+              <div class="mini-list" id="voiceList"></div>
+            </section>
+          </div>
+          <section class="panel image-studio-panel">
+            <div class="panel-header">
+              <div>
+                <div class="section-kicker">IMAGE STUDIO</div>
+                <h2>文生图 / 封面与配图</h2>
+              </div>
+            </div>
+            <div class="image-form-row">
+              <input
+                id="imagePromptInput"
+                placeholder="描述要真实生成的封面或配图" /><select id="imageStyleInput">
+                <option>真实商业</option>
+                <option>杂志编辑</option>
+                <option>轻松生活</option>
+                <option>极简产品</option></select
+              ><select id="imageAspectRatioInput" aria-label="image aspect ratio">
+                <option value="1:1">1:1</option>
+                <option value="9:16">9:16</option>
+                <option value="16:9">16:9</option>
+                <option value="3:4">3:4</option>
+                <option value="4:3">4:3</option>
+                <option value="3:2">3:2</option>
+                <option value="2:3">2:3</option></select
+              ><button class="primary-button small" id="imageButton" data-task-cost-kind="image">
+                生成配图
+              </button>
+            </div>
+            <div class="image-reference-section">
+              <div class="image-reference-heading">
+                <div><strong>参考图</strong><small id="imageReferenceSummary">未选择 · 最多 4 张</small></div>
+                <button class="secondary-button small" type="button" id="imageReferenceUploadButton">上传参考图</button>
+                <input id="imageReferenceUploadInput" type="file" accept="image/*" multiple hidden />
+              </div>
+              <div class="image-reference-picker" id="imageReferencePicker"></div>
+            </div>
+            <div class="cover-frame-row">
+              <select id="coverFrameSourceInput"></select>
+              <label><span>时间点（秒）</span><input id="coverFrameTimeInput" type="number" min="0" step="0.1" value="0" /></label>
+              <button class="secondary-button" id="coverFrameButton">截取视频封面</button>
+            </div>
+            <div class="image-output-grid" id="imageOutputGrid"></div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="assetsView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">05 / ASSET LIBRARY</div>
+              <h2>素材库</h2>
+              <p>
+                产品、场景、案例、人物和生活素材库统一管理，后续可被模板自动调用              </p>
+            </div>
+            <div class="view-heading-actions asset-upload-actions">
+              <label class="asset-upload-category"><span>本批视频分类</span><select id="assetUploadCategoryInput" aria-label="本批上传视频的剪辑分类"><option>自动识别</option></select></label>
+              <button class="secondary-button" id="manageAssetCategoriesButton" type="button">管理分类</button>
+              <button class="primary-button" id="assetUploadButton" data-task-cost-kind="asset_upload" data-task-cost-unit="条">+ 添加素材库</button>
+            </div><input
+              id="assetFileInput"
+              type="file"
+              hidden
+              multiple
+              accept="image/*,video/*,audio/*"
+            />
+          </div>
+          <div class="asset-toolbar">
+            <input
+              id="assetSearchInput"
+              placeholder="搜索素材库名称或标签" /><select id="assetMediaTypeFilter" aria-label="按媒体类型筛选素材">
+              <option value="all">全部媒体</option>
+              <option value="video">视频</option>
+              <option value="audio">音频</option>
+              <option value="image">图片</option>
+              <option value="file">其他</option></select><select id="assetKindFilter" aria-label="按素材分类筛选素材"><option value="全部类型">全部分类</option></select
+            ><span class="toolbar-count" id="assetToolbarCount">00 个素材</span>
+          </div>
+          <p class="field-hint asset-upload-consent-note">上传素材即表示你已确认拥有相应使用权或已取得必要授权；因侵权、肖像权或其他权利纠纷产生的责任由上传者承担，平台仅提供存储与处理服务。</p>
+          <div class="asset-grid" id="assetGrid"></div>
+        </section>
+
+        <section class="content-view hidden" id="renderView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">06 / VIDEO WORKSHOP</div>
+              <h2>视频工坊</h2>
+              <p>素材库剪辑、数字人素材与纯口播</p>
+            </div>
+          </div>
+          <section class="jianying-root-bar" id="jianyingRootBar" aria-label="网页剪映草稿目录">
+            <div class="jianying-root-copy">
+              <span class="section-kicker">BROWSER JIANYING</span>
+              <strong>网页导入剪映</strong>
+              <small id="jianyingDirectoryStatus">尚未选择剪映草稿目录</small>
+            </div>
+            <div class="jianying-root-controls">
+              <button class="primary-button" id="selectJianyingDirectoryButton" type="button">选择剪映草稿目录</button>
+              <button class="secondary-button hidden" id="forgetJianyingDirectoryButton" type="button">清除授权</button>
+            </div>
+            <small class="jianying-browser-note" id="jianyingBrowserNote">无需安装软件。请在剪映设置中把草稿位置改到普通文件夹，再选择同一个目录；写入完成后完全退出并重新打开剪映。</small>
+          </section>
+          <div class="production-mode-switcher" role="tablist" aria-label="视频制作类型">
+            <button class="production-mode-tab active" id="clipProductionTab" type="button" role="tab" aria-selected="true" aria-controls="clipProductionPanel" data-production-mode="clip">
+              <span class="production-mode-symbol" data-icon="✂" aria-hidden="true"></span>
+              <span><strong>素材库剪辑</strong><small>视频片段、配音与字幕</small></span>
+            </button>
+            <button class="production-mode-tab" id="digitalProductionTab" type="button" role="tab" aria-selected="false" aria-controls="digitalProductionPanel" data-production-mode="digital">
+              <span class="production-mode-symbol" data-icon="◎" aria-hidden="true"></span>
+              <span><strong>数字人素材</strong><small>用于后续混剪的数字人成片</small></span>
+            </button>
+            <button class="production-mode-tab" id="talkingPhotoTab" type="button" role="tab" aria-selected="false" aria-controls="talkingPhotoPanel" data-production-mode="talking-photo">
+              <span class="production-mode-symbol" data-icon="▶" aria-hidden="true"></span>
+              <span><strong>数字人口播</strong><small>一张人物图片直接生成口播</small></span>
+            </button>
+          </div>
+
+          <div class="production-mode-panel" id="clipProductionPanel" role="tabpanel" aria-labelledby="clipProductionTab" data-production-panel="clip">
+            <div class="production-panel-heading">
+              <div><div class="section-kicker">MATERIAL EDIT</div><h2>素材库剪辑成片</h2></div>
+            </div>
+            <section class="panel render-settings">
+              <div class="template-grid extended" id="templateGrid" aria-label="视频剪辑模板"></div>
+              <div class="settings-row">
+                <div class="field render-asset-field"
+                  ><span id="renderAssetLabel">主视频</span
+                  ><div class="render-asset-picker" id="renderAssetPicker"></div
+                  ><small class="field-hint" id="renderAssetSummary">选择 1 条主视频，其余素材从当前项目素材库自动匹配</small></div
+                ><label class="field hidden" aria-hidden="true"
+                  ><span>视频模板</span
+                  ><select id="renderTemplateInput" tabindex="-1"></select></label
+                ><label class="field"
+                  ><span>画幅</span
+                  ><select id="renderRatioInput">
+                    <option>9:16</option>
+                    <option>1:1</option>
+                    <option>3:4</option>
+                    <option>16:9</option>
+                  </select></label
+                ><label class="field background-music-field"
+                  ><span>背景音乐</span
+                  ><div class="background-music-picker-row"><select id="renderBackgroundMusicLibraryInput" aria-label="背景音乐来源"><option value="system">系统音乐库</option><option value="user">我的音乐库</option></select><button class="secondary-button small-button" id="uploadBackgroundMusicButton" type="button" data-task-cost-kind="background_music_upload" data-task-cost-unit="条">上传音乐</button><input id="backgroundMusicFileInput" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.opus,.flac" hidden /></div><select id="renderBackgroundMusicInput">
+                    <option value="">不添加背景音乐</option>
+                  </select
+                  ><small class="field-hint" id="renderBackgroundMusicHint">系统音乐由平台提供；我的音乐仅当前账号可见。上传前请确认你拥有使用授权，侵权责任由上传者承担。</small></label
+                ><label class="field background-music-volume-field is-disabled" id="renderBackgroundMusicVolumeField"
+                  ><span>背景音乐响度 <strong id="renderBackgroundMusicVolumeValue">18%</strong></span
+                  ><input id="renderBackgroundMusicVolumeInput" type="range" min="0" max="100" step="1" value="18" disabled />
+                  <small class="field-hint">只调整背景音乐，不改变原视频人声</small></label
+                ><label class="field hidden" id="renderModeField"
+                  ><span>呈现组合</span
+                  ><select id="renderModeInput">
+                    <option>多素材库顺序拼接</option>
+                  </select></label
+                ><label class="field template-extra template-extra-vlog"
+                  ><span>素材开始时间</span
+                  ><input id="renderMaterialStartInput" type="number" min="0" max="600" step="0.1" value="5" />
+                  <small class="field-hint">此前保留主视频画面，之后由素材连续覆盖</small></label
+                ><label class="field template-extra template-extra-vlog"
+                  ><span>保留视频结尾</span
+                  ><input id="renderSourceTailInput" type="number" min="0" max="600" step="0.1" value="0" />
+                  <small class="field-hint">结尾恢复主视频画面的秒数</small></label
+                ><label class="field template-extra template-extra-vlog"
+                  ><span>高清处理</span
+                  ><span class="check-row"><input id="renderHdFilterInput" type="checkbox" checked />增强对比、锐度与清晰度</span></label
+                ><label class="field template-extra template-extra-vlog"
+                  ><span>AI 字幕</span
+                  ><span class="check-row"><input id="renderSubtitleEmphasisInput" type="checkbox" checked />自动匹配时间线并高亮重点词</span></label
+                ><label class="field template-extra template-extra-talking-head hidden"
+                  ><span>字间停顿阈值</span
+                  ><input id="renderGapThresholdInput" type="range" min="0.05" max="2" step="0.01" value="0.10" />
+                  <small class="field-hint"><strong id="renderGapThresholdValue">0.10 秒</strong>以上识别为气口</small></label
+                ><label class="field template-extra template-extra-talking-head hidden"
+                  ><span>保留边距</span
+                  ><input id="renderGapPaddingInput" type="range" min="0" max="0.5" step="0.01" value="0.02" />
+                  <small class="field-hint">气口两端各保留 <strong id="renderGapPaddingValue">0.02 秒</strong></small></label
+                ><label class="field template-extra template-extra-vlog"
+                  id="renderAudioAssetField"
+                  ><span>配音</span
+                  ><select id="renderAudioAssetInput"></select
+                  ><small class="field-hint">可用素材中的真实音频替换原视频音轨</small></label
+                ><label class="field field-span-2 template-extra template-extra-vlog video-script-field"
+                  id="renderSubtitleField"
+                  ><span>字幕文案</span
+                  ><textarea id="renderSubtitleInput" rows="4" placeholder="可选；留空时优先识别主视频语音并自动生成字幕"></textarea></label
+                >
+              </div>
+              <div class="production-submit-row">
+                <button class="primary-button" id="renderButton" data-task-cost-kind="video" data-task-cost-unit="分钟">生成素材视频</button>
+              </div>
+            </section>
+          </div>
+
+          <div class="production-mode-panel hidden" id="digitalProductionPanel" role="tabpanel" aria-labelledby="digitalProductionTab" data-production-panel="digital">
+            <div class="production-panel-heading">
+              <div><div class="section-kicker">DIGITAL HUMAN ASSET</div><h2>数字人素材成片</h2></div>
+            </div>
+            <section class="panel digital-render-panel">
+              <div class="digital-render-grid">
+                <div class="digital-render-column">
+                  <div class="form-section-heading"><span>01</span><strong>形象与声音</strong></div>
+                  <div class="form-grid">
+                    <label class="field"><span>已保存形象</span><select id="digitalAvatarSelect"></select></label>
+                    <label class="field"><span>已保存声音</span><select id="digitalVoiceSelect"></select></label>
+                    <label class="field"><span>口播语言</span><select id="digitalRenderLanguageInput"><option value="zh-CN">普通话</option></select><small class="field-hint" id="digitalLanguageHint">其他语言会先生成目标语言口播稿，再合成为口播音频</small></label>
+                    <label class="field hidden" aria-hidden="true"><span>授权状态</span><select id="digitalConsentInput"><option value="yes" selected>本人已授权</option></select></label>
+                  </div>
+                </div>
+                <div class="digital-render-column">
+                  <div class="form-section-heading"><span>02</span><strong>口播内容</strong></div>
+                  <div class="form-grid">
+                    <label class="field field-span-2 video-script-field"><span>口播文案</span><textarea id="digitalScriptInput" rows="6" placeholder="输入数字人要讲述的内容"></textarea></label>
+                    <label class="field field-span-2"><span>真实驱动音频（可选）</span><select id="digitalAudioAssetInput"></select><small class="field-hint">选择音频时可不填写口播文案</small></label>
+                    <label class="field field-span-2"><span>成片名称</span><input id="digitalRenderNameInput" placeholder="例如：产品介绍口播" /></label>
+                  <label class="check-row field-span-2 digital-auto-subtitle-toggle"><input id="digitalAutoSubtitleInput" type="checkbox" checked />自动匹配字幕<small class="field-hint">根据口播文案生成并匹配字幕时间线；优先复用素材或历史文案，没有文案时再尝试语音识别</small></label>
+                  </div>
+                </div>
+              </div>
+              <div class="production-submit-row">
+                <button class="primary-button" id="digitalHumanButton" data-task-cost-kind="digital_human">生成数字人素材</button>
+              </div>
+            </section>
+          </div>
+
+          <div class="production-mode-panel hidden" id="talkingPhotoPanel" role="tabpanel" aria-labelledby="talkingPhotoTab" data-production-panel="talking-photo">
+            <div class="production-panel-heading">
+              <div><div class="section-kicker">TALKING PORTRAIT</div><h2>数字人口播成片</h2><p>上传或选择一张人物图片，填写文案后生成带口型、表情和自然肢体动作的纯口播视频。</p></div>
+            </div>
+            <section class="panel digital-render-panel talking-photo-panel">
+              <div class="digital-render-grid">
+                <div class="digital-render-column">
+                  <div class="form-section-heading"><span>01</span><strong>人物图片</strong></div>
+                  <div class="form-grid">
+                    <label class="field field-span-2"><span>当前项目图片</span><select id="talkingPhotoImageSelect"></select><small class="field-hint">建议使用正面、清晰、包含上半身和手部的人物图片，动作效果会更自然。</small></label>
+                    <div class="field field-span-2 talking-photo-upload-field"><span>添加人物图片</span><button class="secondary-button" id="talkingPhotoUploadButton" type="button" data-task-cost-kind="asset_upload" data-task-cost-unit="条">上传图片</button><input id="talkingPhotoUploadInput" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" hidden /><small class="field-hint">支持 JPG、PNG。上传后仅进入当前项目素材库，并自动选中。</small></div>
+                    <label class="field field-span-2"><span>成片画幅</span><select id="talkingPhotoAspectRatioInput"><option value="9:16">9:16 竖屏</option><option value="16:9">16:9 横屏</option><option value="3:4">3:4 竖图</option><option value="4:3">4:3 横图</option><option value="1:1">1:1 方形</option><option value="4:5">4:5 竖图</option><option value="5:4">5:4 横图</option><option value="auto">跟随原图</option></select><small class="field-hint">常用画幅且口播较短时自动启用更自然的上半身动作，长口播自动切换稳定模式。</small></label>
+                  </div>
+                </div>
+                <div class="digital-render-column">
+                  <div id="talkingPhotoVoiceSetup">
+                    <div class="form-section-heading"><span>02</span><strong>选择声音</strong></div>
+                    <div class="form-grid talking-photo-voice-form">
+                      <label class="field field-span-2"><span>媒体实验室声音</span><select id="talkingPhotoVoiceSelect"><option value="">请先到媒体实验室复刻声音</option></select><small class="field-hint">直接复用当前账号在媒体实验室保存的声音，无需重复上传或再次复刻。</small></label>
+                      <div class="field field-span-2 talking-photo-selected-voice-preview"><span>试听当前音色</span><audio class="voice-preview" id="talkingPhotoVoicePreview" controls preload="metadata" hidden></audio><small class="field-hint" id="talkingPhotoVoicePreviewHint">选择口播音色后可直接试听。</small></div>
+                    </div>
+                  </div>
+                  <p class="rights-notice hidden" id="talkingPhotoSystemVoiceNotice">当前口播通道使用系统语音，无需单独复刻或选择音色。</p>
+                  <div class="form-section-heading talking-photo-content-heading"><span id="talkingPhotoContentStep">03</span><strong>口播内容</strong></div>
+                  <div class="form-grid">
+                    <label class="field field-span-2 video-script-field"><span>口播文案</span><textarea id="talkingPhotoScriptInput" rows="7" maxlength="5000" placeholder="输入图片中的人物要讲述的内容"></textarea><small class="field-hint">最多 5000 个字符，系统会自动生成语音并匹配人物口型和动作。</small></label>
+                    <label class="field field-span-2"><span>成片名称</span><input id="talkingPhotoNameInput" maxlength="120" placeholder="例如：新品介绍口播" /></label>
+                  </div>
+                </div>
+              </div>
+              <p class="rights-notice">上传人物图片、选择声音并生成视频即表示你已确认拥有相关肖像、声音和文案的使用权，或已取得必要授权；因未经授权使用引发的责任由使用者承担。</p>
+              <div class="production-submit-row">
+                <button class="primary-button" id="talkingPhotoButton" data-task-cost-kind="talking_photo">生成数字人口播</button>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel output-panel">
+            <div class="panel-header">
+              <div>
+                <div class="section-kicker">OUTPUTS</div>
+                <h2 id="outputPanelTitle">素材库视频结果</h2>
+              </div>
+            </div>
+            <div class="output-list" id="outputList"></div>
+            <div class="guided-next-row">
+              <button class="secondary-button" id="renderNextStepButton" type="button" disabled>下一步：账号发布</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="publishView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">07 / ACCOUNT PUBLISH</div>
+              <h2>账号发布</h2>
+              <p>选择真实成片并发布到已扫码授权的平台；验证码、风控或平台确认会保留为待人工处理</p>
+            </div>
+            <button class="secondary-button" data-go="account">管理平台授权</button>
+          </div>
+          <section class="panel publish-composer">
+            <label class="field publish-source-field"><span>选择真实成片</span><select id="publishSourceOutputSelect"></select><small class="field-hint">清单将记录这个成片的真实访问地址和平台适配参数</small></label>
+            <div class="form-grid publish-fields">
+              <label class="field field-span-2"><span>发布标题</span><input id="publishTitleInput" maxlength="100" placeholder="填写平台发布标题" /></label>
+              <label class="field field-span-2"><span>话题标签</span><input id="publishTagsInput" placeholder="多个标签用逗号分隔" /><small class="field-hint">最多取前 10 个标签，不需要输入 #</small></label>
+              <label class="field"><span>发布封面</span><select id="publishCoverAssetSelect"><option value="">由平台或发布服务自动截取</option></select></label>
+              <label class="field hidden" id="publishScheduleField"><span>定时发布时间</span><input id="publishScheduleInput" type="datetime-local" /><small class="field-hint">必须晚于当前时间 2 小时</small></label>
+            </div>
+            <div class="publish-mode-group" aria-label="发布方式">
+              <label class="publish-mode-option selected"><input type="radio" name="publishMode" value="immediate" checked /><strong>立即发布</strong><small>完成上传后直接提交</small></label>
+              <label class="publish-mode-option"><input type="radio" name="publishMode" value="draft" /><strong>保存草稿</strong><small>B站和百家号不支持</small></label>
+              <label class="publish-mode-option"><input type="radio" name="publishMode" value="scheduled" /><strong>定时发布</strong><small>提前至少 2 小时</small></label>
+            </div>
+            <div class="publish-section-heading"><div><strong>目标平台</strong><small id="publishPlatformSummary">读取授权状态中</small></div><button class="quiet-button" type="button" id="refreshPublishConnectionsButton">刷新状态</button></div>
+            <div class="platform-grid publish-platform-grid" id="publishPlatformGrid"></div>
+            <div class="publish-submit-row">
+              <button class="secondary-button" id="publishPackageButton" data-task-cost-kind="publish">生成发布包</button>
+              <button class="primary-button" id="platformPublishButton" data-task-cost-kind="platform_publish">一键发布</button>
+            </div>
+            <p class="field-hint publish-risk-hint">自动发布使用当前账号独立保存的授权状态并由服务器执行。登录过期、验证码、二次验证、风控或页面改版时，结果会逐平台显示为失败或待人工处理</p>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="section-kicker">PUBLICATION RESULTS</div>
+                <h2>自动发布记录</h2>
+              </div>
+              <span class="soft-badge" id="publishAttemptCount">0 次发布</span>
+            </div>
+            <div class="publish-attempt-list" id="publishAttemptList"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="section-kicker">PACKAGES</div>
+                <h2>发布参数清单</h2>
+              </div>
+              <span class="soft-badge blue">JSON 可导出</span>
+            </div>
+            <div class="publish-list" id="publishList"></div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="accountView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">08 / ACCOUNT & TEAM</div>
+              <h2>账号与团队</h2>
+              <p>企业成员使用共享企业算力；成员上限只限制累计可用额度，不会增加企业算力</p>
+            </div>
+            <span class="live-badge" id="accountModeBadge">个人账号</span>
+          </div>
+          <div class="dual-grid">
+            <section class="panel">
+              <div class="panel-header"><div><div class="section-kicker">ENTERPRISE WORKSPACE</div><h2>企业工作空间</h2></div><button class="quiet-button" id="saveOrganizationButton">保存设置</button></div>
+              <div id="organizationEmpty" class="empty-state">个人用户无法开通或加入团队空间</div>
+              <div id="organizationContent" class="hidden">
+                <div class="form-grid">
+                  <label class="field field-span-2"><span>企业名称</span><input id="organizationNameInput" placeholder="填写企业或团队名" /></label>
+                  <label class="field"><span>席位数量</span><input id="organizationSeatsInput" min="1" type="number" /></label>
+                  <label class="field"><span>企业总算力</span><input id="organizationQuotaInput" type="number" readonly /></label>
+                </div>
+                <div class="team-summary" id="teamSummary"></div>
+              </div>
+              <button class="primary-button full hidden" id="createOrganizationButton">初始化企业工作空间</button>
+            </section>
+            <section class="panel">
+              <div class="panel-header"><div><div class="section-kicker">PLATFORM ACCOUNTS</div><h2>平台账号授权</h2></div><button class="quiet-button" id="refreshPlatformConnectionsButton">刷新状态</button></div>
+              <p class="field-hint platform-login-note">每个辰思AI账号独立保存自己的平台登录态。授权二维码会直接显示在当前网页，扫码确认后由服务器处理发布，无需操作服务器浏览器</p>
+              <div class="connection-list" id="platformConnectionList"></div>
+            </section>
+          </div>
+          <section class="panel" id="teamMembersPanel">
+            <div class="panel-header"><div><div class="section-kicker">SEATS & PERMISSIONS</div><h2>成员席位与权限</h2></div></div>
+            <div class="team-member-form" role="group" aria-label="添加团队成员">
+              <label class="team-member-form-field"><span>成员姓名</span><input id="teamMemberNameInput" aria-label="成员姓名" autocomplete="off" placeholder="输入成员姓名" /></label>
+              <label class="team-member-form-field team-member-account-field"><span>登录账号</span><input id="teamMemberAccountInput" aria-label="成员登录账号" autocomplete="off" placeholder="输入成员登录账号" /></label>
+              <label class="team-member-form-field"><span>初始密码</span><input id="teamMemberPasswordInput" aria-label="成员初始密码" type="password" minlength="8" autocomplete="new-password" placeholder="至少 8 位" /></label>
+              <label class="team-member-form-field"><span>企业算力累计使用上限</span><input id="teamMemberQuotaInput" aria-label="成员企业算力累计使用上限" type="number" min="1" placeholder="例如 1000" /></label>
+              <fieldset class="permission-picker team-member-permission-field"><legend>初始权限</legend><label><input type="checkbox" value="创作" checked />创作</label><label><input type="checkbox" value="素材" checked />素材库</label><label><input type="checkbox" value="发布" checked />发布</label></fieldset>
+              <button class="primary-button" id="addTeamMemberButton" type="button">添加成员</button>
+            </div>
+            <div class="team-member-list-header" aria-hidden="true"><span class="team-member-column">成员</span><span>累计使用上限</span><span>开放权限</span><span class="team-member-action-column">操作</span></div>
+            <div class="team-member-list" id="teamMemberList"></div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="supportView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">09 / SUPPORT & BENEFITS</div>
+              <h2>工单与权益</h2>
+              <p>提交使用问题、查看处理进度，或使用卡密兑换算力</p>
+            </div>
+            <span class="soft-badge blue" id="accountPointsBadge">0 算力</span>
+          </div>
+          <div class="dual-grid">
+            <section class="panel">
+              <div class="panel-header"><div><div class="section-kicker">SUPPORT TICKET</div><h2>提交工单</h2></div></div>
+              <div class="form-grid"><label class="field"><span>问题类型</span><select id="ticketCategoryInput"><option>账号与权限</option><option>创作与生成</option><option>素材库与成片</option><option>发布与平台</option><option>其他</option></select></label><label class="field"><span>工单标题</span><input id="ticketSubjectInput" placeholder="简要描述问题" /></label><label class="field field-span-2"><span>问题描述</span><textarea id="ticketMessageInput" rows="5" placeholder="描述问题现象、发生时间与期望结果"></textarea></label></div>
+              <button class="primary-button" id="createTicketButton">提交工单</button>
+            </section>
+            <section class="panel">
+              <div class="panel-header"><div><div class="section-kicker">REDEEM</div><h2>卡密兑换</h2></div></div>
+              <div class="redeem-box"><input id="couponCodeInput" placeholder="输入卡密" /><button class="primary-button" id="redeemCouponButton">兑换权益</button></div>
+              <p class="field-hint" id="couponRedeemHint">只有管理员调整或卡密兑换会增加算力；成员使用上限不会充值</p>
+            </section>
+          </div>
+          <section class="panel"><div class="panel-header"><div><div class="section-kicker">TICKET HISTORY</div><h2>我的工单</h2></div></div><div class="ticket-list" id="ticketList"></div></section>
+        </section>
+
+        <section class="content-view hidden" id="templatesView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">08 / WISH LIST</div>
+              <h2>许愿清单</h2>
+              <p>提交希望新增或优化的功能，由后台评估并跟进功能方案与交付要求</p>
+            </div>
+            <span class="live-badge">功能建议</span>
+          </div>
+          <section class="panel">
+            <div class="form-grid custom-template-form">
+              <label class="field"
+                ><span>功能名称</span
+                ><input
+                  id="customTemplateNameInput"
+                  placeholder="填写希望新增或优化的功能" /></label
+              ><label class="field"
+                ><span>联系方式</span
+                ><input
+                  id="customTemplateContactInput"
+                  autocomplete="tel"
+                  placeholder="填写手机号、微信或邮箱" /></label
+              ><label class="field field-span-2"><span>功能效果与交付要求</span><textarea id="customTemplateRequirementInput" rows="4" placeholder="说明使用场景、期望实现的效果和交付要求"></textarea></label>
+            </div>
+            <button class="primary-button" id="customTemplateButton">
+              提交建议            </button>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="section-kicker">REQUEST RECORDS</div>
+                <h2>功能建议记录</h2>
+              </div>
+            </div>
+            <div class="custom-template-list" id="customTemplateList"></div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="historyView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">TASK HISTORY</div>
+              <h2>生成记录</h2>
+              <p>查看图片、视频、数字人与发布任务的处理状态和失败原因</p>
+            </div>
+          </div>
+          <div class="history-list full" id="historyList"></div>
+        </section>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+    <div class="modal-backdrop hidden" id="projectModal" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle" aria-hidden="true">
+      <div class="modal">
+        <div class="modal-header">
+          <div>
+            <div class="section-kicker">NEW PROJECT</div>
+            <h2 id="projectModalTitle">创建内容项目</h2>
+          </div>
+          <button class="icon-button" id="closeModal" data-dialog-close aria-label="关闭创建项目">×</button>
+        </div>
+        <label class="field"
+          ><span>项目名称</span
+          ><input id="newProjectName" placeholder="填写项目名称" /></label
+        ><label class="field"
+          ><span>行业</span
+          ><input id="newProjectIndustry" placeholder="填写实际行业" /></label
+        ><label class="field"
+          ><span>目标</span
+          ><select id="newProjectPurpose">
+            <option>获客</option>
+            <option>种草</option>
+            <option>招商</option>
+            <option>品牌宣传</option>
+          </select></label
+        ><button class="primary-button full" id="createProjectButton">
+          创建并进入项目        </button>
+      </div>
+    </div>
+    <div class="modal-backdrop hidden" id="copyLibraryModal" role="dialog" aria-modal="true" aria-labelledby="copyLibraryModalTitle" aria-hidden="true">
+      <form class="modal copy-library-editor-modal" id="copyLibraryForm">
+        <div class="modal-header">
+          <div>
+            <div class="section-kicker">COPY EDITOR</div>
+            <h2 id="copyLibraryModalTitle">新建文案库</h2>
+          </div>
+          <button class="icon-button" id="closeCopyLibraryModal" data-dialog-close type="button" aria-label="关闭文案库编辑">×</button>
+        </div>
+        <div class="form-grid">
+          <label class="field"><span>所属项目</span><select id="copyLibraryProjectInput" required></select></label>
+          <label class="field"><span>文案类型</span><select id="copyLibraryModeInput"><option value="standard">标准口播</option><option value="qa">问答脚本</option></select></label>
+          <label class="field field-span-2"><span>文案标题</span><input id="copyLibraryTitleInput" maxlength="120" placeholder="填写便于检索的文案标题" required /></label>
+          <label class="field field-span-2"><span>正文内容</span><textarea id="copyLibraryTextInput" rows="12" maxlength="20000" placeholder="填写完整文案；问答脚本建议每行一句" required></textarea></label>
+        </div>
+        <div class="modal-actions">
+          <button class="secondary-button" id="cancelCopyLibraryModal" type="button">取消</button>
+          <button class="primary-button" id="saveCopyLibraryButton" type="submit">保存文案库</button>
+        </div>
+      </form>
+    </div>
+    <div
+      class="modal-backdrop hidden"
+      id="assetPreviewModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="assetPreviewTitle"
+      aria-hidden="true"
+    >
+      <div class="modal asset-preview-modal">
+        <div class="modal-header">
+          <div>
+            <div class="section-kicker">ASSET PREVIEW</div>
+            <h2 id="assetPreviewTitle">素材库预览</h2>
+          </div>
+          <button
+            class="icon-button"
+            id="closeAssetPreview"
+            data-dialog-close
+            aria-label="关闭预览"
+          >
+            ×
+          </button>
+        </div>
+        <div class="asset-preview-body" id="assetPreviewBody"></div>
+        <div class="asset-preview-meta" id="assetPreviewMeta"></div>
+      </div>
+    </div>
+    <div
+      class="modal-backdrop hidden"
+      id="assetCategoryModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="assetCategoryModalTitle"
+      aria-hidden="true"
+    >
+      <div class="modal asset-category-modal">
+        <div class="modal-header">
+          <div>
+            <div class="section-kicker">AUTO EDIT CATEGORY</div>
+            <h2 id="assetCategoryModalTitle">调整素材分类</h2>
+            <p id="assetCategoryName"></p>
+          </div>
+          <button class="icon-button" id="closeAssetCategoryModal" data-dialog-close type="button" aria-label="关闭素材分类">×</button>
+        </div>
+        <label class="field"><span>AI 剪辑分类</span><select id="assetCategorySelect"></select></label>
+        <label class="field"><span>新建自定义分类（可选）</span><input id="assetNewCategoryInput" maxlength="64" placeholder="例如：工厂生产、产品细节、客户案例" /></label>
+        <div class="modal-actions">
+          <button class="secondary-button" id="cancelAssetCategoryButton" type="button">取消</button>
+          <button class="primary-button" id="saveAssetCategoryButton" type="button">保存分类</button>
+        </div>
+      </div>
+    </div>
+    <div
+      class="modal-backdrop hidden"
+      id="assetCategoryManagerModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="assetCategoryManagerTitle"
+      aria-hidden="true"
+    >
+      <div class="modal asset-category-manager-modal">
+        <div class="modal-header">
+          <div>
+            <div class="section-kicker">PROJECT CATEGORIES</div>
+            <h2 id="assetCategoryManagerTitle">素材分类管理</h2>
+            <p>分类仅属于当前项目，AI 剪辑会先匹配分类，再从分类内选择未使用素材。</p>
+          </div>
+          <button class="icon-button" id="closeAssetCategoryManager" data-dialog-close type="button" aria-label="关闭分类管理">×</button>
+        </div>
+        <form class="asset-category-create" id="assetCategoryCreateForm">
+          <input id="assetCategoryNameInput" maxlength="64" placeholder="输入自定义分类名称" aria-label="自定义分类名称" />
+          <button class="primary-button" id="createAssetCategoryButton" type="submit">新增分类</button>
+        </form>
+        <div class="asset-category-manager-actions">
+          <button class="secondary-button" id="organizeAssetCategoriesButton" type="button">按文件名批量整理</button>
+          <small>名称末尾编号相同的一组视频会归入同一个分类，不会处理生成成片。</small>
+        </div>
+        <div class="asset-category-list" id="assetCategoryList"></div>
+        <div class="modal-actions">
+          <button class="secondary-button" id="doneAssetCategoryManager" type="button">完成</button>
+        </div>
+      </div>
+    </div>
+    <div
+      class="modal-backdrop hidden"
+      id="assetPickerModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="assetPickerModalTitle"
+      aria-hidden="true"
+    >
+      <div class="modal asset-picker-modal">
+        <div class="modal-header">
+          <div>
+            <div class="section-kicker">PROJECT ASSETS</div>
+            <h2 id="assetPickerModalTitle">选择素材</h2>
+            <p class="asset-picker-modal-hint" id="assetPickerModalHint">按需选择当前项目素材</p>
+          </div>
+          <button class="icon-button" id="closeAssetPicker" data-dialog-close type="button" aria-label="关闭素材选择">×</button>
+        </div>
+        <div class="asset-picker-body" id="assetPickerBody" tabindex="-1"></div>
+        <div class="modal-actions">
+          <button class="secondary-button" id="cancelAssetPicker" type="button">取消</button>
+          <button class="primary-button" id="assetPickerConfirmButton" type="button">确认选择</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-backdrop hidden" id="platformAuthModal" role="dialog" aria-modal="true" aria-labelledby="platformAuthTitle" aria-hidden="true">
+      <div class="modal platform-auth-modal">
+        <div class="modal-header">
+          <div>
+            <div class="section-kicker">PLATFORM AUTHORIZATION</div>
+            <h2 id="platformAuthTitle">平台扫码授权</h2>
+          </div>
+          <button class="icon-button" id="closePlatformAuthModal" data-dialog-cancel type="button" aria-label="关闭扫码授权">×</button>
+        </div>
+        <div class="platform-auth-status" id="platformAuthStatus" data-status="preparing">
+          <span class="soft-badge blue" id="platformAuthStatusBadge">正在准备</span>
+          <div class="platform-auth-qr-frame">
+            <img class="hidden" id="platformAuthQrImage" alt="平台登录二维码" />
+            <div class="platform-auth-placeholder" id="platformAuthPlaceholder" aria-hidden="true"><span></span><small>正在获取授权二维码</small></div>
+          </div>
+          <button class="secondary-button platform-browser-open" id="openPlatformBrowserButton" type="button">打开完整登录页面</button>
+          <div class="platform-browser-panel hidden" id="platformBrowserPanel">
+            <div class="platform-browser-toolbar">
+              <button class="icon-button" id="platformBrowserBackButton" type="button" aria-label="后退" title="后退">←</button>
+              <button class="icon-button" id="platformBrowserReloadButton" type="button" aria-label="刷新页面" title="刷新页面">↻</button>
+              <span id="platformBrowserLocation">平台登录页面</span>
+            </div>
+            <div class="platform-browser-viewport" id="platformBrowserViewport" tabindex="0" role="application" aria-label="远程平台登录页面">
+              <img id="platformBrowserImage" alt="平台登录页面实时画面" draggable="false" />
+            </div>
+            <form class="platform-browser-input" id="platformBrowserInputForm">
+              <input id="platformBrowserTextInput" autocomplete="off" maxlength="512" placeholder="点击上方输入位置后，在这里输入内容" aria-label="发送文字到登录页面" />
+              <button class="primary-button" id="platformBrowserTypeButton" type="submit">发送文字</button>
+              <button class="secondary-button" id="platformBrowserEnterButton" type="button">回车</button>
+            </form>
+            <div class="platform-browser-scroll">
+              <button class="secondary-button" id="platformBrowserScrollUpButton" type="button">向上滚动</button>
+              <button class="secondary-button" id="platformBrowserScrollDownButton" type="button">向下滚动</button>
+            </div>
+          </div>
+          <div class="platform-verification-panel hidden" id="platformVerificationPanel">
+            <div class="platform-verification-methods" id="platformVerificationMethods" role="group" aria-label="选择身份验证方式"></div>
+            <p class="platform-verification-phone hidden" id="platformVerificationPhone"></p>
+            <form class="platform-verification-code hidden" id="platformVerificationCodeForm">
+              <label for="platformVerificationCodeInput">手机验证码</label>
+              <div>
+                <input id="platformVerificationCodeInput" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{4,8}" placeholder="输入 4 至 8 位验证码" />
+                <button class="primary-button" id="submitPlatformVerificationCodeButton" type="submit">确认</button>
+              </div>
+              <button class="quiet-button" id="resendPlatformVerificationCodeButton" type="button">重新发送验证码</button>
+            </form>
+          </div>
+          <strong id="platformAuthMessage" role="status" aria-live="polite">正在连接平台授权页面</strong>
+          <p id="platformAuthHint">二维码仅用于本次授权。扫码后请在手机端确认，页面会自动更新授权结果。</p>
+        </div>
+        <div class="modal-actions platform-auth-actions">
+          <button class="secondary-button hidden" id="retryPlatformAuthButton" type="button">重新获取二维码</button>
+          <button class="primary-button" id="cancelPlatformAuthButton" type="button">取消授权</button>
+        </div>
+      </div>
+    </div>
+    <script src="/runtime-config.js"></script>
+    <script src="/ui-components.js?v=20260829-perf1" type="module"></script>
+    <script src="/optical-glass.js?v=20260831-asset-picker1" type="module"></script>
+    <script src="/liquid-glass.js?v=20260830-touch-click1" type="module"></script>
+    <script src="/app.js?v=20260920-talking-photo-voice1" type="module"></script>
+    <script src="/vendor/gsap.min.js?v=20260829-perf1"></script>
+    <script src="/liquid-motion.js?v=20260829-perf2"></script>
+    <script src="/workspace-cleanup.js?v=20260829-perf1"></script>
+  </body>
+</html>

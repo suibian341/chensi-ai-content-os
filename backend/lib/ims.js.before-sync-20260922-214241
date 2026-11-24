@@ -1,0 +1,214 @@
+import { createHash, createHmac, randomUUID } from 'node:crypto';
+import { ProviderError } from '../lib/http.js';
+
+/**
+ * Aliyun ICE (IMS, 智能媒体服务) RPC client.
+ *
+ * IMS is invoked over the shared RPC style: one endpoint per region, the
+ * operation in `Action`, and ACS3-HMAC-SHA256 request signing. Reads travel in
+ * the query string, writes in a form-encoded body.
+ */
+
+const DEFAULT_VERSION = '2020-11-09';
+const DEFAULT_REGION = 'cn-shenzhen';
+
+function sha256Hex(value) {
+  return createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+function hmacSha256(key, value) {
+  return createHmac('sha256', key).update(value, 'utf8').digest();
+}
+
+/** RFC 3986 encoding, as the signing algorithm requires (spaces as %20, not +). */
+function percentEncode(value) {
+  return encodeURIComponent(String(value))
+    .replace(/\+/g, '%20')
+    .replace(/\*/g, '%2A')
+    .replace(/%7E/g, '~');
+}
+
+function endpointOf(config) {
+  return String(config.endpoint || `ice.${config.region || DEFAULT_REGION}.aliyuncs.com`)
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/+$/, '');
+}
+
+/**
+ * Sign and issue one IMS RPC call.
+ *
+ * Every value is stringified because the RPC protocol has no typed body; nested
+ * structures (Timeline, for example) are passed as JSON strings by the caller.
+ */
+async function callIms(config, action, params = {}, { method = 'GET', timeoutMs = 60_000, signal } = {}) {
+  if (!config?.accessKeyId || !config?.accessKeySecret) {
+    throw new ProviderError('IMS_NOT_CONFIGURED', 'IMS 凭据未配置', { status: 503 });
+  }
+
+  const version = config.apiVersion || DEFAULT_VERSION;
+  const host = endpointOf(config);
+  const entries = { ...params, Action: action, Version: version, Format: 'JSON' };
+  const body = method === 'POST'
+    ? Object.keys(entries).sort().map((key) => `${percentEncode(key)}=${percentEncode(entries[key])}`).join('&')
+    : '';
+
+  const canonicalQuery = method === 'GET'
+    ? Object.keys(entries).sort().map((key) => `${percentEncode(key)}=${percentEncode(entries[key])}`).join('&')
+    : '';
+
+  const hashedPayload = sha256Hex(body);
+  const date = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+
+  const headers = {
+    host,
+    'x-acs-action': action,
+    'x-acs-version': version,
+    'x-acs-date': date,
+    'x-acs-signature-nonce': randomUUID(),
+    'x-acs-content-sha256': hashedPayload,
+  };
+  if (method === 'POST') headers['content-type'] = 'application/x-www-form-urlencoded';
+
+  const signedHeaderNames = Object.keys(headers).sort();
+  const canonicalHeaders = signedHeaderNames.map((name) => `${name}:${String(headers[name]).trim()}\n`).join('');
+  const signedHeaders = signedHeaderNames.join(';');
+  const canonicalRequest = [
+    method,
+    '/',
+    canonicalQuery,
+    canonicalHeaders,
+    signedHeaders,
+    hashedPayload,
+  ].join('\n');
+
+  const stringToSign = `ACS3-HMAC-SHA256\n${sha256Hex(canonicalRequest)}`;
+  const signature = createHmac('sha256', config.accessKeySecret).update(stringToSign, 'utf8').digest('hex');
+  const authorization = `ACS3-HMAC-SHA256 Credential=${config.accessKeyId},SignedHeaders=${signedHeaders},Signature=${signature}`;
+
+  const url = `https://${host}/${canonicalQuery ? `?${canonicalQuery}` : ''}`;
+  let response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: method === 'POST'
+        ? { ...headers, authorization, 'content-length': String(Buffer.byteLength(body)) }
+        : { ...headers, authorization },
+      ...(method === 'POST' ? { body } : {}),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
+        : AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    const timedOut = error?.name === 'TimeoutError' || error?.name === 'AbortError';
+    throw new ProviderError(
+      timedOut ? 'IMS_TIMEOUT' : 'IMS_UNREACHABLE',
+      timedOut ? 'IMS 接口请求超时' : '暂时无法连接阿里云 IMS',
+      { retryable: true, details: error instanceof Error ? error.message : String(error) },
+    );
+  }
+
+  const text = await response.text();
+  let payload = null;
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    payload = null;
+  }
+
+  // ICE RPC signals failure with a TOP-LEVEL `Code`. Successful responses never
+  // carry one (job detail lives nested under MediaProducingJob, which has its own
+  // inner Code), so a top-level Code is the reliable, unambiguous failure test.
+  if (!response.ok || (payload && typeof payload.Code === 'string')) {
+    const code = payload?.Code || `IMS_HTTP_${response.status}`;
+    const message = payload?.Message || `IMS 返回 HTTP ${response.status}`;
+    throw new ProviderError(
+      code,
+      message,
+      {
+        status: response.status,
+        retryable: response.status === 429
+          || response.status >= 500
+          || code === 'Throttling.User'
+          // Media analysis is asynchronous: a freshly registered asset is not
+          // immediately editable, and IMS reports that as a plain parameter error.
+          || /is not ready/i.test(message),
+        details: payload || text.slice(0, 500),
+      },
+    );
+  }
+  return payload ?? { raw: text };
+}
+
+/**
+ * True when a submit/poll failure only means "the asset is still being analysed".
+ * Callers should retry rather than treat this as a hard failure.
+ */
+export function isMediaNotReady(error) {
+  if (!error) return false;
+  if (/is not ready/i.test(String(error.message || ''))) return true;
+  const details = error.details;
+  return Boolean(details && typeof details === 'object' && /is not ready/i.test(String(details.Message || '')));
+}
+
+export const imsCall = callIms;
+
+/** Read helpers — these are cheap and safe to call for diagnostics. */
+export const imsGetStorageList = (config, options) => callIms(config, 'GetStorageList', {}, options);
+export const imsListMediaBasicInfos = (config, params = {}, options) =>
+  callIms(config, 'ListMediaBasicInfos', params, options);
+export const imsListSmartJobs = (config, params = {}, options) =>
+  callIms(config, 'ListSmartJobs', params, options);
+
+/** Register an OSS object (or external URL) as a media asset so Timeline can reference it. */
+export function imsRegisterMediaInfo(config, { inputUrl, mediaType = 'video', title, overwrite = true, coverUrl }, options) {
+  return callIms(config, 'RegisterMediaInfo', {
+    InputURL: inputUrl,
+    MediaType: mediaType,
+    ...(title ? { Title: title } : {}),
+    ...(coverUrl ? { CoverURL: coverUrl } : {}),
+    Overwrite: String(Boolean(overwrite)),
+  }, { method: 'POST', ...options });
+}
+
+/** Submit a Timeline or template based edit; returns { JobId }. */
+export function imsSubmitMediaProducingJob(config, params, options) {
+  return callIms(config, 'SubmitMediaProducingJob', params, { method: 'POST', ...options });
+}
+
+/** Poll an edit job; returns { JobStatus, MediaId, OutputMediaUrl, ... }. */
+export function imsGetMediaProducingJob(config, jobId, options) {
+  return callIms(config, 'GetMediaProducingJob', { JobId: jobId }, options);
+}
+
+/**
+ * Read one edit job in a flat, unambiguous shape.
+ *
+ * The wire response nests everything under `MediaProducingJob` — there is no
+ * top-level Status — so callers must not read `response.Status` directly.
+ * Observed statuses: `Processing`, `Success`, `Failed`.
+ */
+export async function imsReadMediaProducingJob(config, jobId, options) {
+  const response = await callIms(config, 'GetMediaProducingJob', { JobId: jobId }, options);
+  const job = response?.MediaProducingJob || {};
+  return {
+    status: job.Status || 'Unknown',
+    message: job.Message || null,
+    code: job.Code || null,
+    mediaId: job.MediaId || null,
+    mediaUrl: job.MediaURL || null,
+    projectId: job.ProjectId || null,
+    timeline: job.Timeline || null,
+    requestId: response?.RequestId || null,
+    raw: response,
+  };
+}
+
+/** Submit an ASR (speech-to-text) job; returns { JobId }. */
+export function imsSubmitAsrJob(config, params, options) {
+  return callIms(config, 'SubmitASRJob', params, { method: 'POST', ...options });
+}
+
+/** Poll any smart-handling job (ASR included); returns { Status, Result, ... }. */
+export function imsGetSmartHandleJob(config, jobId, options) {
+  return callIms(config, 'GetSmartHandleJob', { JobId: jobId }, options);
+}

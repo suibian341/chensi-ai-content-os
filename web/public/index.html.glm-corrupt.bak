@@ -1,0 +1,189 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#eaf1ff" />
+    <meta name="description" content="杈版€滱I灏咺P妗ｆ銆佺垎娆炬媶瑙ｃ€丄I鏂囨銆佺礌鏉愩€佽棰戝埗浣滀笌璐﹀彿鍙戝竷鏁村悎涓轰竴濂楀唴瀹硅繍钀ュ伐浣滃彴銆? />
+    <title>杈版€滱I 路 鍐呭鍒涗綔涓庡叏閾捐矾杩愯惀宸ヤ綔鍙?/title>
+    <link rel="icon" type="image/png" href="/assets/brand/chensi-mark-blue.png" />
+    <link rel="preload" as="image" href="/assets/workspace-overview.png" />
+    <link rel="stylesheet" href="/home.css" />
+    <link rel="stylesheet" href="/home-liquid.css" />
+    <link rel="stylesheet" href="/liquid-overhaul.css" />
+    <link rel="stylesheet" href="/optical-glass.css?v=20260827-lit-rim2" />
+  </head>
+  <body class="home-page">
+    <a class="skip-link" href="#homeMain">璺冲埌涓昏鍐呭</a>
+    <div class="home-ambient" aria-hidden="true">
+      <span class="home-orb home-orb-one"></span>
+      <span class="home-orb home-orb-two"></span>
+      <span class="home-orb home-orb-three"></span>
+      <span class="home-grain"></span>
+    </div>
+
+    <header class="home-header">
+      <div class="home-nav-shell">
+        <a class="home-brand" href="/" aria-label="杈版€滱I棣栭〉">
+          <img class="home-brand-symbol" src="/assets/brand/chensi-mark-blue.png" alt="" width="512" height="512" aria-hidden="true" />
+          <span class="home-brand-copy"><strong>杈版€滱I</strong><small>AI CONTENT OS</small></span>
+        </a>
+        <nav class="home-nav-links" aria-label="棣栭〉瀵艰埅">
+          <a href="#capabilities">鏍稿績鑳藉姏</a>
+          <a href="#workflow">鍒涗綔娴佺▼</a>
+          <a href="#teams">鍥㈤槦鍗忎綔</a>
+        </nav>
+        <div class="home-nav-actions">
+          <a class="home-login-link" href="/login.html">鐧诲綍</a>
+          <a class="home-button home-button-primary home-nav-cta" href="/workspace.html"><span class="home-nav-cta-label">杩涘叆宸ヤ綔鍙?/span> <span aria-hidden="true">&rarr;</span></a>
+        </div>
+      </div>
+    </header>
+
+    <main id="homeMain">
+      <section class="home-hero" aria-labelledby="homeTitle">
+        <div class="home-hero-overlay" aria-hidden="true"></div>
+        <div class="home-hero-inner">
+          <div class="home-hero-copy">
+            <p class="home-availability"><span aria-hidden="true"></span> 鍐呭鏅鸿兘涓灑宸插氨缁?/p>
+            <p class="home-kicker">AI CONTENT OPERATING SYSTEM</p>
+            <h1 id="homeTitle">杈版€滱I</h1>
+            <p class="home-hero-lead">鎶婁竴涓汉鐨勭粡楠岋紝鍙樻垚鎸佺画鐢熶骇鐨勫唴瀹硅祫浜с€?/p>
+            <p class="home-hero-description">浠?IP 妗ｆ銆佺垎娆炬媶瑙ｅ拰 AI 鏂囨锛屽埌绱犳潗绠＄悊銆佽棰戝埗浣滀笌璐﹀彿鍙戝竷锛屽湪鍚屼竴涓伐浣滃尯瀹屾垚鍐呭鐢熶骇闂幆銆?/p>
+            <div class="home-hero-actions">
+              <a class="home-button home-button-primary" href="/workspace.html">杩涘叆宸ヤ綔鍙?<span aria-hidden="true">&rarr;</span></a>
+              <a class="home-button home-button-secondary" href="#capabilities">浜嗚В鏍稿績鑳藉姏</a>
+            </div>
+            <ul class="home-proof-list" aria-label="浜у搧鏍稿績鐗规€?>
+              <li><strong>01</strong><span>鐪熷疄宸ヤ綔娴?/span></li>
+              <li><strong>02</strong><span>鍐呭璧勪骇娌夋穩</span></li>
+              <li><strong>03</strong><span>鍥㈤槦鏉冮檺鍗忎綔</span></li>
+            </ul>
+          </div>
+          <div class="home-preview-scene" aria-label="杈版€滱I宸ヤ綔鍙扮晫闈㈤瑙?>
+            <div class="home-preview-aura" aria-hidden="true"></div>
+            <div class="home-product-window">
+              <div class="home-window-bar" aria-hidden="true">
+                <div class="home-window-dots"><i></i><i></i><i></i></div>
+                <span>杈版€滱I 路 鍐呭宸ヤ綔鍙?/span>
+                <b>瀹炴椂鍗忎綔</b>
+              </div>
+              <div class="home-window-media">
+                <img src="/assets/workspace-overview.png" alt="杈版€滱I宸ヤ綔鍙版€昏锛屽寘鍚垱浣滈」鐩笌鍐呭鐢熶骇娴佺▼" width="1360" height="858" />
+                <div class="home-window-sheen" aria-hidden="true"></div>
+              </div>
+            </div>
+            <div class="home-floating-card home-floating-task" aria-hidden="true">
+              <span class="home-floating-icon">鉁?/span>
+              <div><small>AI 鍒涗綔浠诲姟</small><strong>鏂囨宸茬敓鎴?/strong></div>
+              <b>瀹屾垚</b>
+            </div>
+            <div class="home-floating-card home-floating-assets" aria-hidden="true">
+              <span class="home-assets-stack"><i></i><i></i><i></i></span>
+              <div><small>鍐呭璧勪骇</small><strong>鎸佺画娌夋穩涓?/strong></div>
+            </div>
+            <div class="home-product-caption" aria-hidden="true"><span></span> REAL PRODUCT 路 鐪熷疄宸ヤ綔鍙扮晫闈?/div>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-section home-capabilities" id="capabilities" aria-labelledby="capabilitiesTitle">
+        <div class="home-section-inner">
+          <div class="home-section-heading">
+            <div><p class="home-kicker">CORE CAPABILITIES</p><h2 id="capabilitiesTitle">涓€涓伐浣滃尯锛岃疮閫氬唴瀹圭敓浜?/h2></div>
+            <p>姣忎釜鐜妭閮藉洿缁曠湡瀹為」鐩€佺湡瀹炵礌鏉愬拰鍙拷韪骇鍑哄睍寮€锛屼笉鐢ㄥ湪澶氫釜闆舵暎宸ュ叿涔嬮棿鏉ュ洖鎼繍銆?/p>
+          </div>
+          <div class="home-capability-grid">
+            <article class="home-capability-item home-accent-blue">
+              <div class="home-feature-top"><span class="home-feature-icon" aria-hidden="true">妗?/span><span class="home-feature-number">01</span></div>
+              <h3>IP 妗ｆ</h3>
+              <p>娌夋穩韬唤銆佷笟鍔°€佸鎴蜂笌琛ㄨ揪椋庢牸锛岃姣忔鍒涗綔閮芥部鐢ㄥ悓涓€濂楀唴瀹瑰畾浣嶃€?/p>
+              <a href="/workspace.html">寤虹珛鍐呭妗ｆ <span aria-hidden="true">&rarr;</span></a>
+            </article>
+            <article class="home-capability-item home-accent-teal">
+              <div class="home-feature-top"><span class="home-feature-icon" aria-hidden="true">鏋?/span><span class="home-feature-number">02</span></div>
+              <h3>鐖嗘澶嶅埢</h3>
+              <p>瑙ｆ瀽鍙傝€冭棰戠殑缁撴瀯銆佽妭濂忎笌琛ㄨ揪鏂瑰紡锛屽啀缁撳悎鑷繁鐨勪笟鍔″畬鎴愬師鍒涜浆鍖栥€?/p>
+              <a href="/workspace.html">鎷嗚В鍙傝€冨唴瀹?<span aria-hidden="true">&rarr;</span></a>
+            </article>
+            <article class="home-capability-item home-accent-coral">
+              <div class="home-feature-top"><span class="home-feature-icon" aria-hidden="true">鍐?/span><span class="home-feature-number">03</span></div>
+              <h3>AI 鏂囨</h3>
+              <p>鍩轰簬妗ｆ銆佸巻鍙查鏍煎拰瀵规爣鍐呭鐢熸垚鍙ｆ挱銆侀棶绛斾笌鍙戝竷鏂囨锛屽苟鑷姩鐣欏瓨銆?/p>
+              <a href="/workspace.html">寮€濮嬪唴瀹瑰垱浣?<span aria-hidden="true">&rarr;</span></a>
+            </article>
+            <article class="home-capability-item home-accent-navy">
+              <div class="home-feature-top"><span class="home-feature-icon" aria-hidden="true">鏄?/span><span class="home-feature-number">04</span></div>
+              <h3>瑙嗛涓庡彂甯?/h3>
+              <p>绠＄悊鍥剧墖銆侀煶瑙嗛鍜屾垚鐗囷紝瀹屾垚鍩虹鍓緫銆佸壀鏄犱氦鎺ヤ互鍙婂璐﹀彿鍙戝竷鍑嗗銆?/p>
+              <a href="/workspace.html">杩涘叆瑙嗛宸ュ潑 <span aria-hidden="true">&rarr;</span></a>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-workflow" id="workflow" aria-labelledby="workflowTitle">
+        <div class="home-section-inner">
+          <div class="home-workflow-heading">
+            <p class="home-kicker">ONE CONTINUOUS FLOW</p>
+            <h2 id="workflowTitle">浠庡畾浣嶅埌鍙戝竷锛屾瘡涓€姝ラ兘鏈変笂涓嬫枃</h2>
+            <p>椤圭洰璧勬枡銆佸垱浣滅粨鏋滃拰鍥㈤槦鎿嶄綔鎸佺画鍏宠仈锛屼笅涓€姝ヤ笉鍐嶄粠绌虹櫧寮€濮嬨€?/p>
+          </div>
+          <ol class="home-workflow-steps">
+            <li><span>01</span><strong>寤虹珛妗ｆ</strong><small>鏄庣‘璐﹀彿涓庡唴瀹瑰畾浣?/small></li>
+            <li><span>02</span><strong>鎷嗚В鍙傝€?/strong><small>鎻愬彇缁撴瀯鍜岃〃杈炬柟寮?/small></li>
+            <li><span>03</span><strong>鐢熸垚鏂囨</strong><small>缁撳悎鍘嗗彶椋庢牸鎸佺画鍒涗綔</small></li>
+            <li><span>04</span><strong>缁勭粐绱犳潗</strong><small>娌夋穩鐪熷疄濯掍綋璧勪骇</small></li>
+            <li><span>05</span><strong>鎴愮墖鍙戝竷</strong><small>杩借釜浠诲姟涓庡彂甯冪粨鏋?/small></li>
+          </ol>
+          <div class="home-workflow-action">
+            <p><span aria-hidden="true"></span> 璧勬枡銆佺粨鏋滀笌鎿嶄綔璁板綍鍏ㄧ▼鍏宠仈</p>
+            <a class="home-button home-button-light" href="/workspace.html">鎵撳紑鍒涗綔宸ヤ綔鍙?<span aria-hidden="true">&rarr;</span></a>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-section home-teams" id="teams" aria-labelledby="teamsTitle">
+        <div class="home-section-inner home-teams-layout">
+          <div class="home-teams-copy">
+            <p class="home-kicker">CREATOR & TEAM</p>
+            <h2 id="teamsTitle">涓汉鍒涗綔鏈夌Н绱紝鍥㈤槦鍗忎綔鏈夎竟鐣?/h2>
+            <p>涓汉鐢ㄦ埛鍙互鎸佺画缁忚惀鑷繁鐨?IP 鍐呭璧勪骇锛涗紒涓氳礋璐ｄ汉鍙互閰嶇疆甯綅銆佺畻鍔涢搴﹀拰鍒涗綔銆佺礌鏉愩€佸彂甯冩潈闄愩€?/p>
+            <a class="home-button home-button-secondary" href="/workspace.html">鏌ョ湅璐﹀彿涓庡洟闃?/a>
+          </div>
+          <div class="home-team-features">
+            <article><span>01</span><div><h3>鍐呭璧勪骇缁熶竴绠＄悊</h3><p>鏂囨搴撱€佺礌鏉愬簱銆佹垚鐗囧拰鐢熸垚璁板綍鎸夐」鐩寔缁綊妗ｃ€?/p></div></article>
+            <article><span>02</span><div><h3>甯綅涓庢潈闄愭竻鏅板彲鎺?/h3><p>鎴愬憳棰濆害鍜屽叧閿潈闄愬湪鍚屼竴鐣岄潰閰嶇疆锛岃亴璐ｈ竟鐣屾洿鐩磋銆?/p></div></article>
+            <article><span>03</span><div><h3>鐪熷疄浠诲姟鍏ㄧ▼鍙拷韪?/h3><p>鎴愬姛銆佸け璐ャ€佷緵搴斿晢鐘舵€佷笌绉垎娑堣€楅兘鏈夋槑纭褰曘€?/p></div></article>
+            <div class="home-team-status" aria-hidden="true">
+              <div class="home-team-avatars"><i>闄?/i><i>鏋?/i><i>鍛?/i><i>+6</i></div>
+              <div><strong>鍥㈤槦绌洪棿杩愯涓?/strong><small>鎴愬憳銆佹潈闄愪笌绠楀姏缁熶竴绠＄悊</small></div>
+              <span>瀹夊叏</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-final-cta" aria-labelledby="finalCtaTitle">
+        <div class="home-section-inner">
+          <p class="home-kicker">READY FOR PRODUCTION</p>
+          <h2 id="finalCtaTitle">璁╁唴瀹圭敓浜т粠涓嬩竴鏉″紑濮嬪舰鎴愯祫浜с€?/h2>
+          <p>杩涘叆杈版€滱I宸ヤ綔鍙帮紝鍒涘缓浣犵殑绗竴涓?IP 妗ｆ銆?/p>
+          <a class="home-button home-button-primary" href="/workspace.html">杩涘叆宸ヤ綔鍙?<span aria-hidden="true">&rarr;</span></a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="home-footer">
+      <div class="home-section-inner">
+        <a class="home-brand home-footer-brand" href="/" aria-label="杈版€滱I棣栭〉"><img class="home-brand-symbol" src="/assets/brand/chensi-mark-blue.png" alt="" width="512" height="512" aria-hidden="true" /><span class="home-brand-copy"><strong>杈版€滱I</strong><small>鍐呭鍒涗綔涓庡叏閾捐矾杩愯惀宸ヤ綔鍙?/small></span></a>
+        <div class="home-footer-links"><a href="/workspace.html">宸ヤ綔鍙?/a><a href="/login.html">鐧诲綍</a><span>2026 杈版€滱I</span></div>
+      </div>
+    </footer>
+    <script src="/vendor/gsap.min.js" defer></script>
+    <script src="/vendor/ScrollTrigger.min.js" defer></script>
+    <script src="/optical-glass.js?v=20260827-switch-drag2" type="module"></script>
+    <script src="/liquid-glass.js?v=20260827-lit-rim2" type="module"></script>
+    <script src="/home-motion.js" defer></script>
+  </body>
+</html>

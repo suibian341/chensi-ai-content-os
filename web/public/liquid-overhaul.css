@@ -1,0 +1,2545 @@
+/*
+ * Liquid Glass visual system
+ * The existing pages keep their semantic structure and business behavior. This
+ * layer only changes material, spacing, hierarchy and motion affordances.
+ */
+:root {
+  --lg-ink: #edf4ff;
+  --lg-ink-soft: #b6c9df;
+  --lg-ink-faint: #8197b7;
+  --lg-cyan: #75e5ed;
+  --lg-blue: #7da7ff;
+  --lg-violet: #b99cff;
+  --lg-line: rgba(196, 222, 255, .16);
+  --lg-line-strong: rgba(218, 237, 255, .3);
+  --lg-shadow: 0 22px 70px rgba(0, 0, 0, .32), 0 3px 12px rgba(0, 0, 0, .18);
+  --lg-blur: blur(28px) saturate(145%);
+  --lg-surface-0: rgba(18, 28, 52, .58);
+  --lg-surface-1: rgba(31, 46, 78, .62);
+  --lg-surface-2: rgba(53, 72, 111, .68);
+  --lg-control: rgba(9, 18, 38, .64);
+  --lg-ease: cubic-bezier(.22, .75, .2, 1);
+  color-scheme: dark;
+}
+
+/* Workspace navigation: a neutral, light-catching liquid material. */
+.workspace-page .workspace-shell .nav-list,
+.admin-page .admin-shell .nav-list {
+  isolation: isolate !important;
+  position: relative !important;
+  touch-action: none !important;
+  -ms-touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: contain;
+  flex-wrap: nowrap !important;
+}
+
+.workspace-page .workspace-shell .nav-list .nav-item,
+.admin-page .admin-shell .nav-list .nav-item {
+  touch-action: none !important;
+  -ms-touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.workspace-page .workspace-shell .nav-list::before,
+.admin-page .admin-shell .nav-list::before {
+  content: "";
+  position: absolute;
+  inset: 1px 2px;
+  z-index: 0;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 14px;
+  background: linear-gradient(110deg, rgba(255,255,255,.035), transparent 38%, rgba(255,255,255,.025));
+  opacity: .82;
+}
+
+.workspace-page .workspace-shell .nav-list.is-pressed,
+.admin-page .admin-shell .nav-list.is-pressed { filter: brightness(.985) saturate(1.03); }
+
+.workspace-page .workspace-shell .nav-item,
+.admin-page .admin-shell .nav-item {
+  z-index: 1 !important;
+  color: rgba(231, 237, 244, .7) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  transition: color 150ms ease, transform 110ms ease !important;
+}
+
+.workspace-page .workspace-shell .nav-item:hover,
+.admin-page .admin-shell .nav-item:hover {
+  color: rgba(250, 252, 255, .94) !important;
+  background: rgba(255, 255, 255, .055) !important;
+  transform: translateX(1px);
+}
+
+.workspace-page .workspace-shell .nav-item.active,
+.admin-page .admin-shell .nav-item.active,
+.workspace-page .workspace-shell .nav-item.liquid-target,
+.admin-page .admin-shell .nav-item.liquid-target {
+  color: #fff !important;
+  background: rgba(255, 255, 255, .105) !important;
+  border-color: rgba(255, 255, 255, .08) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.12), inset 0 -1px rgba(21,33,51,.08) !important;
+}
+
+.workspace-page .workspace-shell .nav-list.is-moving .nav-item.active,
+.admin-page .admin-shell .nav-list.is-moving .nav-item.active,
+.workspace-page .workspace-shell .nav-list.is-pressed .nav-item.active,
+.admin-page .admin-shell .nav-list.is-pressed .nav-item.active {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.workspace-page .workspace-shell .nav-list.is-moving .nav-item.liquid-target,
+.admin-page .admin-shell .nav-list.is-moving .nav-item.liquid-target,
+.workspace-page .workspace-shell .nav-list.is-pressed .nav-item.liquid-target,
+.admin-page .admin-shell .nav-list.is-pressed .nav-item.liquid-target {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.workspace-page .workspace-shell .nav-item.active::after,
+.admin-page .admin-shell .nav-item.active::after { display: none !important; }
+
+.workspace-page .workspace-shell .nav-icon,
+.admin-page .admin-shell .nav-icon,
+.workspace-page .workspace-shell .nav-item.active .nav-icon,
+.admin-page .admin-shell .nav-item.active .nav-icon { color: rgba(224, 235, 244, .72) !important; }
+
+.workspace-page .workspace-shell .nav-item.active .nav-icon,
+.admin-page .admin-shell .nav-item.active .nav-icon { color: rgba(255, 255, 255, .92) !important; }
+
+.workspace-page .workspace-shell .nav-liquid-indicator,
+.admin-page .admin-shell .nav-liquid-indicator {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 3 !important;
+  display: block !important;
+  visibility: hidden;
+  opacity: 0;
+  box-sizing: border-box;
+  overflow: visible;
+  border: 0 !important;
+  border-radius: 28px 34px 30px 26px;
+  pointer-events: none !important;
+  transform-origin: 50% 50%;
+  will-change: transform, width, height, opacity;
+  transition: opacity 90ms ease, visibility 0s linear 90ms;
+}
+
+.workspace-page .workspace-shell .nav-liquid-indicator.is-visible,
+.admin-page .admin-shell .nav-liquid-indicator.is-visible { visibility: visible; opacity: 1; transition-delay: 0s; }
+
+.workspace-page .workspace-shell .nav-liquid-indicator > span,
+.admin-page .admin-shell .nav-liquid-indicator > span {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.workspace-page .workspace-shell .nav-liquid-filter,
+.admin-page .admin-shell .nav-liquid-filter {
+  overflow: hidden;
+  border: .35px solid rgba(255,255,255,.27);
+  background: radial-gradient(72% 82% at var(--light-x, 28%) var(--light-y, 12%), rgba(255,255,255,.25), transparent 59%), linear-gradient(112deg, rgba(255,255,255,.11), rgba(255,255,255,.035) 40%, rgba(255,255,255,.09) 74%, rgba(255,255,255,.17));
+  box-shadow: 0 10px 25px rgba(9,19,32,.17), inset 0 1px 0 rgba(255,255,255,.46), inset 0 -1.5px 0 rgba(7,18,30,.13), inset 1px 0 rgba(113,217,226,.1), inset -1px 0 rgba(226,138,189,.08), 0 0 22px rgba(255,255,255,.08);
+  -webkit-backdrop-filter: url(#liquid-nav-distortion) blur(.55px) brightness(1.13) saturate(1.1) contrast(1.03);
+  backdrop-filter: url(#liquid-nav-distortion) blur(.55px) brightness(1.13) saturate(1.1) contrast(1.03);
+}
+
+.workspace-page .workspace-shell .nav-liquid-filter::before,
+.admin-page .admin-shell .nav-liquid-filter::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(65% 80% at var(--light-x, 28%) var(--light-y, 12%), rgba(255,255,255,.24), transparent 58%), linear-gradient(118deg, rgba(255,255,255,.12), transparent 42%, rgba(255,255,255,.08) 75%, rgba(255,255,255,.18));
+  mix-blend-mode: screen;
+}
+
+.workspace-page .workspace-shell .nav-liquid-filter::after,
+.admin-page .admin-shell .nav-liquid-filter::after {
+  content: "";
+  position: absolute;
+  left: 9%;
+  top: 4%;
+  width: 44%;
+  height: 25%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: rgba(255,255,255,.12);
+  filter: blur(7px);
+  transform: rotate(-7deg);
+}
+
+.workspace-page .workspace-shell .nav-liquid-overlay,
+.admin-page .admin-shell .nav-liquid-overlay { border: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.035); mix-blend-mode: screen; }
+.workspace-page .workspace-shell .nav-liquid-specular,
+.admin-page .admin-shell .nav-liquid-specular { border: 0; box-shadow: inset 0 -5px 10px rgba(13,30,43,.045), inset 0 1px rgba(255,255,255,.12); }
+.workspace-page .workspace-shell .nav-liquid-rim,
+.admin-page .admin-shell .nav-liquid-rim { border: 0; box-shadow: inset 0 0 0 .6px rgba(255,255,255,.13); }
+
+.workspace-page .workspace-shell .nav-list.is-pressed .nav-liquid-filter,
+.admin-page .admin-shell .nav-list.is-pressed .nav-liquid-filter {
+  background: radial-gradient(72% 82% at var(--light-x, 28%) var(--light-y, 12%), rgba(255,255,255,.29), transparent 59%), linear-gradient(112deg, rgba(255,255,255,.095), rgba(255,255,255,.025) 40%, rgba(255,255,255,.08) 74%, rgba(255,255,255,.15));
+  box-shadow: 0 14px 31px rgba(9,19,32,.21), inset 0 1.1px 0 rgba(255,255,255,.58), inset 0 -4px 10px rgba(8,22,35,.11), inset 1px 0 rgba(113,217,226,.12), inset -1px 0 rgba(226,138,189,.09), 0 0 28px rgba(255,255,255,.13);
+  -webkit-backdrop-filter: url(#liquid-nav-distortion) blur(.35px) brightness(1.18) saturate(1.12) contrast(1.03);
+  backdrop-filter: url(#liquid-nav-distortion) blur(.35px) brightness(1.18) saturate(1.12) contrast(1.03);
+}
+
+.workspace-page .workspace-shell .nav-list.is-dragging,
+.admin-page .admin-shell .nav-list.is-dragging { cursor: grabbing; }
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-page .workspace-shell .nav-liquid-indicator,
+  .admin-page .admin-shell .nav-liquid-indicator { transition: none !important; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .workspace-page .workspace-shell .nav-liquid-filter,
+  .admin-page .admin-shell .nav-liquid-filter { background: rgba(24,39,62,.9); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+@media (max-width: 540px) {
+  .workspace-page .workspace-shell .nav-list,
+  .admin-page .admin-shell .nav-list {
+    left: auto !important;
+    position: relative !important;
+  }
+}
+
+/* Colorless glass + moving illumination -------------------------------- */
+body.workspace-page,
+body.admin-page,
+body.auth-page,
+body.home-page {
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(145deg, #edf2f5 0%, #f8fafb 48%, #eef3f5 100%) !important;
+}
+
+body.workspace-page::before,
+body.admin-page::before,
+body.auth-page::before,
+body.home-page::before {
+  z-index: -1 !important;
+  opacity: .18 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='110' viewBox='0 0 110 110'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E") !important;
+  background-size: 110px 110px !important;
+}
+
+.liquid-ambient {
+  display: block !important;
+  z-index: 0 !important;
+  overflow: hidden !important;
+  opacity: 1 !important;
+}
+
+.liquid-ambient span {
+  position: absolute !important;
+  border-radius: 50% !important;
+  opacity: .48 !important;
+  filter: blur(52px) saturate(118%) !important;
+  mix-blend-mode: multiply;
+  will-change: transform;
+}
+
+.liquid-ambient span:nth-child(1) {
+  top: -15rem !important;
+  left: 9% !important;
+  width: 40rem !important;
+  height: 36rem !important;
+  background: radial-gradient(circle at 52% 50%, rgba(69,176,255,.48), rgba(92,191,255,.16) 48%, transparent 73%) !important;
+}
+.liquid-ambient span:nth-child(2) {
+  top: 8% !important;
+  right: -14rem !important;
+  width: 36rem !important;
+  height: 39rem !important;
+  background: radial-gradient(circle at 44% 48%, rgba(255,124,176,.33), rgba(255,170,198,.11) 50%, transparent 74%) !important;
+}
+.liquid-ambient span:nth-child(3) {
+  bottom: -16rem !important;
+  left: -7rem !important;
+  width: 38rem !important;
+  height: 35rem !important;
+  background: radial-gradient(circle at 54% 45%, rgba(54,218,177,.34), rgba(91,222,184,.10) 51%, transparent 74%) !important;
+}
+.liquid-ambient span:nth-child(4) {
+  top: 42% !important;
+  left: 34% !important;
+  width: 32rem !important;
+  height: 29rem !important;
+  background: radial-gradient(circle at 48% 50%, rgba(164,117,255,.30), rgba(185,147,255,.09) 50%, transparent 75%) !important;
+}
+.liquid-ambient span:nth-child(5) {
+  right: 12% !important;
+  bottom: 3% !important;
+  width: 30rem !important;
+  height: 27rem !important;
+  background: radial-gradient(circle at 50% 46%, rgba(255,205,78,.32), rgba(255,220,125,.09) 51%, transparent 74%) !important;
+}
+
+.workspace-shell,
+.admin-shell,
+.auth-shell,
+.home-page > :not(.liquid-ambient) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Material weight is expressed by blur and opacity, never by tinted glass. */
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  border-color: rgba(255,255,255,.72) !important;
+  background: rgba(255,255,255,.16) !important;
+  box-shadow: 0 24px 60px rgba(31,48,60,.13), inset 0 1px rgba(255,255,255,.92), inset 1px 0 rgba(255,255,255,.48), inset -1px 0 rgba(31,48,60,.08), inset 0 -1px rgba(31,48,60,.07) !important;
+  -webkit-backdrop-filter: blur(31px) saturate(128%) brightness(1.04) contrast(1.02) !important;
+  backdrop-filter: blur(31px) saturate(128%) brightness(1.04) contrast(1.02) !important;
+}
+body.workspace-page .workspace-shell .sidebar::before,
+body.admin-page .admin-shell .sidebar::before {
+  opacity: .72 !important;
+  background: linear-gradient(132deg, rgba(255,255,255,.34), transparent 43%, rgba(255,255,255,.055)) !important;
+}
+body.workspace-page .workspace-shell .sidebar::after,
+body.admin-page .admin-shell .sidebar::after {
+  border-color: rgba(255,255,255,.32) !important;
+  box-shadow: inset 0 0 30px rgba(255,255,255,.05) !important;
+}
+
+body.workspace-page .topbar,
+body.admin-page .topbar,
+body.home-page .home-nav-shell {
+  border-color: rgba(255,255,255,.68) !important;
+  background: rgba(255,255,255,.13) !important;
+  box-shadow: 0 17px 46px rgba(31,48,60,.10), inset 0 1px rgba(255,255,255,.94), inset 0 -1px rgba(31,48,60,.065) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(126%) brightness(1.045) contrast(1.025) !important;
+  backdrop-filter: blur(25px) saturate(126%) brightness(1.045) contrast(1.025) !important;
+}
+
+body.workspace-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel),
+body.admin-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel),
+body.home-page :is(.home-product-window, .home-section, .home-workflow, .home-final-cta) {
+  border-color: rgba(255,255,255,.62) !important;
+  background: rgba(255,255,255,.095) !important;
+  box-shadow: 0 18px 48px rgba(31,48,60,.085), inset 0 1px rgba(255,255,255,.88), inset 1px 0 rgba(255,255,255,.34), inset -1px 0 rgba(31,48,60,.055), inset 0 -1px rgba(31,48,60,.055) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(123%) brightness(1.035) contrast(1.02) !important;
+  backdrop-filter: blur(20px) saturate(123%) brightness(1.035) contrast(1.02) !important;
+}
+
+body.workspace-page :is(.metric-card, .feature-card, .template-card, .asset-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item),
+body.admin-page :is(.metric-card, .feature-card, .template-card, .asset-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item),
+body.home-page :is(.home-proof-list li, .home-floating-card, .home-capability-item, .home-team-features article, .home-team-status, .home-workflow-steps li) {
+  border-color: rgba(255,255,255,.58) !important;
+  background: rgba(255,255,255,.15) !important;
+  box-shadow: 0 11px 30px rgba(31,48,60,.065), inset 0 1px rgba(255,255,255,.84), inset 0 -1px rgba(31,48,60,.045) !important;
+  -webkit-backdrop-filter: blur(13px) saturate(120%) brightness(1.035) contrast(1.018) !important;
+  backdrop-filter: blur(13px) saturate(120%) brightness(1.035) contrast(1.018) !important;
+}
+
+body.workspace-page .hero-panel,
+body.admin-page .hero-panel {
+  border-color: rgba(255,255,255,.70) !important;
+  background: rgba(255,255,255,.075) !important;
+  box-shadow: 0 22px 58px rgba(31,48,60,.10), inset 0 1px rgba(255,255,255,.92), inset 0 -1px rgba(31,48,60,.06) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(127%) brightness(1.045) contrast(1.025) !important;
+  backdrop-filter: blur(16px) saturate(127%) brightness(1.045) contrast(1.025) !important;
+}
+
+body.workspace-page :is(.health-card, .user-chip, .result-block, .analysis-chip, .copy-value, .settings-row, .language-capability, .package-editor-row, .rule-editor-row, .team-member-form, .provider-config-panel),
+body.admin-page :is(.health-card, .user-chip, .result-block, .analysis-chip, .copy-value, .settings-row, .language-capability, .package-editor-row, .rule-editor-row, .team-member-form, .provider-config-panel) {
+  border-color: rgba(255,255,255,.48) !important;
+  background: rgba(255,255,255,.10) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.64), inset 0 -1px rgba(31,48,60,.04) !important;
+  -webkit-backdrop-filter: blur(9px) saturate(116%) !important;
+  backdrop-filter: blur(9px) saturate(116%) !important;
+}
+
+body.workspace-page :is(.table-row, .team-member-row, .history-row, .output-row, .provider-status-row, .requirement-row, .ticket-row, .distribution-row, .audit-row, .user-row, .customer-profile-row, .template-request-row),
+body.admin-page :is(.table-row, .team-member-row, .history-row, .output-row, .provider-status-row, .requirement-row, .ticket-row, .distribution-row, .audit-row, .user-row, .customer-profile-row, .template-request-row) {
+  border-color: rgba(45,65,80,.085) !important;
+  background: rgba(255,255,255,.065) !important;
+}
+body.workspace-page :is(.table-row, .team-member-row, .history-row, .output-row, .provider-status-row, .requirement-row, .ticket-row, .distribution-row, .audit-row, .user-row):hover,
+body.admin-page :is(.table-row, .team-member-row, .history-row, .output-row, .provider-status-row, .requirement-row, .ticket-row, .distribution-row, .audit-row, .user-row):hover {
+  border-color: rgba(255,255,255,.38) !important;
+  background: rgba(255,255,255,.16) !important;
+}
+
+body.workspace-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.workspace-page textarea,
+body.workspace-page select,
+body.workspace-page .ui-select-trigger,
+body.workspace-page .project-select,
+body.admin-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.admin-page textarea,
+body.admin-page select,
+body.admin-page .ui-select-trigger,
+body.admin-page .project-select,
+body.auth-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.auth-page textarea,
+body.auth-page select,
+body.auth-page .ui-select-trigger {
+  border-color: rgba(255,255,255,.58) !important;
+  background: rgba(255,255,255,.22) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.88), inset 0 -1px rgba(31,48,60,.055), 0 6px 16px rgba(31,48,60,.045) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(118%) brightness(1.035) !important;
+  backdrop-filter: blur(10px) saturate(118%) brightness(1.035) !important;
+}
+body.workspace-page :is(input, textarea, select):hover,
+body.workspace-page .ui-select-trigger:hover,
+body.admin-page :is(input, textarea, select):hover,
+body.admin-page .ui-select-trigger:hover,
+body.auth-page :is(input, textarea, select):hover,
+body.auth-page .ui-select-trigger:hover {
+  border-color: rgba(255,255,255,.78) !important;
+  background: rgba(255,255,255,.30) !important;
+}
+body.workspace-page :is(input, textarea, select):focus,
+body.workspace-page :is(.ui-select-trigger:focus-visible, .ui-select-trigger.is-open),
+body.admin-page :is(input, textarea, select):focus,
+body.admin-page :is(.ui-select-trigger:focus-visible, .ui-select-trigger.is-open),
+body.auth-page :is(input, textarea, select):focus,
+body.auth-page :is(.ui-select-trigger:focus-visible, .ui-select-trigger.is-open) {
+  border-color: rgba(255,255,255,.92) !important;
+  background: rgba(255,255,255,.34) !important;
+  box-shadow: 0 0 0 4px rgba(52,114,160,.10), inset 0 1px rgba(255,255,255,.96), inset 0 -1px rgba(31,48,60,.06) !important;
+}
+
+.ui-select-popover,
+body.workspace-page :is(.modal, .asset-preview-dialog, .ui-action-dialog),
+body.admin-page :is(.modal, .asset-preview-dialog, .ui-action-dialog),
+body.auth-page :is(.auth-shell, .modal, .asset-preview-dialog, .ui-action-dialog) {
+  border-color: rgba(255,255,255,.78) !important;
+  background: rgba(255,255,255,.39) !important;
+  box-shadow: 0 28px 78px rgba(31,48,60,.19), inset 0 1px rgba(255,255,255,.96), inset 0 -1px rgba(31,48,60,.065) !important;
+  -webkit-backdrop-filter: blur(29px) saturate(132%) brightness(1.045) contrast(1.025) !important;
+  backdrop-filter: blur(29px) saturate(132%) brightness(1.045) contrast(1.025) !important;
+}
+
+body.workspace-page .primary-button,
+body.admin-page .primary-button,
+body.auth-page .primary-button,
+body.home-page :is(.home-nav-cta, .home-button-primary) {
+  color: #17486b !important;
+  border-color: rgba(255,255,255,.76) !important;
+  background: rgba(255,255,255,.28) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.96), inset 0 -1px rgba(31,48,60,.07), 0 9px 22px rgba(31,48,60,.08) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(120%) brightness(1.04) !important;
+  backdrop-filter: blur(12px) saturate(120%) brightness(1.04) !important;
+}
+body.workspace-page :is(.secondary-button, .icon-button, .quiet-button),
+body.admin-page :is(.secondary-button, .icon-button, .quiet-button),
+body.auth-page :is(.secondary-button, .icon-button, .quiet-button),
+body.home-page .home-button-secondary {
+  border-color: rgba(255,255,255,.56) !important;
+  background: rgba(255,255,255,.14) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.78), inset 0 -1px rgba(31,48,60,.045) !important;
+  -webkit-backdrop-filter: blur(9px) saturate(116%) !important;
+  backdrop-filter: blur(9px) saturate(116%) !important;
+}
+body.workspace-page .primary-button:hover,
+body.admin-page .primary-button:hover,
+body.auth-page .primary-button:hover {
+  border-color: rgba(255,255,255,.94) !important;
+  background: rgba(255,255,255,.38) !important;
+  box-shadow: inset 0 1px #fff, 0 13px 28px rgba(31,48,60,.11) !important;
+}
+
+/* Static selections are neutral. Liquid material only appears in motion. */
+body.workspace-page .workspace-shell .nav-list::before,
+body.admin-page .admin-shell .nav-list::before,
+body.workspace-page :is(.production-mode-switcher, .copy-modes),
+body.admin-page :is(.production-mode-switcher, .copy-modes) {
+  border-color: rgba(255,255,255,.42) !important;
+  background: rgba(255,255,255,.075) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.52), inset 0 -1px rgba(31,48,60,.035) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(112%) !important;
+  backdrop-filter: blur(8px) saturate(112%) !important;
+}
+body.workspace-page .workspace-shell .nav-item.active,
+body.admin-page .admin-shell .nav-item.active,
+body.workspace-page :is(.production-mode-tab.active, .copy-mode.active) {
+  color: #153d5e !important;
+  border-color: rgba(255,255,255,.54) !important;
+  background: rgba(255,255,255,.20) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.76), inset 0 -1px rgba(31,48,60,.055) !important;
+}
+body.workspace-page .workspace-shell .nav-liquid-filter,
+body.admin-page .admin-shell .nav-liquid-filter {
+  border-color: rgba(255,255,255,.78) !important;
+  background: radial-gradient(72% 84% at var(--light-x, 28%) var(--light-y, 12%), rgba(255,255,255,.56), transparent 58%), linear-gradient(112deg, rgba(255,255,255,.22), rgba(255,255,255,.045) 42%, rgba(255,255,255,.10) 76%, rgba(255,255,255,.29)) !important;
+  box-shadow: 0 12px 27px rgba(31,48,60,.14), inset 0 1px rgba(255,255,255,.92), inset 0 -3px 7px rgba(31,48,60,.09), inset 1px 0 rgba(255,255,255,.27), inset -1px 0 rgba(31,48,60,.07), 0 0 18px rgba(255,255,255,.14) !important;
+  -webkit-backdrop-filter: url(#liquid-nav-distortion) blur(.25px) contrast(1.18) brightness(1.055) saturate(1.08) !important;
+  backdrop-filter: url(#liquid-nav-distortion) blur(.25px) contrast(1.18) brightness(1.055) saturate(1.08) !important;
+}
+body.workspace-page .workspace-shell .nav-liquid-overlay,
+body.admin-page .admin-shell .nav-liquid-overlay { background: rgba(255,255,255,.025) !important; }
+
+/* Reusable liquid segmented controls. */
+.liquid-segment-host {
+  position: relative !important;
+  isolation: isolate;
+  touch-action: none;
+  user-select: none;
+}
+.liquid-segment-host > :is(.production-mode-tab, .copy-mode) {
+  position: relative;
+  z-index: 2;
+}
+.liquid-segment-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  visibility: hidden;
+  opacity: 0;
+  overflow: visible;
+  border-radius: 24px;
+  pointer-events: none;
+  transform-origin: 50% 50%;
+  will-change: transform, width, height, opacity;
+  transition: opacity 90ms ease, visibility 0s linear 90ms;
+}
+.liquid-segment-indicator.is-visible {
+  visibility: visible;
+  opacity: 1;
+  transition-delay: 0s;
+}
+.liquid-segment-indicator > span {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.liquid-segment-filter {
+  overflow: hidden;
+  border: .5px solid rgba(255,255,255,.82);
+  background: radial-gradient(72% 86% at var(--light-x, 30%) var(--light-y, 12%), rgba(255,255,255,.62), transparent 58%), linear-gradient(116deg, rgba(255,255,255,.24), rgba(255,255,255,.035) 43%, rgba(255,255,255,.11) 76%, rgba(255,255,255,.31));
+  box-shadow: 0 11px 25px rgba(31,48,60,.13), inset 0 1px rgba(255,255,255,.94), inset 0 -3px 8px rgba(31,48,60,.09), inset 1px 0 rgba(255,255,255,.28), inset -1px 0 rgba(31,48,60,.065), 0 0 16px rgba(255,255,255,.14);
+  -webkit-backdrop-filter: var(--liquid-segment-filter) blur(.25px) contrast(1.18) brightness(1.06) saturate(1.08);
+  backdrop-filter: var(--liquid-segment-filter) blur(.25px) contrast(1.18) brightness(1.06) saturate(1.08);
+}
+.liquid-segment-filter::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  content: "";
+  background: radial-gradient(66% 78% at var(--light-x, 30%) var(--light-y, 12%), rgba(255,255,255,.43), transparent 58%), linear-gradient(122deg, rgba(255,255,255,.20), transparent 44%, rgba(255,255,255,.15));
+  mix-blend-mode: screen;
+}
+.liquid-segment-filter::after {
+  position: absolute;
+  top: 5%;
+  left: 10%;
+  width: 43%;
+  height: 23%;
+  border-radius: 50%;
+  content: "";
+  background: rgba(255,255,255,.25);
+  filter: blur(6px);
+  transform: rotate(-6deg);
+}
+.liquid-segment-overlay { border: 1px solid rgba(255,255,255,.23); background: rgba(255,255,255,.022); mix-blend-mode: screen; }
+.liquid-segment-specular { box-shadow: inset 0 -5px 9px rgba(31,48,60,.045), inset 0 1px rgba(255,255,255,.38); }
+.liquid-segment-rim { box-shadow: inset 0 0 0 .6px rgba(255,255,255,.48); }
+.liquid-segment-host:is(.is-moving, .is-pressed) :is(.production-mode-tab.active, .copy-mode.active),
+.liquid-segment-host:is(.is-moving, .is-pressed) :is(.production-mode-tab.liquid-segment-target, .copy-mode.liquid-segment-target) {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.liquid-segment-host.is-pressed {
+  transform: scale(.997);
+  transition: transform 110ms ease-out;
+}
+.liquid-segment-host:not(.is-pressed) { transition: transform 220ms var(--lg-ease); }
+
+body.workspace-page .production-mode-switcher {
+  overflow: hidden;
+  border-radius: 16px !important;
+}
+body.workspace-page .production-mode-tab {
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.workspace-page .copy-modes {
+  overflow: hidden;
+  padding: 3px !important;
+  border: 1px solid rgba(255,255,255,.42) !important;
+  border-radius: 9px !important;
+}
+body.workspace-page .copy-mode {
+  border: 1px solid transparent !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.workspace-page .production-mode-tab.active,
+body.workspace-page .copy-mode.active {
+  border-color: rgba(255,255,255,.54) !important;
+  background: rgba(255,255,255,.20) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.76), inset 0 -1px rgba(31,48,60,.055) !important;
+}
+body.workspace-page .production-mode-tab.active .production-mode-symbol {
+  color: #17486b !important;
+  background: rgba(255,255,255,.28) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.86), 0 5px 12px rgba(31,48,60,.08) !important;
+}
+
+@media (max-width: 820px) {
+  .liquid-ambient span { opacity: .38 !important; filter: blur(45px) saturate(112%) !important; }
+  .liquid-ambient span:nth-child(4),
+  .liquid-ambient span:nth-child(5) { opacity: .28 !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-ambient span { transform: none !important; }
+  .liquid-segment-indicator { transition: none !important; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .liquid-ambient { display: none !important; }
+  body.workspace-page :is(.sidebar, .topbar, .panel, .metric-card, .ui-select-popover, .modal),
+  body.admin-page :is(.sidebar, .topbar, .panel, .metric-card, .ui-select-popover, .modal),
+  body.auth-page :is(.auth-shell, .modal) { background: #f6f8fa !important; }
+}
+
+html,
+body,
+body.home-page {
+  background: #081122 !important;
+}
+
+body.workspace-page,
+body.admin-page,
+body.auth-page {
+  min-height: 100vh;
+  color: var(--lg-ink) !important;
+  background:
+    radial-gradient(900px 600px at 5% -10%, rgba(78, 123, 224, .28), transparent 70%),
+    radial-gradient(720px 560px at 105% 20%, rgba(139, 91, 217, .2), transparent 72%),
+    radial-gradient(520px 380px at 52% 100%, rgba(58, 185, 195, .13), transparent 72%),
+    #081122 !important;
+  background-attachment: fixed;
+}
+
+body.workspace-page::before,
+body.admin-page::before,
+body.auth-page::before,
+body.home-page::before {
+  opacity: .1 !important;
+  background-image: linear-gradient(115deg, rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(25deg, rgba(255,255,255,.02) 1px, transparent 1px) !important;
+  background-size: 76px 76px, 112px 112px !important;
+  mix-blend-mode: screen;
+}
+
+:focus-visible {
+  outline: 2px solid var(--lg-cyan) !important;
+  outline-offset: 3px !important;
+}
+
+.liquid-ambient,
+.home-ambient .home-orb,
+.home-ambient .home-grain { display: none !important; }
+
+/* Shared glass surfaces -------------------------------------------------- */
+.workspace-shell,
+.admin-shell { grid-template-columns: 248px minmax(0, 1fr) !important; }
+
+.sidebar {
+  position: sticky !important;
+  top: 18px !important;
+  height: calc(100vh - 36px) !important;
+  margin: 18px 0 18px 18px !important;
+  padding: 20px 13px 14px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(207, 232, 255, .18) !important;
+  border-radius: 26px !important;
+  color: var(--lg-ink) !important;
+  background:
+    linear-gradient(145deg, rgba(53, 83, 139, .58), rgba(13, 22, 45, .72)),
+    rgba(10, 21, 43, .68) !important;
+  box-shadow: var(--lg-shadow), inset 0 1px rgba(255,255,255,.2), inset 0 -1px rgba(113, 167, 255, .11) !important;
+  -webkit-backdrop-filter: var(--lg-blur) !important;
+  backdrop-filter: var(--lg-blur) !important;
+  flex-wrap: nowrap !important;
+}
+
+.sidebar::before,
+.sidebar::after {
+  pointer-events: none;
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.sidebar::before {
+  background: radial-gradient(380px 160px at 24% -4%, rgba(130, 196, 255, .2), transparent 72%);
+  opacity: .9;
+}
+
+.sidebar::after {
+  border: 1px solid rgba(255, 255, 255, .04);
+  box-shadow: inset 0 0 34px rgba(74, 130, 255, .08);
+}
+
+.sidebar > * { position: relative; z-index: 1; }
+.brand-lockup { border-bottom-color: rgba(204, 227, 255, .12) !important; }
+.brand-name,
+.brand-lockup .brand-name { color: #f6f9ff !important; }
+.brand-sub,
+.workspace-label,
+.nav-section-label { color: rgba(192, 211, 240, .55) !important; }
+.workspace-mode { color: var(--lg-cyan) !important; }
+.brand-logo-mark,
+.brand-mark {
+  border: 1px solid rgba(235, 247, 255, .36) !important;
+  border-radius: 14px 18px 15px 17px !important;
+  background: linear-gradient(145deg, rgba(117, 229, 237, .86), rgba(104, 132, 255, .72)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.58), 0 12px 26px rgba(24, 57, 123, .3) !important;
+}
+
+.nav-list {
+  position: relative !important;
+  isolation: isolate;
+  gap: 4px !important;
+  padding: 3px !important;
+}
+
+.nav-liquid-indicator {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 0 !important;
+  display: block !important;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid rgba(201, 238, 255, .4) !important;
+  border-radius: 14px !important;
+  background: rgba(126, 180, 255, .18) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.35), inset 0 -1px rgba(106, 150, 255, .16), 0 12px 34px rgba(36, 97, 218, .22) !important;
+  filter: url(#liquid-nav-distortion);
+  pointer-events: none !important;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.nav-liquid-indicator > span {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.nav-liquid-filter { background: radial-gradient(140% 110% at var(--glass-x, 15%) var(--glass-y, 10%), rgba(255,255,255,.25), transparent 48%); opacity: .85; }
+.nav-liquid-overlay { background: linear-gradient(120deg, rgba(117,229,237,.16), rgba(120,157,255,.2) 44%, rgba(185,156,255,.16)); }
+.nav-liquid-specular { border: 1px solid rgba(255,255,255,.1); box-shadow: inset 0 1px rgba(255,255,255,.34), inset 0 -1px rgba(83, 138, 255, .16); }
+
+.nav-item {
+  position: relative !important;
+  z-index: 1 !important;
+  min-height: 42px !important;
+  padding: 10px 12px !important;
+  border: 1px solid transparent !important;
+  border-radius: 14px !important;
+  color: rgba(206, 222, 245, .72) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: color 180ms var(--lg-ease), transform 180ms var(--lg-ease) !important;
+}
+
+.nav-item:hover { color: #fff !important; background: rgba(183, 214, 255, .08) !important; transform: translateX(2px); }
+.nav-item.active { color: #fff !important; background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+.nav-item.active::after { display: none !important; }
+.nav-item .nav-icon { color: rgba(154, 218, 255, .78) !important; }
+
+.sidebar-bottom { gap: 10px !important; }
+.health-card,
+.user-chip {
+  border: 1px solid rgba(209, 231, 255, .14) !important;
+  border-radius: 15px !important;
+  background: rgba(189, 219, 255, .075) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.12) !important;
+}
+.health-line { color: rgba(236, 247, 255, .86) !important; }
+.health-meta,
+.user-copy small { color: rgba(178, 202, 232, .56) !important; }
+.user-action { color: var(--lg-cyan) !important; }
+.avatar { background: linear-gradient(145deg, #76e6ec, #728cff) !important; color: #071226 !important; box-shadow: inset 0 1px rgba(255,255,255,.64), 0 6px 16px rgba(56, 150, 255, .28) !important; }
+
+.main-content {
+  max-width: 1680px !important;
+  padding: 24px clamp(24px, 4vw, 66px) 76px !important;
+}
+
+.workspace-page .workspace-shell .sidebar,
+.admin-page .admin-shell .sidebar { flex-wrap: nowrap !important; }
+.workspace-page .workspace-shell .sidebar-bottom,
+.admin-page .admin-shell .sidebar-bottom { width: auto !important; margin-top: auto !important; }
+
+.topbar {
+  position: sticky !important;
+  top: 18px !important;
+  z-index: 15;
+  min-height: 74px !important;
+  margin-bottom: 24px !important;
+  padding: 13px 15px 13px 22px !important;
+  border: 1px solid rgba(211, 233, 255, .22) !important;
+  border-radius: 22px !important;
+  color: var(--lg-ink) !important;
+  background: rgba(19, 31, 58, .62) !important;
+  box-shadow: 0 18px 52px rgba(0,0,0,.22), inset 0 1px rgba(255,255,255,.18), inset 0 -1px rgba(111, 166, 255, .1) !important;
+  -webkit-backdrop-filter: var(--lg-blur) !important;
+  backdrop-filter: var(--lg-blur) !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+}
+.workspace-page .workspace-shell .topbar,
+.admin-page .admin-shell .topbar { flex-wrap: nowrap !important; align-items: center !important; }
+.workspace-page .page-heading-copy,
+.admin-page .page-heading-copy { flex: 1 1 auto !important; }
+.workspace-page .top-actions,
+.admin-page .top-actions { flex: 0 1 auto !important; }
+.eyebrow,
+.section-kicker,
+.switcher-label { color: rgba(167, 199, 240, .65) !important; }
+.page-heading-copy h1,
+.topbar h1,
+.view-heading h2 { color: #f0f6ff !important; }
+.page-context,
+.view-heading p,
+.field-hint,
+.save-hint { color: var(--lg-ink-soft) !important; }
+.top-actions { gap: 9px !important; }
+
+.panel,
+.metric-card,
+.feature-card,
+.template-card,
+.asset-card,
+.workflow-strip,
+.output-panel,
+.production-mode-panel,
+.profile-panel,
+.image-studio-panel,
+.platform-card,
+.health-card {
+  border: 1px solid var(--lg-line) !important;
+  border-radius: 21px !important;
+  color: var(--lg-ink) !important;
+  background: var(--lg-surface-0) !important;
+  box-shadow: 0 16px 48px rgba(0,0,0,.2), inset 0 1px rgba(255,255,255,.13), inset 0 -1px rgba(83, 145, 255, .08) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
+  backdrop-filter: blur(22px) saturate(140%) !important;
+}
+
+.metric-card,
+.feature-card,
+.asset-card,
+.template-card { background: var(--lg-surface-1) !important; }
+.panel-header { margin-bottom: 22px !important; }
+.panel-header h2 { color: #edf4ff !important; }
+.section-heading h2,
+.feature-card h3,
+.workflow-step strong,
+.production-panel-heading h2,
+.production-mode-tab strong,
+.copy-section-heading h2 { color: #edf4ff !important; }
+.panel p,
+.metric-foot,
+.metric-label,
+.feature-card p,
+.asset-info,
+.template-extra { color: var(--lg-ink-soft) !important; }
+.metric-value { color: #f4f8ff !important; }
+.metric-card::before,
+.metric-card::after { opacity: .5 !important; }
+.hero-panel {
+  min-height: 260px !important;
+  border: 1px solid rgba(182, 225, 255, .25) !important;
+  border-radius: 28px !important;
+  background:
+    radial-gradient(550px 260px at 86% 0%, rgba(159, 128, 255, .3), transparent 75%),
+    radial-gradient(640px 280px at 4% 100%, rgba(78, 194, 216, .22), transparent 72%),
+    rgba(24, 42, 82, .78) !important;
+  box-shadow: 0 28px 78px rgba(0, 0, 0, .3), inset 0 1px rgba(255,255,255,.2), inset 0 -1px rgba(118, 171, 255, .14) !important;
+}
+.hero-panel h2 { color: #f4f8ff !important; letter-spacing: -.025em !important; }
+.hero-panel p { color: rgba(214, 229, 251, .78) !important; }
+.hero-panel .section-kicker { color: var(--lg-cyan) !important; }
+.hero-actions .primary-button { box-shadow: 0 12px 30px rgba(46, 135, 235, .26) !important; }
+.workflow-step {
+  border: 1px solid rgba(185, 218, 255, .14) !important;
+  border-radius: 16px !important;
+  color: #edf4ff !important;
+  background: rgba(72, 112, 171, .12) !important;
+}
+.workflow-step.done.active {
+  border-color: rgba(191, 241, 255, .42) !important;
+  background: linear-gradient(120deg, rgba(117, 229, 237, .2), rgba(125, 167, 255, .24)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.24), 0 10px 28px rgba(74, 150, 237, .2) !important;
+}
+.workflow-step strong { color: #edf4ff !important; }
+.workflow-step small { color: var(--lg-ink-soft) !important; }
+
+/* Controls: solid enough to use, still visibly part of the glass stack. */
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select,
+.ui-select-trigger,
+.project-select {
+  min-height: 44px !important;
+  border: 1px solid rgba(185, 217, 255, .2) !important;
+  border-radius: 13px !important;
+  color: #edf5ff !important;
+  background: var(--lg-control) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.09), 0 7px 18px rgba(0,0,0,.11) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(135%) !important;
+  backdrop-filter: blur(16px) saturate(135%) !important;
+}
+input::placeholder,
+textarea::placeholder { color: rgba(164, 186, 218, .55) !important; }
+input:hover,
+textarea:hover,
+select:hover,
+.ui-select-trigger:hover { border-color: rgba(156, 224, 255, .42) !important; background: rgba(21, 38, 69, .76) !important; }
+input:focus,
+textarea:focus,
+select:focus,
+.ui-select-trigger:focus-visible,
+.ui-select-trigger.is-open { border-color: rgba(117, 229, 237, .7) !important; outline: 0 !important; box-shadow: 0 0 0 4px rgba(117,229,237,.12), inset 0 1px rgba(255,255,255,.18) !important; }
+.field > span,
+.team-member-form-field > span,
+.team-member-permission-field > legend { color: rgba(188, 210, 238, .78) !important; }
+select option { color: #edf5ff; background: #172848; }
+.ui-select-value { color: #edf5ff !important; }
+.ui-select-chevron { border-color: var(--lg-cyan) !important; }
+.ui-select-popover {
+  border: 1px solid rgba(202, 229, 255, .26) !important;
+  border-radius: 17px !important;
+  background: rgba(17, 30, 57, .92) !important;
+  box-shadow: 0 24px 60px rgba(0,0,0,.38), inset 0 1px rgba(255,255,255,.16) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(150%) !important;
+  backdrop-filter: blur(28px) saturate(150%) !important;
+}
+.ui-select-option { color: rgba(226, 239, 255, .78) !important; border-radius: 11px !important; }
+.ui-select-option:hover,
+.ui-select-option.is-highlighted { color: #fff !important; background: rgba(119, 179, 255, .18) !important; }
+.ui-select-option.is-selected { color: var(--lg-cyan) !important; background: rgba(117, 229, 237, .12) !important; }
+input[type="checkbox"],
+input[type="radio"] { accent-color: var(--lg-cyan) !important; filter: saturate(115%); }
+.permission-picker,
+.member-permission-picker,
+.publish-mode-option,
+.production-mode-switcher {
+  border-color: rgba(193, 220, 255, .16) !important;
+  border-radius: 15px !important;
+  background: rgba(107, 148, 205, .1) !important;
+}
+.permission-picker label,
+.member-permission-picker label,
+.publish-mode-option,
+.production-mode-tab { color: rgba(214, 230, 250, .76) !important; }
+
+button,
+.primary-button,
+.secondary-button,
+.quiet-button,
+.danger-button,
+.icon-button {
+  border-radius: 13px !important;
+  font-weight: 650 !important;
+  transition: transform 180ms var(--lg-ease), background 180ms var(--lg-ease), border-color 180ms var(--lg-ease), box-shadow 180ms var(--lg-ease) !important;
+}
+.primary-button {
+  border: 1px solid rgba(202, 246, 255, .44) !important;
+  color: #061526 !important;
+  background: linear-gradient(120deg, rgba(117,229,237,.96), rgba(125,167,255,.96)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.58), 0 12px 28px rgba(78, 157, 235, .24) !important;
+}
+.secondary-button,
+.icon-button {
+  border: 1px solid rgba(189, 218, 255, .25) !important;
+  color: #dbeaff !important;
+  background: rgba(116, 160, 219, .15) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.14) !important;
+}
+.quiet-button { border-color: transparent !important; color: rgba(195, 219, 245, .72) !important; background: transparent !important; }
+.danger-button { border-color: rgba(255, 154, 173, .28) !important; color: #ffc5cf !important; background: rgba(173, 62, 94, .14) !important; }
+button:hover,
+.primary-button:hover,
+.secondary-button:hover,
+.icon-button:hover { transform: translateY(-2px); }
+.primary-button:hover { box-shadow: inset 0 1px rgba(255,255,255,.72), 0 17px 36px rgba(78, 157, 235, .34) !important; }
+.secondary-button:hover,
+.icon-button:hover { border-color: rgba(191, 239, 255, .48) !important; background: rgba(131, 183, 244, .24) !important; }
+.quiet-button:hover { color: #fff !important; background: rgba(142, 188, 255, .12) !important; }
+
+/* Lists and tables read as one continuous pane, not nested white cards. */
+.data-table,
+.team-member-list,
+.history-list,
+.output-list,
+.provider-status-list,
+.requirement-matrix,
+.ticket-list,
+.distribution-list { color: var(--lg-ink) !important; }
+.table-row,
+.team-member-row,
+.history-row,
+.output-row,
+.provider-status-row,
+.requirement-row,
+.ticket-row,
+.distribution-row,
+.audit-row,
+.user-row,
+.customer-profile-row,
+.template-request-row {
+  border-color: rgba(185, 215, 250, .13) !important;
+  background: rgba(109, 151, 211, .08) !important;
+}
+.table-row:hover,
+.team-member-row:hover,
+.history-row:hover,
+.output-row:hover,
+.provider-status-row:hover,
+.requirement-row:hover,
+.ticket-row:hover,
+.user-row:hover { background: rgba(129, 182, 246, .14) !important; border-color: rgba(182, 225, 255, .26) !important; }
+.team-member-form {
+  grid-template-columns: minmax(220px, 1.1fr) minmax(140px, .5fr) minmax(260px, 1fr) auto !important;
+  gap: 18px !important;
+  padding: 19px !important;
+  border: 1px solid rgba(188, 218, 255, .17) !important;
+  border-radius: 18px !important;
+  background: rgba(104, 146, 204, .1) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.1) !important;
+}
+.team-member-list-header { color: rgba(165, 193, 227, .58) !important; }
+.team-member-row { border-radius: 16px !important; }
+.team-member-name em,
+.soft-badge,
+.live-badge,
+.quality-pill,
+.tag,
+.platform-chip { border-color: rgba(185, 222, 255, .24) !important; color: #bfefff !important; background: rgba(117, 229, 237, .11) !important; }
+.requirement-copy strong,
+.provider-status-row strong,
+.requirement-label,
+.provider-status-row .requirement-label { color: #e6f0ff !important; }
+.requirement-copy small,
+.provider-status-row small,
+.provider-status-row > div small { color: rgba(177, 201, 231, .72) !important; }
+
+/* Dialogs and toasts ----------------------------------------------------- */
+.modal-backdrop { background: rgba(2, 8, 22, .64) !important; backdrop-filter: blur(9px) !important; }
+.modal,
+.asset-preview-dialog,
+.ui-action-dialog {
+  border: 1px solid rgba(211, 235, 255, .28) !important;
+  border-radius: 24px !important;
+  color: var(--lg-ink) !important;
+  background: rgba(18, 31, 60, .9) !important;
+  box-shadow: 0 32px 100px rgba(0,0,0,.52), inset 0 1px rgba(255,255,255,.18) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(145%) !important;
+  backdrop-filter: blur(30px) saturate(145%) !important;
+}
+.modal-header,
+.modal-actions { border-color: rgba(191, 220, 255, .14) !important; }
+.modal-header h2 { color: #f3f7ff !important; }
+.toast { border: 1px solid rgba(199, 235, 255, .3) !important; border-radius: 14px !important; color: #effaff !important; background: rgba(20, 47, 74, .9) !important; box-shadow: 0 18px 46px rgba(0,0,0,.36), inset 0 1px rgba(255,255,255,.2) !important; }
+
+/* Home ------------------------------------------------------------------ */
+body.home-page {
+  color: var(--lg-ink) !important;
+  background:
+    radial-gradient(920px 580px at 6% 0%, rgba(81, 130, 226, .32), transparent 72%),
+    radial-gradient(760px 540px at 106% 25%, rgba(147, 90, 223, .23), transparent 75%),
+    #081122 !important;
+}
+.home-header { top: 16px !important; padding: 0 22px !important; }
+.home-nav-shell {
+  position: relative !important;
+  isolation: isolate;
+  max-width: 1280px !important;
+  min-height: 64px !important;
+  padding: 9px 12px 9px 18px !important;
+  border: 1px solid rgba(211, 235, 255, .25) !important;
+  border-radius: 22px !important;
+  background: rgba(18, 30, 57, .65) !important;
+  box-shadow: 0 18px 54px rgba(0,0,0,.27), inset 0 1px rgba(255,255,255,.2) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(145%) !important;
+  backdrop-filter: blur(26px) saturate(145%) !important;
+}
+.home-nav-shell > * { position: relative; z-index: 1; }
+.home-nav-links { position: relative !important; isolation: isolate; gap: 3px !important; padding: 4px !important; }
+.home-nav-links a { position: relative; z-index: 1; padding: 9px 13px !important; border-radius: 12px !important; color: rgba(218, 232, 251, .72) !important; }
+.home-nav-links a:hover,
+.home-nav-links a.is-active { color: #fff !important; }
+.home-nav-links a::after { display: none !important; }
+.home-brand-copy strong { color: #f4f8ff !important; }
+.home-brand-copy small { color: rgba(181, 207, 241, .56) !important; }
+.home-login-link { color: rgba(205, 226, 249, .72) !important; }
+.home-nav-shell .home-nav-cta,
+.home-button-primary { border: 1px solid rgba(208, 247, 255, .42) !important; color: #071528 !important; background: linear-gradient(120deg, rgba(117,229,237,.96), rgba(125,167,255,.96)) !important; box-shadow: inset 0 1px rgba(255,255,255,.6), 0 12px 28px rgba(78,157,235,.25) !important; }
+.home-button-secondary { border: 1px solid rgba(188, 219, 255, .24) !important; color: #d9e9ff !important; background: rgba(113, 157, 218, .16) !important; box-shadow: inset 0 1px rgba(255,255,255,.14) !important; }
+.home-hero { min-height: 900px !important; background: transparent !important; }
+.home-hero-overlay { background: linear-gradient(110deg, rgba(7, 18, 38, .72), rgba(7, 18, 38, .1)) !important; }
+.home-hero-inner { padding-top: 116px !important; }
+.home-hero h1 { color: #f5f9ff !important; }
+.home-hero-lead { color: #dceaff !important; }
+.home-hero-description { color: var(--lg-ink-soft) !important; }
+.home-kicker,
+.home-availability { color: var(--lg-cyan) !important; }
+.home-proof-list li,
+.home-floating-card,
+.home-product-window,
+.home-capability-item,
+.home-team-features article,
+.home-team-status,
+.home-workflow-steps li {
+  border-color: rgba(196, 224, 255, .18) !important;
+  background: rgba(23, 38, 70, .58) !important;
+  box-shadow: 0 18px 50px rgba(0,0,0,.22), inset 0 1px rgba(255,255,255,.14) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(145%) !important;
+  backdrop-filter: blur(22px) saturate(145%) !important;
+}
+.home-proof-list li { color: rgba(213, 230, 251, .72) !important; }
+.home-product-window { overflow: hidden; border-radius: 25px !important; }
+.home-window-bar { color: rgba(211, 231, 252, .72) !important; background: rgba(17, 31, 59, .62) !important; border-bottom-color: rgba(201, 229, 255, .15) !important; }
+.home-floating-card { color: #e8f4ff !important; }
+.home-floating-card small { color: var(--lg-ink-soft) !important; }
+.home-section { background: rgba(13, 25, 49, .66) !important; border-top: 1px solid rgba(185, 217, 255, .1); }
+.home-section-heading h2,
+.home-teams h2,
+.home-final-cta h2,
+.home-workflow h2 { color: #f1f7ff !important; }
+.home-section-heading > p,
+.home-capability-item p,
+.home-teams-copy > p:not(.home-kicker),
+.home-team-features p,
+.home-final-cta p:not(.home-kicker) { color: var(--lg-ink-soft) !important; }
+.home-capability-item { min-height: 310px !important; }
+.home-capability-item h3,
+.home-team-features h3 { color: #edf5ff !important; }
+.home-feature-icon { border-color: rgba(206, 237, 255, .28) !important; background: rgba(119, 190, 241, .15) !important; box-shadow: inset 0 1px rgba(255,255,255,.2) !important; }
+.home-workflow { background: rgba(6, 16, 35, .78) !important; }
+.home-workflow-heading > p:last-child,
+.home-workflow-steps small { color: var(--lg-ink-soft) !important; }
+.home-workflow-steps li { background: rgba(80, 126, 184, .13) !important; }
+.home-workflow-steps strong { color: #edf5ff !important; }
+.home-final-cta { background: rgba(20, 35, 67, .76) !important; border-top: 1px solid rgba(195, 221, 255, .12); }
+.home-footer { border-top-color: rgba(194, 221, 255, .12) !important; background: rgba(9, 19, 39, .86) !important; }
+.home-footer-links,
+.home-footer-links a { color: var(--lg-ink-soft) !important; }
+
+/* Auth ------------------------------------------------------------------ */
+body.auth-page { display: grid; place-items: center; padding: 24px !important; }
+.auth-shell {
+  width: min(1000px, 100%) !important;
+  min-height: 610px !important;
+  overflow: hidden;
+  border: 1px solid rgba(209, 234, 255, .25) !important;
+  border-radius: 30px !important;
+  background: rgba(17, 29, 56, .64) !important;
+  box-shadow: 0 32px 100px rgba(0,0,0,.42), inset 0 1px rgba(255,255,255,.2) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(145%) !important;
+  backdrop-filter: blur(30px) saturate(145%) !important;
+}
+.auth-brand { position: relative; overflow: hidden; padding: 60px 54px !important; border-right: 1px solid rgba(200, 228, 255, .13); background: linear-gradient(145deg, rgba(42, 83, 135, .56), rgba(14, 25, 52, .62)) !important; }
+.auth-brand::after { opacity: .32 !important; background: radial-gradient(380px 250px at 20% 10%, rgba(117,229,237,.35), transparent 72%) !important; }
+.auth-brand p { color: rgba(201, 220, 244, .72) !important; }
+.auth-brand-logo { max-width: 210px !important; }
+.auth-form-panel { padding: 70px 70px !important; background: rgba(10, 20, 42, .34) !important; }
+.auth-form-panel h2 { color: #f2f7ff !important; }
+.auth-hint { color: var(--lg-ink-soft) !important; }
+.auth-error { color: #ffb7c3 !important; }
+
+/* Reduced motion/transparency and responsive density ------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .nav-liquid-indicator { filter: none !important; }
+  button:hover,
+  .primary-button:hover,
+  .secondary-button:hover,
+  .icon-button:hover,
+  .nav-item:hover { transform: none !important; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body.workspace-page,
+  body.admin-page,
+  body.auth-page,
+  body.home-page { background: #0b162c !important; }
+  .sidebar,
+  .topbar,
+  .panel,
+  .metric-card,
+  .modal,
+  .auth-shell,
+  .home-nav-shell,
+  .home-section,
+  .home-product-window { background: #162747 !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+}
+
+@media (max-width: 1180px) {
+  .workspace-shell,
+  .admin-shell { grid-template-columns: 218px minmax(0, 1fr) !important; }
+  .main-content { padding-inline: 28px !important; }
+  .team-member-form { grid-template-columns: minmax(200px, 1fr) minmax(130px, .48fr) minmax(220px, .9fr) !important; }
+  .team-member-form > .primary-button { grid-column: 3; justify-self: end; }
+}
+
+@media (max-width: 960px) {
+  .sidebar { margin: 10px !important; top: 10px !important; height: auto !important; min-height: 64px !important; }
+  .main-content { padding: 10px 20px 54px !important; }
+  .topbar { top: 10px !important; }
+  .nav-liquid-indicator { border-radius: 12px !important; }
+  .team-member-form { grid-template-columns: minmax(0, 1fr) minmax(120px, .45fr) !important; }
+  .team-member-permission-field { grid-column: 1 !important; }
+  .team-member-form > .primary-button { grid-column: 2 !important; }
+}
+
+@media (max-width: 720px) {
+  body.auth-page { padding: 10px !important; }
+  .sidebar { border-radius: 20px !important; }
+  .workspace-page .workspace-shell .nav-list,
+  .admin-page .admin-shell .nav-list {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    min-width: 0 !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+    scroll-snap-type: none !important;
+    mask-image: linear-gradient(to right, #000 calc(100% - 30px), transparent) !important;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 30px), transparent) !important;
+  }
+  .workspace-page .workspace-shell .nav-item,
+  .admin-page .admin-shell .nav-item { flex: 0 0 auto !important; white-space: nowrap !important; }
+  .main-content { padding: 8px 12px 44px !important; }
+  .topbar { position: relative !important; top: auto !important; padding: 16px !important; border-radius: 20px !important; }
+  .hero-panel { min-height: 0 !important; padding: 24px !important; border-radius: 23px !important; }
+  .hero-panel h2 { font-size: 28px !important; }
+  .panel { padding: 18px !important; border-radius: 19px !important; }
+  .team-member-form { grid-template-columns: 1fr !important; padding: 15px !important; }
+  .team-member-permission-field,
+  .team-member-form > .primary-button { grid-column: auto !important; width: 100%; }
+  .team-member-row { grid-template-columns: 32px minmax(0, 1fr) !important; }
+  .team-member-row .member-quota-field,
+  .team-member-row .member-permission-picker,
+  .team-member-row .team-member-actions { grid-column: 1 / -1 !important; }
+  .home-header { padding: 0 10px !important; }
+  .home-nav-shell { min-height: 56px !important; padding: 7px 8px 7px 12px !important; border-radius: 18px !important; }
+  .home-nav-links { order: 3; width: 100%; overflow-x: auto; }
+  .home-nav-links a { padding: 8px 10px !important; white-space: nowrap; }
+  .home-nav-actions { gap: 5px !important; }
+  .home-login-link { display: none !important; }
+  .home-hero { min-height: 820px !important; }
+  .home-hero-inner { width: min(100% - 30px, 1360px) !important; padding-top: 102px !important; }
+  .home-hero h1 { font-size: 48px !important; }
+  .home-hero-lead { font-size: 23px !important; }
+  .home-section-inner { width: min(100% - 30px, 1260px) !important; }
+  .home-capability-grid { grid-template-columns: 1fr !important; }
+  .home-teams-layout { grid-template-columns: 1fr !important; gap: 44px !important; }
+  .home-workflow-steps { grid-template-columns: 1fr !important; }
+  .auth-shell { display: block !important; min-height: 0 !important; border-radius: 24px !important; }
+  .auth-brand { min-height: 250px; padding: 34px 28px !important; border-right: 0; border-bottom: 1px solid rgba(200,228,255,.13); }
+  .auth-form-panel { padding: 36px 25px 42px !important; }
+}
+
+/* Keep the moving wrapper neutral; the child surface owns the refraction. */
+.workspace-page .workspace-shell .nav-liquid-indicator,
+.admin-page .admin-shell .nav-liquid-indicator {
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  border-radius: 28px 34px 30px 26px !important;
+}
+
+/* Remove the blue-violet cast from the surrounding workspace material. */
+.workspace-page .workspace-shell .sidebar,
+.admin-page .admin-shell .sidebar {
+  background: linear-gradient(145deg, rgba(255,255,255,.065), transparent 42%), rgba(18, 27, 42, .86) !important;
+  border-color: rgba(255,255,255,.14) !important;
+  box-shadow: 0 24px 62px rgba(4, 11, 22, .25), inset 0 1px rgba(255,255,255,.13) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(112%) !important;
+  backdrop-filter: blur(30px) saturate(112%) !important;
+}
+
+.workspace-page .workspace-shell .sidebar::before,
+.admin-page .admin-shell .sidebar::before {
+  background: linear-gradient(145deg, rgba(255,255,255,.08), transparent 46%, rgba(255,255,255,.025)) !important;
+  opacity: .65 !important;
+}
+
+.workspace-page .workspace-shell .brand-mark,
+.admin-page .admin-shell .brand-mark {
+  background: linear-gradient(145deg, rgba(255,255,255,.34), rgba(180,201,221,.16)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.45), 0 10px 24px rgba(4,11,22,.22) !important;
+}
+
+@media (max-width: 820px) {
+  .workspace-page .workspace-shell .sidebar,
+  .admin-page .admin-shell .sidebar {
+    right: 10px !important;
+    left: 10px !important;
+    width: calc(100% - 20px) !important;
+    margin: 10px 0 0 !important;
+  }
+
+  .workspace-page .workspace-shell .nav-list,
+  .admin-page .admin-shell .nav-list {
+    position: absolute !important;
+    top: 7px !important;
+    right: 7px !important;
+    left: 65px !important;
+    width: auto !important;
+    flex: none !important;
+    height: 46px !important;
+  }
+}
+
+/* White-blue refractive material pass ---------------------------------- */
+:root {
+  --lg-ink: #15324e;
+  --lg-ink-soft: #526b83;
+  --lg-ink-faint: #7e93a8;
+  --lg-cyan: #2c8ec9;
+  --lg-blue: #2e73c5;
+  --lg-violet: #738fc4;
+  --lg-line: rgba(90, 133, 174, .16);
+  --lg-line-strong: rgba(68, 116, 161, .25);
+  --lg-shadow: 0 22px 58px rgba(70, 111, 151, .13), 0 3px 12px rgba(70, 111, 151, .06);
+  --lg-blur: blur(30px) saturate(145%) brightness(1.03);
+  --lg-surface-0: rgba(248, 252, 255, .50);
+  --lg-surface-1: rgba(248, 252, 255, .62);
+  --lg-surface-2: rgba(251, 253, 255, .76);
+  --lg-control: rgba(249, 253, 255, .69);
+  color-scheme: light;
+}
+
+html,
+body,
+body.home-page { background: #eef7ff !important; }
+
+body.workspace-page,
+body.admin-page,
+body.auth-page {
+  --bg: #eef7ff;
+  --surface: rgba(250, 253, 255, .68);
+  --surface-muted: rgba(238, 247, 255, .58);
+  --surface-subtle: rgba(225, 239, 251, .54);
+  --line: rgba(81, 128, 170, .16);
+  --line-strong: rgba(66, 111, 153, .24);
+  --ink: #15324e;
+  --muted: #6b8196;
+  --muted-strong: #49637c;
+  --teal: #287fbb;
+  --teal-soft: rgba(201, 230, 250, .62);
+  --blue: #2e73c5;
+  --blue-soft: rgba(207, 228, 250, .64);
+  color: var(--lg-ink) !important;
+  background:
+    radial-gradient(54rem 38rem at -5% -8%, rgba(137, 202, 255, .36), transparent 70%),
+    radial-gradient(42rem 32rem at 104% 12%, rgba(165, 222, 242, .30), transparent 72%),
+    radial-gradient(38rem 27rem at 58% 106%, rgba(206, 187, 245, .18), transparent 73%),
+    radial-gradient(30rem 22rem at 35% 44%, rgba(255, 215, 227, .13), transparent 75%),
+    linear-gradient(145deg, #eaf5ff 0%, #f8fbff 48%, #edf8fc 100%) !important;
+  background-attachment: fixed !important;
+}
+
+body.workspace-page::before,
+body.admin-page::before,
+body.auth-page::before {
+  opacity: 1 !important;
+  background:
+    radial-gradient(30rem 19rem at 12% 28%, rgba(112, 189, 245, .13), transparent 72%),
+    radial-gradient(27rem 20rem at 83% 62%, rgba(102, 214, 221, .10), transparent 74%),
+    radial-gradient(26rem 18rem at 48% 82%, rgba(194, 165, 232, .08), transparent 75%) !important;
+  background-size: auto !important;
+  mix-blend-mode: normal !important;
+}
+
+body.workspace-page :focus-visible,
+body.admin-page :focus-visible,
+body.auth-page :focus-visible { outline-color: rgba(42, 120, 190, .76) !important; }
+
+/* Chrome, panels and cards use progressively lighter glass densities. */
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  color: var(--lg-ink) !important;
+  border-color: rgba(255, 255, 255, .76) !important;
+  background:
+    radial-gradient(130% 72% at 0 0, rgba(255,255,255,.74), transparent 48%),
+    linear-gradient(145deg, rgba(249,253,255,.64), rgba(225,241,253,.48)) !important;
+  box-shadow:
+    0 24px 60px rgba(64, 108, 149, .14),
+    inset 0 1px rgba(255,255,255,.96),
+    inset 1px 0 rgba(255,255,255,.64),
+    inset -1px 0 rgba(84,159,209,.13),
+    inset 0 -1px rgba(50,104,148,.08) !important;
+  -webkit-backdrop-filter: blur(34px) saturate(148%) brightness(1.035) !important;
+  backdrop-filter: blur(34px) saturate(148%) brightness(1.035) !important;
+  transition: transform 170ms var(--lg-ease), box-shadow 190ms ease !important;
+}
+
+body.workspace-page .workspace-shell .sidebar:has(.nav-list.is-pressed),
+body.admin-page .admin-shell .sidebar:has(.nav-list.is-pressed) {
+  transform: scale(.996);
+  box-shadow: 0 17px 42px rgba(64,108,149,.12), inset 0 1px rgba(255,255,255,.92), inset 0 -1px rgba(50,104,148,.09) !important;
+}
+
+body.workspace-page .workspace-shell .sidebar::before,
+body.admin-page .admin-shell .sidebar::before {
+  opacity: .9 !important;
+  background:
+    radial-gradient(26rem 12rem at 10% -4%, rgba(255,255,255,.68), transparent 70%),
+    linear-gradient(126deg, rgba(104,190,238,.07), transparent 46%, rgba(130,203,224,.05)) !important;
+}
+
+body.workspace-page .workspace-shell .sidebar::after,
+body.admin-page .admin-shell .sidebar::after {
+  border-color: rgba(255,255,255,.42) !important;
+  box-shadow: inset 0 0 28px rgba(90,163,211,.045) !important;
+}
+
+body.workspace-page .brand-lockup,
+body.admin-page .brand-lockup { border-bottom-color: rgba(65,112,153,.10) !important; }
+body.workspace-page .brand-name,
+body.admin-page .brand-name { color: #173550 !important; }
+body.workspace-page .brand-sub,
+body.workspace-page .workspace-label,
+body.workspace-page .nav-section-label,
+body.admin-page .brand-sub,
+body.admin-page .workspace-label,
+body.admin-page .nav-section-label { color: #74899d !important; }
+body.workspace-page .workspace-mode,
+body.admin-page .workspace-mode { color: #287eaf !important; }
+
+body.workspace-page .workspace-shell .brand-mark,
+body.admin-page .admin-shell .brand-mark {
+  color: #174469 !important;
+  border-color: rgba(255,255,255,.84) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.78), rgba(179,220,247,.58)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.96), inset 0 -1px rgba(49,118,169,.10), 0 9px 22px rgba(69,125,169,.16) !important;
+}
+
+body.workspace-page .health-card,
+body.workspace-page .user-chip,
+body.admin-page .health-card,
+body.admin-page .user-chip {
+  color: #27465f !important;
+  border-color: rgba(255,255,255,.66) !important;
+  background: rgba(242,249,254,.46) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.82), inset 0 -1px rgba(63,119,162,.06) !important;
+}
+body.workspace-page .health-line,
+body.workspace-page .user-copy strong,
+body.admin-page .health-line,
+body.admin-page .user-copy strong { color: #29465f !important; }
+body.workspace-page .health-meta,
+body.workspace-page .user-copy small,
+body.admin-page .health-meta,
+body.admin-page .user-copy small { color: #7b8fa2 !important; }
+body.workspace-page .user-action,
+body.admin-page .user-action { color: #287caf !important; }
+body.workspace-page .avatar,
+body.admin-page .avatar {
+  color: #16415f !important;
+  background: linear-gradient(145deg, rgba(210,241,251,.92), rgba(169,211,245,.86)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.9), 0 6px 14px rgba(76,137,180,.17) !important;
+}
+
+body.workspace-page .topbar,
+body.admin-page .topbar {
+  color: var(--lg-ink) !important;
+  border-color: rgba(255,255,255,.72) !important;
+  background:
+    radial-gradient(110% 100% at 0 0, rgba(255,255,255,.76), transparent 47%),
+    linear-gradient(135deg, rgba(250,253,255,.58), rgba(230,244,253,.43)) !important;
+  box-shadow: 0 16px 44px rgba(68,111,151,.11), inset 0 1px rgba(255,255,255,.96), inset 0 -1px rgba(58,112,155,.07) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(145%) brightness(1.025) !important;
+  backdrop-filter: blur(28px) saturate(145%) brightness(1.025) !important;
+}
+
+body.workspace-page .eyebrow,
+body.workspace-page .section-kicker,
+body.workspace-page .switcher-label,
+body.admin-page .eyebrow,
+body.admin-page .section-kicker,
+body.admin-page .switcher-label { color: #648098 !important; }
+body.workspace-page :is(.page-heading-copy h1, .topbar h1, .view-heading h2, .panel-header h2),
+body.admin-page :is(.page-heading-copy h1, .topbar h1, .view-heading h2, .panel-header h2) { color: #173550 !important; }
+body.workspace-page :is(.page-context, .view-heading p, .field-hint, .save-hint),
+body.admin-page :is(.page-context, .view-heading p, .field-hint, .save-hint) { color: var(--lg-ink-soft) !important; }
+
+body.workspace-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel),
+body.admin-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel) {
+  color: var(--lg-ink) !important;
+  border-color: rgba(255,255,255,.70) !important;
+  background:
+    radial-gradient(130% 90% at 0 0, rgba(255,255,255,.66), transparent 50%),
+    linear-gradient(142deg, rgba(248,252,255,.50), rgba(226,242,252,.34)) !important;
+  box-shadow: 0 18px 48px rgba(70,111,151,.105), inset 0 1px rgba(255,255,255,.94), inset 1px 0 rgba(255,255,255,.44), inset -1px 0 rgba(80,153,204,.09), inset 0 -1px rgba(55,105,145,.06) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(145%) brightness(1.025) !important;
+  backdrop-filter: blur(24px) saturate(145%) brightness(1.025) !important;
+}
+
+body.workspace-page :is(.metric-card, .feature-card, .template-card, .asset-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item),
+body.admin-page :is(.metric-card, .feature-card, .template-card, .asset-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item) {
+  color: var(--lg-ink) !important;
+  border-color: rgba(255,255,255,.64) !important;
+  background:
+    radial-gradient(120% 90% at 4% 0, rgba(255,255,255,.58), transparent 48%),
+    rgba(242,249,254,.45) !important;
+  box-shadow: 0 11px 30px rgba(72,111,148,.08), inset 0 1px rgba(255,255,255,.9), inset 0 -1px rgba(52,110,153,.055) !important;
+  -webkit-backdrop-filter: blur(19px) saturate(140%) brightness(1.02) !important;
+  backdrop-filter: blur(19px) saturate(140%) brightness(1.02) !important;
+}
+
+body.workspace-page :is(.panel-header h2, .section-heading h2, .feature-card h3, .workflow-step strong, .production-panel-heading h2, .production-mode-tab strong, .copy-section-heading h2),
+body.admin-page :is(.panel-header h2, .section-heading h2, .feature-card h3, .workflow-step strong, .production-panel-heading h2, .production-mode-tab strong, .copy-section-heading h2) { color: #173550 !important; }
+body.workspace-page :is(.panel p, .metric-foot, .metric-label, .feature-card p, .asset-info, .template-extra),
+body.admin-page :is(.panel p, .metric-foot, .metric-label, .feature-card p, .asset-info, .template-extra) { color: var(--lg-ink-soft) !important; }
+body.workspace-page .metric-value,
+body.admin-page .metric-value { color: #193a58 !important; }
+
+body.workspace-page .hero-panel,
+body.admin-page .hero-panel {
+  border-color: rgba(255,255,255,.76) !important;
+  background:
+    radial-gradient(35rem 17rem at 90% 0, rgba(128,195,238,.24), transparent 70%),
+    radial-gradient(38rem 19rem at 0 110%, rgba(136,218,218,.16), transparent 72%),
+    linear-gradient(138deg, rgba(245,251,255,.60), rgba(213,235,250,.45)) !important;
+  box-shadow: 0 22px 60px rgba(66,111,151,.13), inset 0 1px rgba(255,255,255,.96), inset 0 -1px rgba(54,111,154,.08) !important;
+  -webkit-backdrop-filter: blur(27px) saturate(150%) brightness(1.03) !important;
+  backdrop-filter: blur(27px) saturate(150%) brightness(1.03) !important;
+}
+body.workspace-page .hero-panel h2,
+body.admin-page .hero-panel h2 { color: #163a59 !important; }
+body.workspace-page .hero-panel p,
+body.admin-page .hero-panel p { color: #587188 !important; }
+body.workspace-page .hero-panel .section-kicker,
+body.admin-page .hero-panel .section-kicker { color: #287daa !important; }
+
+/* Navigation keeps real displacement, while the static selection stays flat. */
+body.workspace-page .workspace-shell .nav-list::before,
+body.admin-page .admin-shell .nav-list::before {
+  border-color: rgba(255,255,255,.44) !important;
+  background: linear-gradient(120deg, rgba(216,237,250,.27), rgba(255,255,255,.18)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.50) !important;
+}
+body.workspace-page .workspace-shell .nav-item,
+body.admin-page .admin-shell .nav-item {
+  color: #627b91 !important;
+}
+body.workspace-page .workspace-shell .nav-item:hover,
+body.admin-page .admin-shell .nav-item:hover {
+  color: #173f60 !important;
+  background: rgba(255,255,255,.34) !important;
+}
+body.workspace-page .workspace-shell .nav-item.active,
+body.admin-page .admin-shell .nav-item.active,
+body.workspace-page .workspace-shell .nav-item.liquid-target,
+body.admin-page .admin-shell .nav-item.liquid-target {
+  color: #153d5e !important;
+  background: rgba(193,224,246,.48) !important;
+  border-color: rgba(255,255,255,.54) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.75), inset 0 -1px rgba(56,117,160,.08) !important;
+}
+body.workspace-page .workspace-shell .nav-icon,
+body.admin-page .admin-shell .nav-icon { color: #6387a2 !important; }
+body.workspace-page .workspace-shell .nav-item.active .nav-icon,
+body.admin-page .admin-shell .nav-item.active .nav-icon { color: #236f9f !important; }
+
+body.workspace-page .workspace-shell .nav-liquid-filter,
+body.admin-page .admin-shell .nav-liquid-filter {
+  border: .5px solid rgba(255,255,255,.72) !important;
+  background:
+    radial-gradient(75% 88% at var(--light-x, 28%) var(--light-y, 12%), rgba(255,255,255,.58), transparent 57%),
+    linear-gradient(112deg, rgba(255,255,255,.24), rgba(224,244,252,.12) 42%, rgba(182,226,248,.18) 76%, rgba(255,255,255,.32)) !important;
+  box-shadow: 0 12px 27px rgba(48,104,145,.16), inset 0 1px rgba(255,255,255,.88), inset 0 -2px 5px rgba(43,105,148,.10), inset 1px 0 rgba(112,210,220,.15), inset -1px 0 rgba(91,157,221,.12), 0 0 18px rgba(255,255,255,.16) !important;
+  -webkit-backdrop-filter: url(#liquid-nav-distortion) blur(.35px) brightness(1.08) saturate(1.14) contrast(1.025) !important;
+  backdrop-filter: url(#liquid-nav-distortion) blur(.35px) brightness(1.08) saturate(1.14) contrast(1.025) !important;
+}
+body.workspace-page .workspace-shell .nav-liquid-filter::before,
+body.admin-page .admin-shell .nav-liquid-filter::before {
+  background: radial-gradient(68% 80% at var(--light-x, 28%) var(--light-y, 12%), rgba(255,255,255,.48), transparent 58%), linear-gradient(118deg, rgba(255,255,255,.22), transparent 43%, rgba(151,210,240,.13) 77%, rgba(255,255,255,.26)) !important;
+}
+body.workspace-page .workspace-shell .nav-liquid-filter::after,
+body.admin-page .admin-shell .nav-liquid-filter::after { background: rgba(255,255,255,.30) !important; }
+body.workspace-page .workspace-shell .nav-liquid-overlay,
+body.admin-page .admin-shell .nav-liquid-overlay { border-color: rgba(255,255,255,.24) !important; background: rgba(192,230,248,.07) !important; }
+body.workspace-page .workspace-shell .nav-liquid-specular,
+body.admin-page .admin-shell .nav-liquid-specular { box-shadow: inset 0 -5px 10px rgba(46,104,145,.055), inset 0 1px rgba(255,255,255,.42) !important; }
+body.workspace-page .workspace-shell .nav-liquid-rim,
+body.admin-page .admin-shell .nav-liquid-rim { box-shadow: inset 0 0 0 .6px rgba(255,255,255,.5) !important; }
+body.workspace-page .workspace-shell .nav-list.is-pressed .nav-liquid-filter,
+body.admin-page .admin-shell .nav-list.is-pressed .nav-liquid-filter {
+  background: radial-gradient(75% 88% at var(--light-x, 28%) var(--light-y, 12%), rgba(255,255,255,.68), transparent 58%), linear-gradient(112deg, rgba(255,255,255,.22), rgba(215,240,250,.10) 42%, rgba(164,217,244,.17) 76%, rgba(255,255,255,.30)) !important;
+  box-shadow: 0 15px 31px rgba(48,104,145,.19), inset 0 1px rgba(255,255,255,.96), inset 0 -4px 10px rgba(43,105,148,.11), inset 1px 0 rgba(112,210,220,.17), inset -1px 0 rgba(91,157,221,.14), 0 0 23px rgba(255,255,255,.2) !important;
+}
+
+/* Inputs, menus and native selection controls. */
+body.workspace-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.workspace-page textarea,
+body.workspace-page select,
+body.workspace-page .ui-select-trigger,
+body.workspace-page .project-select,
+body.admin-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.admin-page textarea,
+body.admin-page select,
+body.admin-page .ui-select-trigger,
+body.admin-page .project-select,
+body.auth-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.auth-page textarea,
+body.auth-page select,
+body.auth-page .ui-select-trigger {
+  color: #1f425f !important;
+  border-color: rgba(82,132,174,.20) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.75), rgba(232,246,254,.62)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.96), inset 0 -1px rgba(47,106,151,.055), 0 6px 16px rgba(75,117,153,.055) !important;
+  -webkit-backdrop-filter: blur(17px) saturate(138%) brightness(1.025) !important;
+  backdrop-filter: blur(17px) saturate(138%) brightness(1.025) !important;
+}
+body.workspace-page input::placeholder,
+body.workspace-page textarea::placeholder,
+body.admin-page input::placeholder,
+body.admin-page textarea::placeholder,
+body.auth-page input::placeholder { color: #91a4b5 !important; }
+body.workspace-page :is(input, textarea, select):hover,
+body.workspace-page .ui-select-trigger:hover,
+body.admin-page :is(input, textarea, select):hover,
+body.admin-page .ui-select-trigger:hover,
+body.auth-page :is(input, textarea, select):hover,
+body.auth-page .ui-select-trigger:hover {
+  color: #173b59 !important;
+  border-color: rgba(45,126,184,.36) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.86), rgba(229,244,253,.72)) !important;
+}
+body.workspace-page :is(input, textarea, select):focus,
+body.workspace-page :is(.ui-select-trigger:focus-visible, .ui-select-trigger.is-open),
+body.admin-page :is(input, textarea, select):focus,
+body.admin-page :is(.ui-select-trigger:focus-visible, .ui-select-trigger.is-open),
+body.auth-page :is(input, textarea, select):focus,
+body.auth-page :is(.ui-select-trigger:focus-visible, .ui-select-trigger.is-open) {
+  border-color: rgba(39,125,184,.58) !important;
+  outline: 0 !important;
+  box-shadow: 0 0 0 4px rgba(66,145,201,.12), inset 0 1px rgba(255,255,255,.98), inset 0 -1px rgba(47,106,151,.06) !important;
+}
+body.workspace-page select option,
+body.admin-page select option,
+body.auth-page select option { color: #1d3b57; background: #f4faff; }
+body.workspace-page .ui-select-value,
+body.admin-page .ui-select-value,
+body.auth-page .ui-select-value { color: #1f425f !important; }
+body.workspace-page .ui-select-chevron,
+body.admin-page .ui-select-chevron,
+body.auth-page .ui-select-chevron { border-color: #4e7999 !important; color: #4e7999 !important; }
+
+.ui-select-popover {
+  color: #1c3b57 !important;
+  border-color: rgba(255,255,255,.84) !important;
+  background:
+    radial-gradient(120% 85% at 0 0, rgba(255,255,255,.92), transparent 48%),
+    rgba(239,248,254,.82) !important;
+  box-shadow: 0 24px 62px rgba(51,94,132,.19), inset 0 1px rgba(255,255,255,.98), inset 0 -1px rgba(44,102,145,.075) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(155%) brightness(1.03) !important;
+  backdrop-filter: blur(30px) saturate(155%) brightness(1.03) !important;
+}
+.ui-select-popover .ui-select-option { color: #49657c !important; background: transparent !important; }
+.ui-select-popover .ui-select-option:hover,
+.ui-select-popover .ui-select-option.is-highlighted { color: #173e5f !important; background: rgba(187,220,244,.45) !important; }
+.ui-select-popover .ui-select-option.is-selected { color: #1f70a9 !important; background: rgba(179,217,244,.38) !important; }
+.ui-select-popover .ui-select-check { color: #2578ad !important; }
+
+body.workspace-page input[type="checkbox"],
+body.workspace-page input[type="radio"],
+body.admin-page input[type="checkbox"],
+body.admin-page input[type="radio"],
+body.auth-page input[type="checkbox"],
+body.auth-page input[type="radio"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-grid;
+  width: 17px !important;
+  height: 17px !important;
+  min-height: 17px !important;
+  flex: 0 0 17px;
+  place-items: center;
+  margin: 0;
+  padding: 0 !important;
+  border: 1px solid rgba(65,116,158,.30) !important;
+  border-radius: 5px;
+  background: rgba(252,254,255,.72) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.96), 0 2px 6px rgba(64,108,145,.08) !important;
+}
+body.workspace-page input[type="radio"],
+body.admin-page input[type="radio"],
+body.auth-page input[type="radio"] { border-radius: 50%; }
+body.workspace-page input[type="checkbox"]::after,
+body.admin-page input[type="checkbox"]::after,
+body.auth-page input[type="checkbox"]::after {
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  content: "";
+  opacity: 0;
+  transform: translateY(-1px) rotate(45deg) scale(.6);
+  transition: opacity 120ms ease, transform 160ms var(--lg-ease);
+}
+body.workspace-page input[type="radio"]::after,
+body.admin-page input[type="radio"]::after,
+body.auth-page input[type="radio"]::after {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  content: "";
+  background: #fff;
+  opacity: 0;
+  transform: scale(.4);
+  transition: opacity 120ms ease, transform 160ms var(--lg-ease);
+}
+body.workspace-page input[type="checkbox"]:checked,
+body.workspace-page input[type="radio"]:checked,
+body.admin-page input[type="checkbox"]:checked,
+body.admin-page input[type="radio"]:checked,
+body.auth-page input[type="checkbox"]:checked,
+body.auth-page input[type="radio"]:checked {
+  border-color: rgba(37,118,173,.68) !important;
+  background: linear-gradient(145deg, rgba(91,177,226,.96), rgba(42,119,179,.94)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.42), 0 4px 10px rgba(46,124,180,.19) !important;
+}
+body.workspace-page input[type="checkbox"]:checked::after,
+body.workspace-page input[type="radio"]:checked::after,
+body.admin-page input[type="checkbox"]:checked::after,
+body.admin-page input[type="radio"]:checked::after,
+body.auth-page input[type="checkbox"]:checked::after,
+body.auth-page input[type="radio"]:checked::after { opacity: 1; transform: translateY(-1px) rotate(45deg) scale(1); }
+body.workspace-page input[type="radio"]:checked::after,
+body.admin-page input[type="radio"]:checked::after,
+body.auth-page input[type="radio"]:checked::after { transform: scale(1); }
+
+body.workspace-page input[type="range"],
+body.admin-page input[type="range"],
+body.auth-page input[type="range"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 100%;
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.workspace-page input[type="range"]::-webkit-slider-runnable-track,
+body.admin-page input[type="range"]::-webkit-slider-runnable-track,
+body.auth-page input[type="range"]::-webkit-slider-runnable-track {
+  height: 8px;
+  border: 1px solid rgba(255,255,255,.76);
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(141,202,237,.50), rgba(221,240,251,.58));
+  box-shadow: inset 0 1px 3px rgba(48,103,145,.12), 0 1px rgba(255,255,255,.85);
+}
+body.workspace-page input[type="range"]::-webkit-slider-thumb,
+body.admin-page input[type="range"]::-webkit-slider-thumb,
+body.auth-page input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 21px;
+  height: 21px;
+  margin-top: -7px;
+  border: 1px solid rgba(255,255,255,.94);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 22%, #fff 0 12%, rgba(223,243,253,.96) 42%, rgba(128,192,230,.94));
+  box-shadow: 0 5px 13px rgba(45,108,151,.20), inset 0 1px rgba(255,255,255,.98), inset 0 -1px rgba(38,103,151,.12);
+}
+
+/* Buttons and choice surfaces use denser glass than their parent panel. */
+body.workspace-page :is(button, .primary-button, .secondary-button, .quiet-button, .danger-button, .icon-button),
+body.admin-page :is(button, .primary-button, .secondary-button, .quiet-button, .danger-button, .icon-button),
+body.auth-page :is(button, .primary-button, .secondary-button, .quiet-button, .danger-button, .icon-button) {
+  color: #24445f !important;
+}
+body.workspace-page .primary-button,
+body.admin-page .primary-button,
+body.auth-page .primary-button {
+  color: #123d5e !important;
+  border-color: rgba(255,255,255,.82) !important;
+  background: linear-gradient(145deg, rgba(211,239,253,.88), rgba(138,201,238,.78)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.98), inset 0 -1px rgba(34,107,158,.10), 0 10px 24px rgba(48,122,174,.16) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(145%) !important;
+  backdrop-filter: blur(14px) saturate(145%) !important;
+}
+body.workspace-page :is(.secondary-button, .icon-button),
+body.admin-page :is(.secondary-button, .icon-button),
+body.auth-page :is(.secondary-button, .icon-button) {
+  color: #355774 !important;
+  border-color: rgba(255,255,255,.70) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.66), rgba(226,241,251,.48)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.94), inset 0 -1px rgba(50,106,148,.06), 0 6px 16px rgba(68,108,145,.07) !important;
+  -webkit-backdrop-filter: blur(15px) saturate(140%) !important;
+  backdrop-filter: blur(15px) saturate(140%) !important;
+}
+body.workspace-page .quiet-button,
+body.admin-page .quiet-button,
+body.auth-page .quiet-button { color: #5d7489 !important; border-color: transparent !important; background: rgba(237,247,253,.34) !important; }
+body.workspace-page .danger-button,
+body.admin-page .danger-button,
+body.auth-page .danger-button { color: #a54a60 !important; border-color: rgba(195,95,120,.20) !important; background: rgba(255,240,245,.58) !important; }
+body.workspace-page .primary-button:hover,
+body.admin-page .primary-button:hover,
+body.auth-page .primary-button:hover { border-color: rgba(255,255,255,.94) !important; background: linear-gradient(145deg, rgba(222,245,255,.94), rgba(132,198,237,.88)) !important; box-shadow: inset 0 1px #fff, 0 14px 30px rgba(48,122,174,.20) !important; }
+body.workspace-page :is(.secondary-button, .icon-button, .quiet-button):hover,
+body.admin-page :is(.secondary-button, .icon-button, .quiet-button):hover,
+body.auth-page :is(.secondary-button, .icon-button, .quiet-button):hover { color: #216b9c !important; border-color: rgba(66,137,184,.28) !important; background: rgba(249,253,255,.75) !important; }
+
+body.workspace-page :is(.production-mode-switcher, .render-asset-picker, .permission-picker, .member-permission-picker),
+body.admin-page :is(.production-mode-switcher, .render-asset-picker, .permission-picker, .member-permission-picker) {
+  border-color: rgba(255,255,255,.58) !important;
+  background: rgba(218,238,250,.30) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.68) !important;
+  -webkit-backdrop-filter: blur(15px) saturate(135%) !important;
+  backdrop-filter: blur(15px) saturate(135%) !important;
+}
+body.workspace-page :is(.production-mode-tab, .publish-mode-option, .platform-card, .render-asset-option, .image-reference-option, .copy-reference-option, .permission-picker label, .member-permission-picker label),
+body.admin-page :is(.production-mode-tab, .publish-mode-option, .platform-card, .render-asset-option, .image-reference-option, .copy-reference-option, .permission-picker label, .member-permission-picker label) {
+  color: #4a657c !important;
+  border-color: rgba(255,255,255,.62) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.50), rgba(228,243,251,.39)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.80), inset 0 -1px rgba(53,110,151,.045) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(138%) !important;
+  backdrop-filter: blur(14px) saturate(138%) !important;
+}
+body.workspace-page :is(.production-mode-tab.active, .publish-mode-option.selected, .platform-card.selected, .render-asset-option:has(input:checked), .image-reference-option:has(input:checked), .copy-reference-option:has(input:checked), .permission-picker label:has(input:checked), .member-permission-picker label:has(input:checked)),
+body.admin-page :is(.production-mode-tab.active, .publish-mode-option.selected, .platform-card.selected, .render-asset-option:has(input:checked), .image-reference-option:has(input:checked), .copy-reference-option:has(input:checked), .permission-picker label:has(input:checked), .member-permission-picker label:has(input:checked)) {
+  color: #174a6d !important;
+  border-color: rgba(74,146,193,.32) !important;
+  background: linear-gradient(145deg, rgba(230,247,255,.78), rgba(177,219,244,.56)) !important;
+  box-shadow: 0 0 0 3px rgba(63,139,191,.07), inset 0 1px rgba(255,255,255,.94), inset 0 -1px rgba(48,113,157,.08) !important;
+}
+body.workspace-page .production-mode-tab.active .production-mode-symbol,
+body.admin-page .production-mode-tab.active .production-mode-symbol {
+  color: #16476a !important;
+  background: linear-gradient(145deg, rgba(235,249,255,.92), rgba(155,211,242,.72)) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.96), 0 6px 14px rgba(59,127,172,.14) !important;
+}
+
+/* Recessed content stays translucent instead of turning into solid cards. */
+body.workspace-page :is(.result-block, .analysis-chip, .copy-value, .settings-row, .language-capability, .package-editor-row, .rule-editor-row, .team-member-form, .provider-config-panel),
+body.admin-page :is(.result-block, .analysis-chip, .copy-value, .settings-row, .language-capability, .package-editor-row, .rule-editor-row, .team-member-form, .provider-config-panel) {
+  color: #284760 !important;
+  border-color: rgba(75,124,165,.12) !important;
+  background: rgba(224,240,251,.35) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.54) !important;
+}
+body.workspace-page :is(.data-table, .team-member-list, .history-list, .output-list, .provider-status-list, .requirement-matrix, .ticket-list, .distribution-list),
+body.admin-page :is(.data-table, .team-member-list, .history-list, .output-list, .provider-status-list, .requirement-matrix, .ticket-list, .distribution-list) { color: #28465f !important; }
+body.workspace-page :is(.table-row, .team-member-row, .history-row, .output-row, .provider-status-row, .requirement-row, .ticket-row, .distribution-row, .audit-row, .user-row, .customer-profile-row, .template-request-row),
+body.admin-page :is(.table-row, .team-member-row, .history-row, .output-row, .provider-status-row, .requirement-row, .ticket-row, .distribution-row, .audit-row, .user-row, .customer-profile-row, .template-request-row) {
+  color: #294860 !important;
+  border-color: rgba(72,120,161,.10) !important;
+  background: rgba(236,247,253,.25) !important;
+}
+body.workspace-page :is(.table-row, .team-member-row, .history-row, .output-row, .provider-status-row, .requirement-row, .ticket-row, .distribution-row, .audit-row, .user-row):hover,
+body.admin-page :is(.table-row, .team-member-row, .history-row, .output-row, .provider-status-row, .requirement-row, .ticket-row, .distribution-row, .audit-row, .user-row):hover { background: rgba(216,238,251,.40) !important; border-color: rgba(69,132,177,.19) !important; }
+body.workspace-page :is(.team-member-name em, .soft-badge, .live-badge, .quality-pill, .tag, .platform-chip),
+body.admin-page :is(.team-member-name em, .soft-badge, .live-badge, .quality-pill, .tag, .platform-chip) { color: #266e9d !important; border-color: rgba(67,137,181,.18) !important; background: rgba(198,228,246,.46) !important; }
+body.workspace-page :is(.requirement-copy strong, .provider-status-row strong, .requirement-label),
+body.admin-page :is(.requirement-copy strong, .provider-status-row strong, .requirement-label) { color: #23445e !important; }
+body.workspace-page :is(.requirement-copy small, .provider-status-row small),
+body.admin-page :is(.requirement-copy small, .provider-status-row small) { color: #71869a !important; }
+
+/* Popovers and dialogs are the densest glass level. */
+body.workspace-page .modal-backdrop,
+body.admin-page .modal-backdrop,
+body.auth-page .modal-backdrop { background: rgba(75,108,136,.22) !important; -webkit-backdrop-filter: blur(11px) saturate(112%) !important; backdrop-filter: blur(11px) saturate(112%) !important; }
+body.workspace-page :is(.modal, .asset-preview-dialog, .ui-action-dialog),
+body.admin-page :is(.modal, .asset-preview-dialog, .ui-action-dialog),
+body.auth-page :is(.modal, .asset-preview-dialog, .ui-action-dialog) {
+  color: #173750 !important;
+  border-color: rgba(255,255,255,.86) !important;
+  background: radial-gradient(120% 85% at 0 0, rgba(255,255,255,.94), transparent 48%), rgba(239,248,254,.84) !important;
+  box-shadow: 0 30px 88px rgba(48,88,124,.24), inset 0 1px rgba(255,255,255,.99), inset 0 -1px rgba(45,102,145,.07) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(150%) brightness(1.025) !important;
+  backdrop-filter: blur(32px) saturate(150%) brightness(1.025) !important;
+}
+body.workspace-page .modal-header h2,
+body.admin-page .modal-header h2,
+body.auth-page .modal-header h2 { color: #173750 !important; }
+body.workspace-page .modal-actions,
+body.admin-page .modal-actions,
+body.auth-page .modal-actions { border-color: rgba(71,119,158,.12) !important; }
+body.workspace-page .toast,
+body.admin-page .toast,
+body.auth-page .toast { color: #173b58 !important; border-color: rgba(255,255,255,.82) !important; background: rgba(235,248,253,.88) !important; box-shadow: 0 17px 42px rgba(48,91,128,.20), inset 0 1px rgba(255,255,255,.96) !important; }
+
+/* Home and authentication inherit the same palette without changing layout. */
+body.home-page {
+  color: #15324e !important;
+  background: radial-gradient(55rem 34rem at -4% 2%, rgba(126,196,247,.34), transparent 72%), radial-gradient(45rem 30rem at 104% 24%, rgba(146,218,232,.27), transparent 74%), #eff8ff !important;
+}
+body.home-page .home-nav-shell {
+  border-color: rgba(255,255,255,.78) !important;
+  background: rgba(245,251,255,.60) !important;
+  box-shadow: 0 18px 48px rgba(59,105,145,.13), inset 0 1px rgba(255,255,255,.96), inset 0 -1px rgba(45,104,147,.07) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(148%) brightness(1.03) !important;
+  backdrop-filter: blur(28px) saturate(148%) brightness(1.03) !important;
+}
+body.home-page :is(.home-brand-copy strong, .home-nav-links a, .home-login-link) { color: #34546f !important; }
+body.home-page .home-nav-links a:hover,
+body.home-page .home-nav-links a.is-active { color: #174364 !important; background: rgba(198,228,246,.42) !important; }
+body.home-page .home-brand-copy small { color: #7890a4 !important; }
+body.home-page :is(.home-nav-cta, .home-button-primary) { color: #123d5e !important; border-color: rgba(255,255,255,.82) !important; background: linear-gradient(145deg, rgba(211,239,253,.90), rgba(137,200,238,.82)) !important; box-shadow: inset 0 1px #fff, 0 10px 24px rgba(48,122,174,.16) !important; }
+body.home-page .home-button-secondary { color: #355774 !important; border-color: rgba(255,255,255,.70) !important; background: rgba(247,252,255,.58) !important; box-shadow: inset 0 1px rgba(255,255,255,.94) !important; }
+body.home-page .home-hero-overlay { background: linear-gradient(105deg, rgba(234,246,255,.88), rgba(237,248,255,.38)) !important; }
+body.home-page :is(.home-hero h1, .home-hero-lead) { color: #153a58 !important; }
+body.home-page .home-hero-description { color: #526d84 !important; }
+body.home-page :is(.home-kicker, .home-availability) { color: #267caf !important; }
+body.home-page :is(.home-proof-list li, .home-floating-card, .home-product-window, .home-capability-item, .home-team-features article, .home-team-status, .home-workflow-steps li) {
+  color: #23445f !important;
+  border-color: rgba(255,255,255,.70) !important;
+  background: rgba(244,251,255,.52) !important;
+  box-shadow: 0 17px 44px rgba(63,106,145,.10), inset 0 1px rgba(255,255,255,.94), inset 0 -1px rgba(48,107,150,.06) !important;
+  -webkit-backdrop-filter: blur(23px) saturate(145%) !important;
+  backdrop-filter: blur(23px) saturate(145%) !important;
+}
+body.home-page :is(.home-section, .home-workflow, .home-final-cta, .home-footer) { color: #173750 !important; border-color: rgba(73,122,160,.10) !important; background: rgba(236,247,253,.50) !important; }
+body.home-page :is(.home-section-heading h2, .home-teams h2, .home-final-cta h2, .home-workflow h2, .home-capability-item h3, .home-team-features h3, .home-workflow-steps strong) { color: #193b58 !important; }
+body.home-page :is(.home-section-heading > p, .home-capability-item p, .home-teams-copy > p:not(.home-kicker), .home-team-features p, .home-final-cta p:not(.home-kicker), .home-workflow-heading > p:last-child, .home-workflow-steps small, .home-footer-links, .home-footer-links a, .home-proof-list li) { color: #667e93 !important; }
+
+body.auth-page .auth-shell {
+  color: #173750 !important;
+  border-color: rgba(255,255,255,.82) !important;
+  background: rgba(244,251,255,.58) !important;
+  box-shadow: 0 28px 82px rgba(52,96,134,.17), inset 0 1px rgba(255,255,255,.98), inset 0 -1px rgba(45,104,147,.07) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(148%) brightness(1.03) !important;
+  backdrop-filter: blur(32px) saturate(148%) brightness(1.03) !important;
+}
+body.auth-page .auth-brand { border-color: rgba(70,122,164,.10) !important; background: linear-gradient(145deg, rgba(205,234,251,.58), rgba(238,248,254,.44)) !important; }
+body.auth-page .auth-brand::after { opacity: .5 !important; background: radial-gradient(24rem 16rem at 20% 10%, rgba(105,190,225,.25), transparent 72%) !important; }
+body.auth-page :is(.auth-brand h1, .auth-form-panel h2) { color: #173b58 !important; }
+body.auth-page :is(.auth-brand p, .auth-hint) { color: #647d92 !important; }
+body.auth-page .auth-form-panel { background: rgba(247,252,255,.30) !important; }
+body.auth-page .auth-error { color: #ac4c62 !important; }
+
+@media (prefers-reduced-transparency: reduce) {
+  body.workspace-page,
+  body.admin-page,
+  body.auth-page,
+  body.home-page { background: #eef7ff !important; }
+  body.workspace-page :is(.sidebar, .topbar, .panel, .metric-card, .modal),
+  body.admin-page :is(.sidebar, .topbar, .panel, .metric-card, .modal),
+  body.auth-page :is(.auth-shell, .modal),
+  body.home-page :is(.home-nav-shell, .home-section, .home-product-window) {
+    background: #f7fbff !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* Final material cascade: clear glass, colored illumination behind it. */
+body.workspace-page,
+body.admin-page,
+body.auth-page,
+body.home-page {
+  position: relative !important;
+  isolation: isolate !important;
+  background: linear-gradient(145deg, #edf2f5, #f8fafb 48%, #eef3f5) !important;
+}
+
+body.workspace-page::before,
+body.admin-page::before,
+body.auth-page::before,
+body.home-page::before {
+  z-index: -1 !important;
+  opacity: .16 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='110' height='110' viewBox='0 0 110 110'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E") !important;
+  background-size: 110px 110px !important;
+  mix-blend-mode: normal !important;
+}
+
+.liquid-ambient {
+  display: block !important;
+  position: fixed !important;
+  z-index: 0 !important;
+  inset: 0 !important;
+  overflow: hidden !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+.liquid-ambient span {
+  position: absolute !important;
+  border-radius: 50% !important;
+  opacity: .48 !important;
+  filter: blur(52px) saturate(118%) !important;
+  mix-blend-mode: multiply !important;
+  will-change: transform !important;
+}
+.liquid-ambient span:nth-child(1) { top: -7rem !important; left: 3% !important; width: 24rem !important; height: 20rem !important; background: radial-gradient(circle, rgba(45,164,255,.58), rgba(77,183,255,.16) 48%, transparent 72%) !important; }
+.liquid-ambient span:nth-child(2) { top: 9% !important; right: -4rem !important; width: 22rem !important; height: 24rem !important; background: radial-gradient(circle, rgba(255,105,169,.42), rgba(255,151,192,.11) 49%, transparent 73%) !important; }
+.liquid-ambient span:nth-child(3) { bottom: -9rem !important; left: -3rem !important; width: 23rem !important; height: 22rem !important; background: radial-gradient(circle, rgba(30,211,162,.44), rgba(73,219,178,.11) 50%, transparent 73%) !important; }
+.liquid-ambient span:nth-child(4) { top: 38% !important; left: 42% !important; width: 19rem !important; height: 18rem !important; background: radial-gradient(circle, rgba(151,96,255,.38), rgba(178,135,255,.10) 49%, transparent 74%) !important; }
+.liquid-ambient span:nth-child(5) { right: 18% !important; bottom: 10% !important; width: 18rem !important; height: 17rem !important; background: radial-gradient(circle, rgba(255,194,37,.40), rgba(255,215,96,.10) 50%, transparent 73%) !important; }
+.workspace-shell,
+.admin-shell,
+.auth-shell { position: relative !important; z-index: 1 !important; }
+
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  color: #17354f !important;
+  border-color: rgba(255,255,255,.72) !important;
+  background: rgba(255,255,255,.16) !important;
+  box-shadow: 0 24px 60px rgba(31,48,60,.13), inset 0 1px rgba(255,255,255,.92), inset 1px 0 rgba(255,255,255,.48), inset -1px 0 rgba(31,48,60,.08), inset 0 -1px rgba(31,48,60,.07) !important;
+  -webkit-backdrop-filter: blur(31px) saturate(128%) brightness(1.04) contrast(1.02) !important;
+  backdrop-filter: blur(31px) saturate(128%) brightness(1.04) contrast(1.02) !important;
+}
+body.workspace-page .workspace-shell .sidebar::before,
+body.admin-page .admin-shell .sidebar::before { opacity: .72 !important; background: linear-gradient(132deg, rgba(255,255,255,.34), transparent 43%, rgba(255,255,255,.055)) !important; }
+
+body.workspace-page .topbar,
+body.admin-page .topbar,
+body.home-page .home-nav-shell {
+  border-color: rgba(255,255,255,.68) !important;
+  background: rgba(255,255,255,.13) !important;
+  box-shadow: 0 17px 46px rgba(31,48,60,.10), inset 0 1px rgba(255,255,255,.94), inset 0 -1px rgba(31,48,60,.065) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(126%) brightness(1.045) contrast(1.025) !important;
+  backdrop-filter: blur(25px) saturate(126%) brightness(1.045) contrast(1.025) !important;
+}
+
+body.workspace-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel),
+body.admin-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel) {
+  border-color: rgba(255,255,255,.62) !important;
+  background: rgba(255,255,255,.095) !important;
+  box-shadow: 0 18px 48px rgba(31,48,60,.085), inset 0 1px rgba(255,255,255,.88), inset 1px 0 rgba(255,255,255,.34), inset -1px 0 rgba(31,48,60,.055), inset 0 -1px rgba(31,48,60,.055) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(123%) brightness(1.035) contrast(1.02) !important;
+  backdrop-filter: blur(20px) saturate(123%) brightness(1.035) contrast(1.02) !important;
+}
+body.workspace-page :is(.metric-card, .feature-card, .template-card, .asset-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item),
+body.admin-page :is(.metric-card, .feature-card, .template-card, .asset-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item) {
+  border-color: rgba(255,255,255,.58) !important;
+  background: rgba(255,255,255,.15) !important;
+  box-shadow: 0 11px 30px rgba(31,48,60,.065), inset 0 1px rgba(255,255,255,.84), inset 0 -1px rgba(31,48,60,.045) !important;
+  -webkit-backdrop-filter: blur(13px) saturate(120%) brightness(1.035) contrast(1.018) !important;
+  backdrop-filter: blur(13px) saturate(120%) brightness(1.035) contrast(1.018) !important;
+}
+body.workspace-page .hero-panel,
+body.admin-page .hero-panel {
+  border-color: rgba(255,255,255,.70) !important;
+  background: rgba(255,255,255,.075) !important;
+  box-shadow: 0 22px 58px rgba(31,48,60,.10), inset 0 1px rgba(255,255,255,.92), inset 0 -1px rgba(31,48,60,.06) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(127%) brightness(1.045) contrast(1.025) !important;
+  backdrop-filter: blur(16px) saturate(127%) brightness(1.045) contrast(1.025) !important;
+}
+
+body.workspace-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.workspace-page textarea,
+body.workspace-page select,
+body.workspace-page .ui-select-trigger,
+body.admin-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.admin-page textarea,
+body.admin-page select,
+body.admin-page .ui-select-trigger,
+body.auth-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.auth-page textarea,
+body.auth-page select,
+body.auth-page .ui-select-trigger {
+  color: #1f425f !important;
+  border-color: rgba(255,255,255,.58) !important;
+  background: rgba(255,255,255,.22) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.88), inset 0 -1px rgba(31,48,60,.055), 0 6px 16px rgba(31,48,60,.045) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(118%) brightness(1.035) !important;
+  backdrop-filter: blur(10px) saturate(118%) brightness(1.035) !important;
+}
+.ui-select-popover,
+body.workspace-page :is(.modal, .asset-preview-dialog, .ui-action-dialog),
+body.admin-page :is(.modal, .asset-preview-dialog, .ui-action-dialog),
+body.auth-page :is(.auth-shell, .modal) {
+  border-color: rgba(255,255,255,.78) !important;
+  background: rgba(255,255,255,.39) !important;
+  box-shadow: 0 28px 78px rgba(31,48,60,.19), inset 0 1px rgba(255,255,255,.96), inset 0 -1px rgba(31,48,60,.065) !important;
+  -webkit-backdrop-filter: blur(29px) saturate(132%) brightness(1.045) contrast(1.025) !important;
+  backdrop-filter: blur(29px) saturate(132%) brightness(1.045) contrast(1.025) !important;
+}
+
+body.workspace-page :is(.primary-button, .secondary-button, .quiet-button, .icon-button),
+body.admin-page :is(.primary-button, .secondary-button, .quiet-button, .icon-button),
+body.auth-page :is(.primary-button, .secondary-button, .quiet-button, .icon-button) {
+  color: #244a68 !important;
+  border-color: rgba(255,255,255,.66) !important;
+  background: rgba(255,255,255,.19) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.88), inset 0 -1px rgba(31,48,60,.055), 0 7px 18px rgba(31,48,60,.055) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(118%) brightness(1.035) !important;
+  backdrop-filter: blur(10px) saturate(118%) brightness(1.035) !important;
+}
+
+body.workspace-page .workspace-shell .nav-list::before,
+body.admin-page .admin-shell .nav-list::before,
+body.workspace-page :is(.production-mode-switcher, .copy-modes, .publish-mode-group) {
+  border-color: rgba(255,255,255,.42) !important;
+  background: rgba(255,255,255,.075) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.52), inset 0 -1px rgba(31,48,60,.035) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(112%) !important;
+  backdrop-filter: blur(8px) saturate(112%) !important;
+}
+body.workspace-page .workspace-shell .nav-item.active,
+body.admin-page .admin-shell .nav-item.active,
+body.workspace-page :is(.production-mode-tab.active, .copy-mode.active, .publish-mode-option.selected) {
+  color: #153d5e !important;
+  border-color: rgba(255,255,255,.54) !important;
+  background: rgba(255,255,255,.20) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.76), inset 0 -1px rgba(31,48,60,.055) !important;
+}
+body.workspace-page .workspace-shell .nav-liquid-filter,
+body.admin-page .admin-shell .nav-liquid-filter {
+  border-color: rgba(255,255,255,.78) !important;
+  background: radial-gradient(72% 84% at var(--light-x, 28%) var(--light-y, 12%), rgba(255,255,255,.56), transparent 58%), linear-gradient(112deg, rgba(255,255,255,.22), rgba(255,255,255,.045) 42%, rgba(255,255,255,.10) 76%, rgba(255,255,255,.29)) !important;
+  box-shadow: 0 12px 27px rgba(31,48,60,.14), inset 0 1px rgba(255,255,255,.92), inset 0 -3px 7px rgba(31,48,60,.09), inset 1px 0 rgba(255,255,255,.27), inset -1px 0 rgba(31,48,60,.07), 0 0 18px rgba(255,255,255,.14) !important;
+  -webkit-backdrop-filter: url(#liquid-nav-distortion) blur(.25px) contrast(1.18) brightness(1.055) saturate(1.08) !important;
+  backdrop-filter: url(#liquid-nav-distortion) blur(.25px) contrast(1.18) brightness(1.055) saturate(1.08) !important;
+}
+body.workspace-page .workspace-shell .nav-liquid-overlay,
+body.admin-page .admin-shell .nav-liquid-overlay { background: rgba(255,255,255,.025) !important; }
+
+body.workspace-page :is(.production-mode-switcher, .copy-modes, .publish-mode-group) {
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: hidden !important;
+}
+body.workspace-page :is(.production-mode-tab, .copy-mode, .publish-mode-option) {
+  position: relative !important;
+  z-index: 2 !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.workspace-page :is(.production-mode-tab.active, .copy-mode.active, .publish-mode-option.selected) {
+  border-color: rgba(255,255,255,.54) !important;
+  background: rgba(255,255,255,.20) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.76), inset 0 -1px rgba(31,48,60,.055) !important;
+}
+.liquid-segment-host:is(.is-moving, .is-pressed) :is(.production-mode-tab.active, .copy-mode.active, .publish-mode-option.selected),
+.liquid-segment-host:is(.is-moving, .is-pressed) :is(.production-mode-tab.liquid-segment-target, .copy-mode.liquid-segment-target, .publish-mode-option.liquid-segment-target) {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.workspace-page .production-mode-tab.active .production-mode-symbol { color: #17486b !important; background: rgba(255,255,255,.28) !important; box-shadow: inset 0 1px rgba(255,255,255,.86), 0 5px 12px rgba(31,48,60,.08) !important; }
+
+@media (max-width: 820px) {
+  .liquid-ambient span { opacity: .38 !important; filter: blur(45px) saturate(112%) !important; }
+  .liquid-ambient span:nth-child(4), .liquid-ambient span:nth-child(5) { opacity: .28 !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .liquid-ambient span { transform: none !important; }
+  .liquid-segment-indicator { transition: none !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .liquid-ambient { display: none !important; }
+}
+
+/* Beat legacy :is/:has specificity on the three single-choice switchers. */
+body.workspace-page .production-mode-switcher.liquid-segment-host > .production-mode-tab,
+body.workspace-page .copy-modes.liquid-segment-host > .copy-mode,
+body.workspace-page .publish-mode-group.liquid-segment-host > .publish-mode-option {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+body.workspace-page .production-mode-switcher.liquid-segment-host > .production-mode-tab.active,
+body.workspace-page .copy-modes.liquid-segment-host > .copy-mode.active,
+body.workspace-page .publish-mode-group.liquid-segment-host > .publish-mode-option.selected {
+  border-color: rgba(255,255,255,.56) !important;
+  background: rgba(255,255,255,.20) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.78), inset 0 -1px rgba(31,48,60,.055) !important;
+}
+body.workspace-page .production-mode-switcher.liquid-segment-host:is(.is-moving, .is-pressed) > :is(.production-mode-tab.active, .production-mode-tab.liquid-segment-target),
+body.workspace-page .copy-modes.liquid-segment-host:is(.is-moving, .is-pressed) > :is(.copy-mode.active, .copy-mode.liquid-segment-target),
+body.workspace-page .publish-mode-group.liquid-segment-host:is(.is-moving, .is-pressed) > :is(.publish-mode-option.selected, .publish-mode-option.liquid-segment-target) {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 700px) {
+  body.workspace-page .publish-mode-group.liquid-segment-host {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 3px !important;
+  }
+  body.workspace-page .publish-mode-group.liquid-segment-host > .publish-mode-option {
+    min-width: 0 !important;
+    min-height: 64px !important;
+    padding: 8px 6px !important;
+    text-align: center !important;
+  }
+  body.workspace-page .publish-mode-group.liquid-segment-host > .publish-mode-option strong,
+  body.workspace-page .publish-mode-group.liquid-segment-host > .publish-mode-option small {
+    overflow-wrap: anywhere !important;
+  }
+}
+
+/* Optical-clear material pass: transparent bodies, refraction-led edges. */
+body.workspace-page,
+body.admin-page,
+body.auth-page,
+body.home-page {
+  background: linear-gradient(145deg, #cfdae3, #eef4f7 46%, #ccd9e2) !important;
+}
+
+.liquid-ambient span {
+  opacity: .72 !important;
+  filter: blur(34px) saturate(126%) !important;
+  mix-blend-mode: normal !important;
+}
+
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  border-color: rgba(255,255,255,.34) !important;
+  background: rgba(255,255,255,.028) !important;
+  box-shadow: 0 20px 54px rgba(25,55,74,.13), inset 0 1px rgba(255,255,255,.46), inset 1px 0 rgba(255,255,255,.18), inset -1px 0 rgba(18,50,70,.07), inset 0 -1px rgba(18,50,70,.08) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(114%) !important;
+  backdrop-filter: blur(18px) saturate(114%) !important;
+}
+body.workspace-page .workspace-shell .sidebar::before,
+body.admin-page .admin-shell .sidebar::before {
+  opacity: .34 !important;
+  background: linear-gradient(132deg, rgba(255,255,255,.16), transparent 40%, rgba(255,255,255,.018)) !important;
+}
+
+body.workspace-page .topbar,
+body.admin-page .topbar,
+body.home-page .home-nav-shell {
+  border-color: rgba(255,255,255,.31) !important;
+  background: rgba(255,255,255,.022) !important;
+  box-shadow: 0 15px 40px rgba(25,55,74,.10), inset 0 1px rgba(255,255,255,.48), inset 0 -1px rgba(18,50,70,.07) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(112%) !important;
+  backdrop-filter: blur(14px) saturate(112%) !important;
+}
+
+body.workspace-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel),
+body.admin-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel) {
+  border-color: rgba(255,255,255,.28) !important;
+  background: rgba(255,255,255,.012) !important;
+  box-shadow: 0 16px 42px rgba(25,55,74,.08), inset 0 1px rgba(255,255,255,.38), inset 1px 0 rgba(255,255,255,.11), inset -1px 0 rgba(18,50,70,.045), inset 0 -1px rgba(18,50,70,.055) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(110%) !important;
+  backdrop-filter: blur(8px) saturate(110%) !important;
+}
+body.workspace-page :is(.metric-card, .feature-card, .template-card, .asset-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item),
+body.admin-page :is(.metric-card, .feature-card, .template-card, .asset-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item) {
+  border-color: rgba(255,255,255,.26) !important;
+  background: rgba(255,255,255,.022) !important;
+  box-shadow: 0 9px 26px rgba(25,55,74,.06), inset 0 1px rgba(255,255,255,.34), inset 0 -1px rgba(18,50,70,.04) !important;
+  -webkit-backdrop-filter: blur(4.5px) saturate(108%) !important;
+  backdrop-filter: blur(4.5px) saturate(108%) !important;
+}
+body.workspace-page .hero-panel,
+body.admin-page .hero-panel {
+  border-color: rgba(255,255,255,.32) !important;
+  background: rgba(255,255,255,.008) !important;
+  box-shadow: 0 19px 52px rgba(25,55,74,.09), inset 0 1px rgba(255,255,255,.42), inset 0 -1px rgba(18,50,70,.055) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(112%) !important;
+  backdrop-filter: blur(6px) saturate(112%) !important;
+}
+body.workspace-page .hero-console,
+body.workspace-page .hero-console :is(strong, span, p),
+body.admin-page .hero-console,
+body.admin-page .hero-console :is(strong, span, p) {
+  color: #153b57 !important;
+}
+
+body.workspace-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.workspace-page textarea,
+body.workspace-page select,
+body.workspace-page .ui-select-trigger,
+body.admin-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.admin-page textarea,
+body.admin-page select,
+body.admin-page .ui-select-trigger,
+body.auth-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+body.auth-page textarea,
+body.auth-page select,
+body.auth-page .ui-select-trigger {
+  border-color: rgba(255,255,255,.28) !important;
+  background: rgba(255,255,255,.035) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.38), inset 0 -1px rgba(18,50,70,.055), 0 5px 14px rgba(25,55,74,.035) !important;
+  -webkit-backdrop-filter: blur(3.5px) saturate(108%) !important;
+  backdrop-filter: blur(3.5px) saturate(108%) !important;
+}
+
+.ui-select-popover,
+body.workspace-page :is(.modal, .asset-preview-dialog, .ui-action-dialog),
+body.admin-page :is(.modal, .asset-preview-dialog, .ui-action-dialog),
+body.auth-page :is(.auth-shell, .modal) {
+  border-color: rgba(255,255,255,.40) !important;
+  background: rgba(255,255,255,.12) !important;
+  box-shadow: 0 25px 70px rgba(25,55,74,.18), inset 0 1px rgba(255,255,255,.52), inset 0 -1px rgba(18,50,70,.07) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(116%) !important;
+  backdrop-filter: blur(18px) saturate(116%) !important;
+}
+
+body.workspace-page :is(.primary-button, .secondary-button, .quiet-button, .icon-button),
+body.admin-page :is(.primary-button, .secondary-button, .quiet-button, .icon-button),
+body.auth-page :is(.primary-button, .secondary-button, .quiet-button, .icon-button) {
+  border-color: rgba(255,255,255,.30) !important;
+  background: rgba(255,255,255,.032) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.42), inset 0 -1px rgba(18,50,70,.055), 0 6px 16px rgba(25,55,74,.045) !important;
+  -webkit-backdrop-filter: blur(2.5px) saturate(108%) !important;
+  backdrop-filter: blur(2.5px) saturate(108%) !important;
+}
+
+body.workspace-page .workspace-shell .nav-list::before,
+body.admin-page .admin-shell .nav-list::before,
+body.workspace-page :is(.production-mode-switcher, .copy-modes, .publish-mode-group) {
+  border-color: rgba(255,255,255,.22) !important;
+  background: rgba(255,255,255,.008) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.22), inset 0 -1px rgba(18,50,70,.025) !important;
+  -webkit-backdrop-filter: blur(2px) saturate(106%) !important;
+  backdrop-filter: blur(2px) saturate(106%) !important;
+}
+
+body.workspace-page .workspace-shell .nav-item.active,
+body.admin-page .admin-shell .nav-item.active,
+body.workspace-page :is(.production-mode-tab.active, .copy-mode.active, .publish-mode-option.selected),
+body.workspace-page .production-mode-switcher.liquid-segment-host > .production-mode-tab.active,
+body.workspace-page .copy-modes.liquid-segment-host > .copy-mode.active,
+body.workspace-page .publish-mode-group.liquid-segment-host > .publish-mode-option.selected {
+  color: #092f4b !important;
+  font-weight: 750 !important;
+  border-color: rgba(13,57,86,.22) !important;
+  background: rgba(13,57,86,.105) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.36), inset 0 -1px rgba(13,57,86,.09), 0 4px 13px rgba(20,59,84,.055) !important;
+}
+body.workspace-page .workspace-shell .nav-item.active .nav-icon,
+body.admin-page .admin-shell .nav-item.active .nav-icon {
+  color: #0b4d77 !important;
+}
+body.workspace-page .production-mode-tab.active .production-mode-symbol {
+  color: #0a4268 !important;
+  background: rgba(13,57,86,.13) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.34), 0 4px 12px rgba(20,59,84,.06) !important;
+}
+
+body.workspace-page .workspace-shell .nav-liquid-filter,
+body.admin-page .admin-shell .nav-liquid-filter,
+.liquid-segment-filter {
+  border: .5px solid rgba(255,255,255,.30) !important;
+  background: transparent !important;
+  box-shadow: 0 6px 15px rgba(8,28,42,.14), inset 0 1px rgba(255,255,255,.48), inset 0 -7px 16px rgba(8,28,42,.10), inset 1px 0 rgba(255,255,255,.10), inset -1px 0 rgba(8,28,42,.07) !important;
+  -webkit-backdrop-filter: var(--liquid-segment-filter, url(#liquid-nav-distortion)) blur(.25px) contrast(1.2) brightness(1.05) saturate(1.1) !important;
+  backdrop-filter: var(--liquid-segment-filter, url(#liquid-nav-distortion)) blur(.25px) contrast(1.2) brightness(1.05) saturate(1.1) !important;
+}
+body.workspace-page .workspace-shell .nav-liquid-filter::before,
+body.admin-page .admin-shell .nav-liquid-filter::before,
+.liquid-segment-filter::before {
+  background: linear-gradient(118deg, rgba(255,255,255,.075), transparent 28%, transparent 72%, rgba(255,255,255,.045)) !important;
+}
+body.workspace-page .workspace-shell .nav-liquid-filter::after,
+body.admin-page .admin-shell .nav-liquid-filter::after,
+.liquid-segment-filter::after {
+  background: rgba(255,255,255,.075) !important;
+  filter: blur(7px) !important;
+}
+body.workspace-page .workspace-shell .nav-liquid-overlay,
+body.admin-page .admin-shell .nav-liquid-overlay,
+.liquid-segment-overlay {
+  border-color: rgba(255,255,255,.16) !important;
+  background: transparent !important;
+}
+body.workspace-page .workspace-shell .nav-liquid-specular,
+body.admin-page .admin-shell .nav-liquid-specular,
+.liquid-segment-specular {
+  box-shadow: inset 0 -6px 13px rgba(8,28,42,.075), inset 0 1px rgba(255,255,255,.24) !important;
+}
+body.workspace-page .workspace-shell .nav-liquid-rim,
+body.admin-page .admin-shell .nav-liquid-rim,
+.liquid-segment-rim {
+  box-shadow: inset 0 0 0 .6px rgba(255,255,255,.22) !important;
+}
+
+.liquid-segment-host:is(.is-moving, .is-pressed) :is(.production-mode-tab.active, .copy-mode.active, .publish-mode-option.selected),
+.liquid-segment-host:is(.is-moving, .is-pressed) :is(.production-mode-tab.liquid-segment-target, .copy-mode.liquid-segment-target, .publish-mode-option.liquid-segment-target),
+body.workspace-page .production-mode-switcher.liquid-segment-host:is(.is-moving, .is-pressed) > :is(.production-mode-tab.active, .production-mode-tab.liquid-segment-target),
+body.workspace-page .copy-modes.liquid-segment-host:is(.is-moving, .is-pressed) > :is(.copy-mode.active, .copy-mode.liquid-segment-target),
+body.workspace-page .publish-mode-group.liquid-segment-host:is(.is-moving, .is-pressed) > :is(.publish-mode-option.selected, .publish-mode-option.liquid-segment-target) {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 820px) {
+  .liquid-ambient span { opacity: .56 !important; filter: blur(32px) saturate(120%) !important; }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body.workspace-page :is(.sidebar, .topbar, .panel, .metric-card, .feature-card, input, textarea, select),
+  body.admin-page :is(.sidebar, .topbar, .panel, .metric-card, .feature-card, input, textarea, select) {
+    background: rgba(240,247,250,.92) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* Optical lens pass -------------------------------------------------------
+   Keep this block last: older visual experiments above intentionally remain
+   available for other pages, while the workspace navigation gets the same
+   clear magnifier + bezel stack as the reference implementation. */
+body.workspace-page,
+body.admin-page {
+  background-color: #9ab5c7 !important;
+  background-image: none !important;
+}
+
+body.workspace-page .liquid-ambient,
+body.admin-page .liquid-ambient {
+  opacity: 1 !important;
+  z-index: 0 !important;
+}
+
+body.workspace-page .liquid-ambient span,
+body.admin-page .liquid-ambient span {
+  opacity: .68 !important;
+  filter: blur(38px) saturate(148%) !important;
+  mix-blend-mode: normal !important;
+  will-change: transform !important;
+}
+
+body.workspace-page .liquid-ambient span:nth-child(1),
+body.admin-page .liquid-ambient span:nth-child(1) {
+  background: radial-gradient(circle at 50% 50%, rgba(27,181,255,.78), rgba(40,151,255,.26) 45%, transparent 74%) !important;
+}
+body.workspace-page .liquid-ambient span:nth-child(2),
+body.admin-page .liquid-ambient span:nth-child(2) {
+  background: radial-gradient(circle at 46% 48%, rgba(255,80,169,.7), rgba(255,124,197,.22) 46%, transparent 75%) !important;
+}
+body.workspace-page .liquid-ambient span:nth-child(3),
+body.admin-page .liquid-ambient span:nth-child(3) {
+  background: radial-gradient(circle at 52% 46%, rgba(14,220,170,.68), rgba(45,207,184,.2) 47%, transparent 75%) !important;
+}
+body.workspace-page .liquid-ambient span:nth-child(4),
+body.admin-page .liquid-ambient span:nth-child(4) {
+  background: radial-gradient(circle at 48% 50%, rgba(157,93,255,.62), rgba(171,111,255,.18) 46%, transparent 76%) !important;
+}
+body.workspace-page .liquid-ambient span:nth-child(5),
+body.admin-page .liquid-ambient span:nth-child(5) {
+  background: radial-gradient(circle at 50% 46%, rgba(255,207,55,.62), rgba(255,181,55,.18) 47%, transparent 75%) !important;
+}
+
+body.workspace-page .workspace-shell .nav-list::before,
+body.admin-page .admin-shell .nav-list::before {
+  background: rgba(255,255,255,.018) !important;
+  border-color: rgba(255,255,255,.25) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.34), inset 0 -1px rgba(8,31,46,.09) !important;
+  -webkit-backdrop-filter: blur(7px) saturate(125%) !important;
+  backdrop-filter: blur(7px) saturate(125%) !important;
+}
+
+body.workspace-page .workspace-shell .nav-liquid-filter,
+body.admin-page .admin-shell .nav-liquid-filter {
+  border: .35px solid rgba(255,255,255,.38) !important;
+  background: rgba(255,255,255,.012) !important;
+  box-shadow: 0 9px 24px rgba(7,27,43,.2),
+    inset 0 1px rgba(255,255,255,.62),
+    inset 0 -3px 8px rgba(7,27,43,.095),
+    inset 1px 0 rgba(255,255,255,.18),
+    inset -1px 0 rgba(7,27,43,.12) !important;
+  -webkit-backdrop-filter: url(#liquid-nav-distortion) !important;
+  backdrop-filter: url(#liquid-nav-distortion) !important;
+}
+
+body.workspace-page .workspace-shell .nav-liquid-filter::before,
+body.admin-page .admin-shell .nav-liquid-filter::before {
+  display: block !important;
+  background: linear-gradient(112deg, rgba(255,255,255,.09), transparent 31%, transparent 70%, rgba(255,255,255,.12)) !important;
+  box-shadow: inset 0 .6px rgba(255,255,255,.5), inset 0 -1.5px 5px rgba(7,27,43,.08) !important;
+  mix-blend-mode: screen !important;
+}
+
+body.workspace-page .workspace-shell .nav-liquid-filter::after,
+body.admin-page .admin-shell .nav-liquid-filter::after {
+  display: block !important;
+  left: 12% !important;
+  top: 5% !important;
+  width: 35% !important;
+  height: 18% !important;
+  background: rgba(255,255,255,.14) !important;
+  filter: blur(5px) !important;
+  opacity: .48 !important;
+  mix-blend-mode: screen !important;
+}
+
+body.workspace-page .workspace-shell .nav-liquid-overlay,
+body.admin-page .admin-shell .nav-liquid-overlay {
+  border-color: rgba(255,255,255,.11) !important;
+  background: transparent !important;
+  mix-blend-mode: screen !important;
+}
+
+body.workspace-page .workspace-shell .nav-liquid-specular,
+body.admin-page .admin-shell .nav-liquid-specular {
+  box-shadow: inset 0 -4px 10px rgba(7,27,43,.07), inset 0 1px rgba(255,255,255,.34) !important;
+}
+
+body.workspace-page .workspace-shell .nav-liquid-rim,
+body.admin-page .admin-shell .nav-liquid-rim {
+  box-shadow: inset 0 0 0 .45px rgba(255,255,255,.32) !important;
+}
+
+body.workspace-page .workspace-shell .nav-list.is-pressed .nav-liquid-filter,
+body.workspace-page .workspace-shell .nav-list.is-dragging .nav-liquid-filter,
+body.admin-page .admin-shell .nav-list.is-pressed .nav-liquid-filter,
+body.admin-page .admin-shell .nav-list.is-dragging .nav-liquid-filter {
+  background: rgba(255,255,255,.018) !important;
+  box-shadow: 0 13px 31px rgba(7,27,43,.24),
+    inset 0 1px rgba(255,255,255,.72),
+    inset 0 -5px 13px rgba(7,27,43,.13),
+    inset 1px 0 rgba(255,255,255,.2),
+    inset -1px 0 rgba(7,27,43,.14) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body.workspace-page .liquid-ambient span,
+  body.admin-page .liquid-ambient span {
+    animation: workspace-liquid-drift 22s ease-in-out infinite alternate !important;
+  }
+  body.workspace-page .liquid-ambient span:nth-child(2),
+  body.admin-page .liquid-ambient span:nth-child(2) { animation-duration: 27s !important; animation-delay: -7s !important; }
+  body.workspace-page .liquid-ambient span:nth-child(3),
+  body.admin-page .liquid-ambient span:nth-child(3) { animation-duration: 31s !important; animation-delay: -12s !important; }
+  body.workspace-page .liquid-ambient span:nth-child(4),
+  body.admin-page .liquid-ambient span:nth-child(4) { animation-duration: 24s !important; animation-delay: -4s !important; }
+  body.workspace-page .liquid-ambient span:nth-child(5),
+  body.admin-page .liquid-ambient span:nth-child(5) { animation-duration: 29s !important; animation-delay: -16s !important; }
+}
+
+@keyframes workspace-liquid-drift {
+  0% { transform: translate3d(-3vw, -2vh, 0) scale(1); }
+  50% { transform: translate3d(4vw, 3vh, 0) scale(1.08); }
+  100% { transform: translate3d(-2vw, 5vh, 0) scale(.96); }
+}

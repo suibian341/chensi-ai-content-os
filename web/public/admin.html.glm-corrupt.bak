@@ -1,0 +1,106 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#edf3ff" />
+    <meta name="description" content="杈版€滱I鐢ㄦ埛銆佺Н鍒嗐€佸伐鍗曘€佷緵搴斿晢鍜岄」鐩厤缃鐞嗗悗鍙般€? />
+    <title>杩愯惀鍚庡彴 路 杈版€滱I</title>
+    <link rel="icon" type="image/png" href="/assets/brand/chensi-mark-blue.png" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/admin.css" />
+    <link rel="stylesheet" href="/liquid-glass.css" />
+    <link rel="stylesheet" href="/liquid-system.css" />
+    <link rel="stylesheet" href="/admin-liquid.css" />
+    <link rel="stylesheet" href="/liquid-overhaul.css" />
+    <link rel="stylesheet" href="/optical-glass.css?v=20260827-lit-rim2" />
+  </head>
+  <body class="admin-page">
+    <div class="app-shell admin-shell">
+      <aside class="sidebar">
+        <div class="brand-lockup"><img class="brand-logo-mark" src="/assets/brand/chensi-mark-blue.png" alt="" width="512" height="512" aria-hidden="true" /><div><div class="brand-name">杈版€滱I</div><div class="brand-sub">杩愯惀绠＄悊鍚庡彴</div></div></div>
+        <div class="workspace-label">绠＄悊涓績</div>
+        <nav class="nav-list">
+          <button class="nav-item active" data-admin-view="dashboard"><span class="nav-icon">鈼?/span>杩愯惀鎬昏</button>
+          <button class="nav-item" data-admin-view="users"><span class="nav-icon">浜?/span>瀹㈡埛涓庤处鍙?/button>
+          <button class="nav-item" data-admin-view="tickets"><span class="nav-icon">鍗?/span>瀹㈡湇宸ュ崟</button>
+          <button class="nav-item" data-admin-view="distribution"><span class="nav-icon">绾?/span>鍒嗛攢涓庡崱瀵?/button>
+          <button class="nav-item" data-admin-view="points"><span class="nav-icon">鍒?/span>绠楀姏涓庣Н鍒?/button>
+          <button class="nav-item" data-admin-view="requests"><span class="nav-icon">闇€</span>瀹氬埗闇€姹?/button>
+          <button class="nav-item" data-admin-view="settings"><span class="nav-icon">閰?/span>椤圭洰璁剧疆</button>
+          <button class="nav-item" data-admin-view="audit"><span class="nav-icon">璁?/span>瀹¤璁板綍</button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="health-card"><div class="health-line"><span class="status-dot ok"></span>绠＄悊鏈嶅姟鍦ㄧ嚎</div><div class="health-meta">閰嶇疆鍊煎叏绋嬭劚鏁忔樉绀?/div></div>
+          <div class="user-chip"><span class="avatar" id="adminAvatar">绠?/span><span class="user-copy"><strong id="adminName">绠＄悊鍛?/strong><small id="adminAccount">璇诲彇涓?/small></span></div>
+        </div>
+      </aside>
+      <main class="main-content">
+        <header class="topbar">
+          <div><div class="eyebrow">杈版€滱I / ADMIN</div><h1 id="adminPageTitle">杩愯惀鎬昏</h1></div>
+          <div class="top-actions"><a class="secondary-button link-button" href="/workspace.html">杩斿洖宸ヤ綔鍙?/a><button class="quiet-button" id="adminLogoutButton">閫€鍑虹櫥褰?/button></div>
+        </header>
+
+        <section class="admin-view" id="dashboardAdminView">
+          <div class="summary-grid admin-summary" id="adminMetrics"></div>
+          <div class="admin-two-column">
+            <section class="panel"><div class="panel-header"><div><div class="section-kicker">DELIVERY CHECK</div><h2>鍒涗綔鑳藉姏鎺ュ叆鐘舵€?/h2></div><span class="soft-badge" id="adminRequirementSummary">鍔犺浇涓?/span></div><div class="requirement-matrix" id="adminRequirementMatrix"></div></section>
+            <section class="panel"><div class="panel-header"><div><div class="section-kicker">PROVIDER STATUS</div><h2>鑳藉姏鎺ュ叆鐘舵€?/h2></div></div><div class="provider-status-list" id="adminProviderStatus"></div></section>
+          </div>
+        </section>
+
+        <section class="admin-view hidden" id="usersAdminView">
+          <div class="view-heading"><div><div class="section-kicker">CUSTOMER ACCOUNTS</div><h2>瀹㈡埛銆佷唬鐞嗕笌浼佷笟璐﹀彿</h2><p>缁熶竴绠＄悊涓汉浼氬憳銆佷紒涓氭垚鍛樸€佷唬鐞嗕笌绠＄悊鍛樿处鍙枫€?/p></div></div>
+          <section class="panel admin-create-panel"><form class="admin-inline-form user-create-form" id="createUserForm"><input id="newUserName" name="displayName" autocomplete="name" placeholder="濮撳悕" required /><input id="newUserAccount" name="account" autocomplete="username" placeholder="鐧诲綍璐﹀彿" required /><input id="newUserPassword" name="newPassword" type="password" autocomplete="new-password" minlength="8" placeholder="鍒濆瀵嗙爜锛堣嚦灏?8 浣嶏級" required /><select id="newUserRole" name="role" aria-label="鏂扮敤鎴疯鑹?><option value="user">涓汉浼氬憳</option><option value="agent">浠ｇ悊</option><option value="admin">绠＄悊鍛?/option></select><select id="newUserParentAgent" name="parentAgentId" aria-label="鏂扮敤鎴风粦瀹氱殑涓婄骇浠ｇ悊"></select><button class="primary-button" id="createUserButton" type="submit">鍒涘缓鐢ㄦ埛</button></form></section>
+          <section class="panel table-panel"><div class="data-table" id="userTable"></div></section>
+          <section class="panel table-panel spaced-panel"><div class="panel-header"><div><div class="section-kicker">CUSTOMER PROFILES</div><h2>瀹㈡埛璧勬枡涓?IP 妗ｆ</h2></div><span class="soft-badge" id="customerProfileCount">0 浠芥。妗?/span></div><div class="data-table customer-profile-table" id="customerProfileTable"></div></section>
+        </section>
+
+        <section class="admin-view hidden" id="ticketsAdminView">
+          <div class="view-heading"><div><div class="section-kicker">CUSTOMER SERVICE</div><h2>瀹㈡湇宸ュ崟</h2><p>鏌ョ湅鐢ㄦ埛鎻愪氦鐨勯棶棰橈紝璁板綍澶勭悊鐘舵€佸拰鍥炲銆?/p></div></div>
+          <section class="panel table-panel"><div class="data-table ticket-admin-table" id="adminTicketTable"></div></section>
+        </section>
+
+        <section class="admin-view hidden" id="distributionAdminView">
+          <div class="view-heading"><div><div class="section-kicker">DISTRIBUTION</div><h2>涓ょ骇鍒嗛攢涓庡崱瀵?/h2><p>浠ｇ悊璐﹀彿銆佺粦瀹氬叧绯诲拰鍗″瘑鏉冪泭鍧囦繚鐣欏彲杩芥函璁板綍銆?/p></div></div>
+          <div class="dual-grid"><section class="panel"><div class="panel-header"><div><div class="section-kicker">AGENT NETWORK</div><h2>浠ｇ悊璐﹀彿</h2></div></div><div class="distribution-list" id="agentDistributionList"></div></section><section class="panel"><div class="panel-header"><div><div class="section-kicker">CREATE COUPON</div><h2>鍒涘缓鍗″瘑</h2></div></div><div class="form-grid"><label class="field"><span>鍗″瘑濂楅</span><select id="couponPackageInput"></select></label><label class="field"><span>鍗″瘑鍚嶇О</span><input id="couponNameInput" placeholder="榛樿浣跨敤濂楅鍚嶇О" /></label><label class="field"><span>鍗″瘑鐮?/span><input id="couponCodeInput" placeholder="渚嬪锛欳S-2026-001" /></label><label class="field"><span>濂楅鍞环锛堝厓锛?/span><input id="couponPriceInput" type="number" min="0" step="0.01" readonly /></label><label class="field"><span>绠楀姏绉垎</span><input id="couponPointsInput" type="number" min="1" readonly /></label><label class="field"><span>鍙厬鎹㈡鏁?/span><input id="couponMaxInput" type="number" min="1" value="1" /></label></div><button class="primary-button" id="createCouponButton">鍒涘缓鍗″瘑</button></section></div>
+          <section class="panel spaced-panel commission-panel"><div class="panel-header"><div><div class="section-kicker">COMMISSION CONFIGURATION</div><h2>鍒嗘鼎閰嶇疆</h2><p>閰嶇疆姣忓鍗″瘑璐圭敤銆佺畻鍔涜垂鐢ㄥ垎娑︽ā寮忓拰涓ょ骇浠ｇ悊姣斾緥銆?/p></div><button class="primary-button small" id="saveCommissionSettingsButton">淇濆瓨鍒嗘鼎閰嶇疆</button></div><div id="commissionSettings"></div></section>
+          <section class="panel table-panel spaced-panel"><div class="panel-header"><div><div class="section-kicker">REDEMPTION RECORDS</div><h2>鍗″瘑涓庡厬鎹㈣褰?/h2></div></div><div class="data-table coupon-table" id="couponTable"></div></section>
+        </section>
+
+        <section class="admin-view hidden" id="pointsAdminView">
+          <div class="view-heading"><div><div class="section-kicker">COMPUTE & POINTS</div><h2>绠楀姏瑙勫垯涓庣Н鍒嗘祦姘?/h2><p>姣忔璋冩暣銆佷换鍔℃墸闄ゅ拰澶辫触閫€鍥為兘浼氳繘鍏ヤ笉鍙鐩栫殑娴佹按銆?/p></div></div>
+          <section class="panel"><div class="panel-header"><div><div class="section-kicker">TASK PRICING</div><h2>浠诲姟绉垎浠锋牸</h2></div><button class="primary-button small" id="saveTaskCostsButton">淇濆瓨浠锋牸</button></div><div class="cost-grid" id="taskCostGrid"></div></section>
+          <section class="panel table-panel spaced-panel"><div class="panel-header"><div><div class="section-kicker">LEDGER</div><h2>绉垎娴佹按</h2></div></div><div class="data-table" id="pointLedger"></div></section>
+        </section>
+
+        <section class="admin-view hidden" id="requestsAdminView">
+          <div class="view-heading"><div><div class="section-kicker">CUSTOM REQUESTS</div><h2>瀹㈡埛涓撳睘妯℃澘寮€鍙戦渶姹?/h2><p>杩欓噷鍙鐞嗚瘎浼颁笌寮€鍙戣繃绋嬶紱涓撳睘娓叉煋鍣ㄦ湭鎺ュ叆鍓嶄笉鑳芥爣璁颁负鍙敤銆?/p></div></div>
+          <section class="panel table-panel"><div class="data-table request-table" id="customRequestTable"></div></section>
+        </section>
+
+        <section class="admin-view hidden" id="settingsAdminView">
+          <div class="view-heading"><div><div class="section-kicker">PROJECT SETTINGS</div><h2>椤圭洰鍩虹璁剧疆</h2><p>閰嶇疆鍚嶇О銆佹。妗堜綅銆佷紒涓氶粯璁ゅ腑浣嶃€佺Н鍒嗕笌鍒嗛攢瑙勫垯銆?/p></div><button class="primary-button" id="saveProjectSettingsButton">淇濆瓨椤圭洰璁剧疆</button></div>
+          <section class="panel"><div class="form-grid" id="projectSettings"></div></section>
+          <section class="panel spaced-panel"><div class="panel-header"><div><div class="section-kicker">COPY CHECK</div><h2>鏂囨妫€鏌ヨ鍒?/h2><p>閰嶇疆鏈湴鏂囨搴撴煡閲嶉槇鍊笺€侀噸澶嶅彞鍒ゅ畾鍜岃繚瑙勮瘝淇敼寤鸿銆?/p></div></div><div id="copyCheckSettings"></div></section>
+          <section class="panel spaced-panel"><div class="panel-header"><div><div class="section-kicker">SPEECH LANGUAGES</div><h2>鍙ｆ挱璇█鑳藉姏</h2><p>鏅€氳瘽鐩存帴鍙ｆ挱锛涘叾浠栬瑷€鐢卞唴瀹规ā鍨嬪厛杞崲鏂囨锛屽啀浜ょ粰褰撳墠鍏嬮殕澹伴煶 TTS銆?/p></div></div><div class="language-capability-grid" id="speechLanguageSettings"></div></section>
+          <div class="view-heading subheading"><div><div class="section-kicker">PROVIDER CONFIGURATION</div><h2>鑳藉姏鏈嶅姟閰嶇疆</h2><p>淇濆瓨鍚庡嵆鏃剁敓鏁堬紱瀵嗛挜涓嶄細閫氳繃鎺ュ彛鍥炰紶鏄庢枃銆?/p></div><button class="secondary-button" id="saveProviderSettingsButton">淇濆瓨鏈嶅姟閰嶇疆</button></div>
+          <div class="provider-config-groups" id="providerSettings"></div>
+        </section>
+
+        <section class="admin-view hidden" id="auditAdminView">
+          <div class="view-heading"><div><div class="section-kicker">AUDIT LOG</div><h2>鍚庡彴鎿嶄綔璁板綍</h2><p>鐧诲綍銆佺敤鎴枫€佺Н鍒嗐€侀厤缃拰鍒犻櫎鎿嶄綔鍧囧彲杩借釜銆?/p></div></div>
+          <section class="panel table-panel"><div class="data-table" id="auditTable"></div></section>
+        </section>
+      </main>
+    </div>
+    <div class="toast" id="toast"></div>
+    <script src="/runtime-config.js"></script>
+    <script src="/ui-components.js" type="module"></script>
+    <script src="/optical-glass.js?v=20260827-switch-drag2" type="module"></script>
+    <script src="/liquid-glass.js?v=20260827-lit-rim2" type="module"></script>
+    <script src="/admin.js" type="module"></script>
+    <script src="/vendor/gsap.min.js"></script>
+    <script src="/liquid-motion.js?v=20260827-switch-drag1"></script>
+  </body>
+</html>

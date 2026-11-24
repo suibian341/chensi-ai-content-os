@@ -1,0 +1,343 @@
+/* Homepage-only polish. Keep the product controls untouched while the public
+   canvas uses a quieter blue-to-white glass system. */
+
+html:has(body.home-page) {
+  background-color: #edf6ff !important;
+  background-image: linear-gradient(145deg, #fafdff 0%, #eef7ff 48%, #d8ecff 100%) !important;
+  background-attachment: scroll !important;
+  animation: none !important;
+}
+
+body.home-page {
+  color: #17344c !important;
+  background: linear-gradient(145deg, #fafdff 0%, #eef7ff 48%, #d8ecff 100%) !important;
+  background-attachment: scroll !important;
+}
+
+/* Replace the legacy dark/animated pseudo canvas with one static, low-cost
+   highlight. This is the primary scroll-performance win on the homepage. */
+body.home-page::before {
+  z-index: -2 !important;
+  inset: 0 !important;
+  display: block !important;
+  opacity: 1 !important;
+  background:
+    radial-gradient(62% 46% at 50% 0%, rgba(255, 255, 255, .94), transparent 76%),
+    linear-gradient(145deg, rgba(255, 255, 255, .12), rgba(125, 188, 241, .08)) !important;
+  background-size: auto !important;
+  background-position: center !important;
+  filter: none !important;
+  transform: none !important;
+  animation: none !important;
+  mix-blend-mode: normal !important;
+}
+
+body.home-page::after,
+body.home-page .home-ambient,
+body.home-page .home-ambient::before,
+body.home-page .home-ambient::after {
+  display: none !important;
+  animation: none !important;
+}
+
+/* The global light pass assigns position: relative to every direct child.
+   Restore the header as a true floating layer so it follows the viewport. */
+/* light-liquid-overhaul.css uses two :not() selectors with higher
+   specificity. Repeat the scoped classes so the homepage chrome remains a
+   viewport-level floating layer. */
+html body.home-page.home-page > header.home-header.home-header {
+  position: fixed !important;
+  z-index: 50 !important;
+  top: 16px !important;
+  right: 0 !important;
+  left: 0 !important;
+  padding-inline: 20px !important;
+  pointer-events: none;
+}
+
+body.home-page > .home-header .home-nav-shell {
+  pointer-events: auto;
+  min-height: 64px !important;
+  background: rgba(255, 255, 255, .74) !important;
+  border-color: rgba(255, 255, 255, .92) !important;
+  box-shadow:
+    0 16px 38px rgba(45, 95, 148, .14),
+    inset 0 1px rgba(255, 255, 255, .98),
+    inset 0 -1px rgba(49, 104, 158, .08) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(135%) !important;
+  backdrop-filter: blur(24px) saturate(135%) !important;
+}
+
+body.home-page > .home-header.is-scrolled .home-nav-shell {
+  min-height: 64px !important;
+  background: rgba(255, 255, 255, .82) !important;
+}
+
+body.home-page .home-nav-links {
+  position: relative !important;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+body.home-page .home-nav-links a {
+  position: relative;
+  z-index: 2;
+  color: #49657d !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: color 150ms ease-out !important;
+}
+
+body.home-page .home-nav-links a:hover,
+body.home-page .home-nav-links a.is-active {
+  color: #173f61 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* The home capsule uses the same pointer-drag implementation as the
+   workspace navigation, with a lighter blue-to-white glass treatment. */
+body.home-page .home-nav-links .nav-liquid-indicator {
+  position: absolute !important;
+  inset: auto !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 1 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  box-sizing: border-box;
+  overflow: visible !important;
+  border: 1px solid rgba(101, 171, 225, .38) !important;
+  border-radius: 999px !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .78), rgba(187, 224, 250, .58)) !important;
+  box-shadow: 0 8px 20px rgba(61, 126, 183, .16), inset 0 1px rgba(255, 255, 255, .94), inset 0 -1px rgba(40, 105, 160, .08) !important;
+  filter: none !important;
+  pointer-events: none !important;
+  transform-origin: 50% 50%;
+  will-change: transform, width, height;
+  transition: transform 320ms cubic-bezier(.2, .8, .2, 1), width 220ms ease, height 220ms ease !important;
+}
+
+body.home-page .home-nav-links.is-dragging .nav-liquid-indicator {
+  transition: none !important;
+}
+
+body.home-page .home-nav-links .nav-liquid-indicator > span {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+body.home-page .home-nav-links .nav-liquid-filter {
+  border: 1px solid rgba(255, 255, 255, .62);
+  background: radial-gradient(95% 120% at var(--light-x, 24%) var(--light-y, 14%), rgba(255, 255, 255, .54), transparent 54%), linear-gradient(120deg, rgba(255, 255, 255, .46), rgba(214, 239, 255, .28) 55%, rgba(255, 255, 255, .52));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .9), inset 0 -1px rgba(53, 119, 169, .12), 0 3px 9px rgba(56, 117, 170, .11);
+  -webkit-backdrop-filter: blur(8px) saturate(125%);
+  backdrop-filter: blur(8px) saturate(125%);
+}
+
+body.home-page .home-nav-links .nav-liquid-overlay {
+  background: linear-gradient(115deg, rgba(255, 255, 255, .18), transparent 48%, rgba(117, 194, 235, .15));
+}
+
+body.home-page .home-nav-links .nav-liquid-specular {
+  border: 1px solid rgba(255, 255, 255, .32);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .66), inset 0 -1px rgba(58, 126, 178, .08);
+}
+
+body.home-page .home-nav-links .nav-liquid-rim { display: none; }
+
+/* Keep each anchor target below the floating chrome and give manually chosen
+   sections a small transform-only confirmation. */
+body.home-page :is(#capabilities, #workflow, #teams) {
+  scroll-margin-top: 104px;
+}
+
+body.home-page :is(.home-section, .home-workflow, .home-final-cta) {
+  border-color: rgba(118, 169, 211, .16) !important;
+}
+
+body.home-page .home-hero-overlay {
+  background:
+    radial-gradient(ellipse 65% 42% at 50% 10%, rgba(255, 255, 255, .86), transparent),
+    linear-gradient(180deg, rgba(235, 247, 255, .1), rgba(241, 248, 255, .72) 94%, #f7fbff 100%) !important;
+}
+
+body.home-page .home-hero h1 {
+  letter-spacing: 0 !important;
+  word-spacing: .12em;
+}
+
+body.home-page .home-hero-description {
+  max-width: 900px;
+}
+
+@media (min-width: 781px) {
+  body.home-page .home-hero-description {
+    white-space: nowrap;
+  }
+}
+
+/* Remove the second opaque layer from the 01/02/03 proof row. */
+body.home-page .home-proof-list {
+  background: rgba(255, 255, 255, .48) !important;
+  border-color: rgba(255, 255, 255, .86) !important;
+  box-shadow: 0 10px 24px rgba(52, 105, 157, .09), inset 0 1px rgba(255, 255, 255, .96) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(125%) !important;
+  backdrop-filter: blur(14px) saturate(125%) !important;
+}
+
+body.home-page .home-proof-list li {
+  background: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+body.home-page .home-proof-list li + li {
+  border-left-color: rgba(74, 122, 165, .18) !important;
+}
+
+/* A short, compositor-friendly cue after a nav click. */
+body.home-page :is(#capabilities, #workflow, #teams).is-nav-target > .home-section-inner {
+  animation: home-target-cue 620ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+@keyframes home-target-cue {
+  0% { opacity: .78; transform: translate3d(0, 8px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@media (max-width: 780px) {
+  body.home-page > .home-header {
+    top: 9px !important;
+    padding-inline: 9px !important;
+  }
+
+  body.home-page > .home-header .home-nav-shell {
+    min-height: 58px !important;
+  }
+}
+
+/* Keep the homepage capsule available at tablet and phone widths. At the
+   narrowest sizes it occupies a second row, giving the same horizontal drag
+   surface as the workspace nav without squeezing the brand or CTA. */
+@media (max-width: 1040px) {
+  body.home-page .home-nav-shell {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+    gap: 4px !important;
+  }
+
+  body.home-page .home-nav-links {
+    display: flex !important;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    justify-self: center !important;
+    order: 0 !important;
+  }
+
+  body.home-page .home-nav-actions {
+    min-width: 0;
+    justify-self: end !important;
+  }
+}
+
+@media (max-width: 720px) {
+  body.home-page .home-nav-shell {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-rows: auto auto !important;
+    gap: 4px !important;
+  }
+
+  body.home-page .home-nav-links {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    order: 3 !important;
+    width: 100% !important;
+    justify-self: stretch !important;
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none;
+    touch-action: none !important;
+  }
+
+  body.home-page .home-nav-links::-webkit-scrollbar { display: none; }
+  body.home-page .home-nav-links a { font-size: 11px !important; padding-inline: 8px !important; }
+}
+
+@media (max-width: 480px) {
+  body.home-page .home-nav-links a { font-size: 10px !important; padding-inline: 6px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.home-page :is(#capabilities, #workflow, #teams).is-nav-target > .home-section-inner {
+    animation: none !important;
+  }
+
+  body.home-page .home-nav-links .nav-liquid-indicator { transition: none !important; }
+}
+/* Footer: brand, filing and legal links remain legible over the liquid-glass finish. */
+body.home-page .home-footer .home-section-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+}
+
+body.home-page .home-footer-filing {
+  color: #547087;
+  font-size: 12px;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 160ms ease;
+}
+
+body.home-page .home-footer-filing:hover { color: #176e9c; }
+
+body.home-page .home-footer-meta {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  min-width: 0;
+}
+
+body.home-page .home-footer-legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 14px;
+  color: #6b8498;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+body.home-page .home-footer-legal a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+body.home-page .home-footer-legal a:hover { color: #176e9c; }
+
+body.home-page .home-footer :is(.home-footer-filing, .home-footer-legal a):focus-visible {
+  outline: 2px solid rgba(23, 110, 156, .5);
+  outline-offset: 3px;
+}
+
+@media (max-width: 720px) {
+  body.home-page .home-footer .home-section-inner {
+    grid-template-columns: 1fr;
+    justify-items: start;
+    gap: 14px;
+  }
+
+  body.home-page .home-footer-meta { justify-items: start; }
+
+  body.home-page .home-footer-legal { justify-content: flex-start; }
+}

@@ -1,0 +1,31 @@
+[Unit]
+Description=Chensi AI API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=chensi
+Group=chensi
+WorkingDirectory=/opt/chensi-ai-content-os/current
+EnvironmentFile=/etc/chensi-ai-content-os/app.env
+Environment=NODE_ENV=production
+Environment=API_HOST=127.0.0.1
+Environment=API_PORT=4280
+Environment=NODE_OPTIONS=--max-old-space-size=768
+ExecStart=/usr/bin/node backend/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/var/lib/chensi-ai-content-os
+LimitNOFILE=65535
+MemoryHigh=900M
+MemoryMax=1200M
+
+[Install]
+WantedBy=multi-user.target

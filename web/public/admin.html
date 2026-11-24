@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#edf3ff" />
+    <meta name="description" content="辰思AI用户、算力、工单、功能服务和项目配置管理后台" />
+    <title>运营后台 · 辰思AI</title>
+    <link rel="icon" type="image/png" href="/assets/brand/chensi-mark-blue.png" />
+    <link rel="stylesheet" href="/styles.css?v=20260904-loading-dots2" />
+    <link rel="stylesheet" href="/admin.css?v=20260905-provider-save1" />
+    <link rel="stylesheet" href="/liquid-glass.css?v=20260904-loading-dots2" />
+    <link rel="stylesheet" href="/liquid-system.css" />
+    <link rel="stylesheet" href="/admin-liquid.css" />
+    <link rel="stylesheet" href="/liquid-overhaul.css" />
+    <link rel="stylesheet" href="/optical-glass.css?v=20260830-switch-shell3" />
+    <link rel="stylesheet" href="/light-liquid-overhaul.css?v=20260904-admin-line-logo1" />
+  </head>
+  <body class="admin-page">
+    <div class="app-shell admin-shell">
+      <aside class="sidebar">
+        <div class="brand-lockup"><img class="brand-logo-mark" src="/assets/brand/chensi-mark-blue.png" alt="" width="512" height="512" aria-hidden="true" /><div><div class="brand-name">辰思AI</div><div class="brand-sub">运营管理后台</div></div></div>
+        <div class="workspace-label">管理中心</div>
+        <nav class="nav-list">
+          <button class="nav-item active" data-admin-view="dashboard"><span class="nav-icon" data-icon="◎"></span>运营总览</button>
+          <button class="nav-item" data-admin-view="users"><span class="nav-icon" data-icon="●"></span>客户与账号</button>
+          <button class="nav-item" data-admin-view="tickets"><span class="nav-icon" data-icon="✉"></span>客服工单</button>
+          <button class="nav-item" data-admin-view="distribution"><span class="nav-icon" data-icon="↔"></span>分销与卡密</button>
+          <button class="nav-item" data-admin-view="points"><span class="nav-icon" data-icon="ϟ"></span>算力管理</button>
+          <button class="nav-item" data-admin-view="requests"><span class="nav-icon" data-icon="✦"></span>许愿清单</button>
+          <button class="nav-item" data-admin-view="music"><span class="nav-icon" data-icon="♫"></span>背景音乐库</button>
+          <button class="nav-item" data-admin-view="settings"><span class="nav-icon" data-icon="⚙"></span>项目设置</button>
+          <button class="nav-item" data-admin-view="audit"><span class="nav-icon" data-icon="↻"></span>审计记录</button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="health-card"><div class="health-line"><span class="status-dot ok"></span>管理服务在线</div><div class="health-meta">配置值全程脱敏显示</div></div>
+          <div class="user-chip"><span class="avatar" id="adminAvatar"></span><span class="user-copy"><span class="user-info-row user-name-row"><span class="user-info-label">用户</span><strong id="adminName">管理员</strong></span><small id="adminAccount" class="user-meta-lines"><span class="user-info-row"><span class="user-info-label">账号</span><span id="adminAccountName">读取中</span></span><span class="user-info-row"><span class="user-info-label">算力</span><span id="adminAccountCompute">正在读取算力</span></span></small></span></div>
+        </div>
+      </aside>
+      <main class="main-content">
+        <header class="topbar">
+          <div><div class="eyebrow">辰思AI / ADMIN</div><h1 id="adminPageTitle">运营总览</h1></div>
+          <div class="top-actions"><a class="secondary-button link-button" href="/workspace.html">返回工作台</a><button class="quiet-button" id="adminLogoutButton">退出登录</button></div>
+        </header>
+
+        <section class="admin-view" id="dashboardAdminView">
+          <div class="summary-grid admin-summary" id="adminMetrics"></div>
+          <section class="platform-analytics" aria-labelledby="platformAnalyticsTitle">
+            <div class="platform-analytics-header"><div><div class="section-kicker">PLATFORM DATA</div><h2 id="platformAnalyticsTitle">平台运营数据</h2></div><span class="soft-badge" id="adminPlatformSummary">加载中</span></div>
+            <div class="platform-metric-grid" id="adminPlatformMetrics"></div>
+          </section>
+        </section>
+
+        <section class="admin-view hidden" id="usersAdminView">
+          <div class="view-heading"><div><div class="section-kicker">CUSTOMER ACCOUNTS</div><h2>个人与企业账号</h2><p>后台只创建个人用户和企业用户；企业成员由企业负责人在工作台添加</p></div></div>
+          <section class="panel admin-create-panel"><form class="admin-inline-form user-create-form" id="createUserForm"><input id="newUserName" name="displayName" autocomplete="name" placeholder="姓名" required /><input id="newUserAccount" name="account" autocomplete="username" placeholder="登录账号" required /><input id="newUserPassword" name="newPassword" type="password" autocomplete="new-password" minlength="8" placeholder="初始密码（至少 8 位）" required /><select id="newUserRole" name="accountType" aria-label="新用户类型"><option value="personal">个人用户</option><option value="enterprise">企业用户</option></select><button class="primary-button" id="createUserButton" type="submit">创建用户</button></form></section>
+          <section class="panel table-panel"><div class="data-table" id="userTable"></div></section>
+          <section class="panel table-panel spaced-panel"><div class="panel-header"><div><div class="section-kicker">CUSTOMER PROFILES</div><h2>客户资料 / IP 档案</h2></div><span class="soft-badge" id="customerProfileCount">0 份档案</span></div><div class="data-table customer-profile-table" id="customerProfileTable"></div></section>
+        </section>
+
+        <section class="admin-view hidden" id="ticketsAdminView">
+          <div class="view-heading"><div><div class="section-kicker">CUSTOMER SERVICE</div><h2>客服工单</h2><p>查看用户提交的问题，记录处理状态和回复</p></div></div>
+          <section class="panel table-panel"><div class="data-table ticket-admin-table" id="adminTicketTable"></div></section>
+        </section>
+
+        <section class="admin-view hidden" id="distributionAdminView">
+          <div class="view-heading"><div><div class="section-kicker">DISTRIBUTION</div><h2>两级分销与卡密</h2><p>代理账号、绑定关系和卡密权益均保留可追溯记录</p></div></div>
+          <div class="dual-grid"><section class="panel"><div class="panel-header"><div><div class="section-kicker">AGENT NETWORK</div><h2>代理账号</h2></div></div><div class="distribution-list" id="agentDistributionList"></div></section><section class="panel"><div class="panel-header"><div><div class="section-kicker">CREATE COUPON</div><h2>创建卡密</h2></div></div><div class="form-grid"><label class="field"><span>卡密套餐</span><select id="couponPackageInput"></select></label><label class="field"><span>卡密名称</span><input id="couponNameInput" placeholder="默认使用套餐名称" /></label><label class="field"><span>卡密（可选）</span><input id="couponCodeInput" placeholder="留空时自动随机生成" autocomplete="off" /><small>手动填写时保留原有格式；留空会生成唯一随机卡密。</small></label><label class="field"><span>套餐售价（元）</span><input id="couponPriceInput" type="number" min="0" step="0.01" readonly /></label><label class="field"><span>算力</span><input id="couponPointsInput" type="number" min="1" readonly /></label><label class="field"><span>可兑换次数</span><input id="couponMaxInput" type="number" min="1" value="1" /></label></div><button class="primary-button" id="createCouponButton">创建卡密</button></section></div>
+          <section class="panel spaced-panel commission-panel"><div class="panel-header"><div><div class="section-kicker">COMMISSION CONFIGURATION</div><h2>分润配置</h2><p>配置每套卡密费用、算力费用分润模式和两级代理比例</p></div><button class="primary-button small" id="saveCommissionSettingsButton">保存分润配置</button></div><div id="commissionSettings"></div></section>
+          <section class="panel table-panel spaced-panel"><div class="panel-header"><div><div class="section-kicker">REDEMPTION RECORDS</div><h2>卡密与兑换记录</h2></div></div><div class="data-table coupon-table" id="couponTable"></div></section>
+        </section>
+
+        <section class="admin-view hidden" id="pointsAdminView">
+          <div class="view-heading"><div><div class="section-kicker">COMPUTE</div><h2>算力规则与流水</h2><p>每次调整、任务扣除和失败退回都会进入不可覆盖的流水</p></div></div>
+          <section class="panel"><div class="panel-header"><div><div class="section-kicker">TASK PRICING</div><h2>任务算力价格</h2></div><button class="primary-button small" id="saveTaskCostsButton">保存价格</button></div><div class="cost-grid" id="taskCostGrid"></div></section>
+          <section class="panel table-panel spaced-panel"><div class="panel-header"><div><div class="section-kicker">LEDGER</div><h2>算力流水</h2></div></div><div class="data-table" id="pointLedger"></div></section>
+        </section>
+
+        <section class="admin-view hidden" id="requestsAdminView">
+          <div class="view-heading"><div><div class="section-kicker">WISH LIST</div><h2>许愿清单管理</h2><p>收集并跟进用户的功能建议，管理评估、方案确认与开发状态</p></div></div>
+          <section class="panel table-panel"><div class="data-table request-table" id="customRequestTable"></div></section>
+        </section>
+
+        <section class="admin-view hidden" id="musicAdminView">
+          <div class="view-heading"><div><div class="section-kicker">BACKGROUND MUSIC</div><h2>背景音乐库</h2><p>统一管理视频工坊可选择的背景音乐，不会进入任何项目素材库</p></div><span class="soft-badge" id="backgroundMusicCount">0 首</span></div>
+          <section class="panel background-music-admin-panel"><div class="background-music-upload"><label class="field"><span>选择音频文件</span><input id="backgroundMusicFileInput" type="file" accept="audio/mpeg,audio/wav,audio/mp4,audio/aac,audio/ogg,audio/opus,audio/flac,.mp3,.wav,.m4a,.aac,.ogg,.opus,.flac" /><small>支持 MP3、WAV、M4A、AAC、OGG、OPUS、FLAC，单个文件不超过 50 MB</small></label><button class="primary-button" id="uploadBackgroundMusicButton" type="button">上传背景音乐</button></div><div class="background-music-admin-list" id="backgroundMusicAdminList"></div></section>
+        </section>
+
+        <section class="admin-view hidden" id="settingsAdminView">
+          <div class="view-heading"><div><div class="section-kicker">PROJECT SETTINGS</div><h2>项目基础设置</h2><p>配置名称、档案位数、企业默认席位、算力与分销规则</p></div><button class="primary-button" id="saveProjectSettingsButton">保存项目设置</button></div>
+          <section class="panel"><div class="form-grid" id="projectSettings"></div></section>
+          <section class="panel spaced-panel"><div class="panel-header"><div><div class="section-kicker">COPY CHECK</div><h2>文案检查规则</h2><p>配置本地文案库查重阈值、重复句判定和违规词修改建议</p></div></div><div id="copyCheckSettings"></div></section>
+          <section class="panel spaced-panel"><div class="panel-header"><div><div class="section-kicker">SPEECH LANGUAGES</div><h2>口播语言能力</h2><p>普通话直接口播；其他语言先转换文案，再合成为当前克隆声音</p></div></div><div class="language-capability-grid" id="speechLanguageSettings"></div></section>
+          <section class="panel spaced-panel"><div class="panel-header"><div><div class="section-kicker">PROJECT COPILOT</div><h2>AI 对话角色预设</h2><p>角色会读取当前项目资料；系统提示词只在服务端发送给模型，请避免填写密钥等敏感信息</p></div><button class="secondary-button" id="addAssistantPresetButton" type="button">添加角色</button></div><div class="assistant-preset-settings" id="assistantPresetSettings"></div></section>
+          <div class="view-heading subheading"><div><div class="section-kicker">CAPABILITY CONFIGURATION</div><h2>功能服务配置</h2><p>保存后即时生效；密钥不会通过接口回传明文</p></div><div class="provider-save-heading"><span class="provider-save-status" id="providerSaveStatus">已保存</span><button class="secondary-button" id="saveProviderSettingsButton" type="button" data-save-provider-settings disabled>保存全部修改</button></div></div>
+          <div class="provider-config-groups" id="providerSettings"></div>
+        </section>
+
+        <section class="admin-view hidden" id="auditAdminView">
+          <div class="view-heading"><div><div class="section-kicker">AUDIT LOG</div><h2>后台操作记录</h2><p>登录、用户、算力、配置和删除操作均可追踪</p></div></div>
+          <section class="panel table-panel"><div class="data-table" id="auditTable"></div></section>
+        </section>
+      </main>
+    </div>
+    <div class="toast" id="toast"></div>
+    <script src="/runtime-config.js"></script>
+    <script src="/ui-components.js" type="module"></script>
+    <script src="/optical-glass.js?v=20260830-switch-shell3" type="module"></script>
+    <script src="/liquid-glass.js?v=20260827-lit-rim2" type="module"></script>
+    <script src="/admin.js?v=20260911-music-isolation2" type="module"></script>
+    <script src="/vendor/gsap.min.js"></script>
+    <script src="/liquid-motion.js?v=20260828-colour-flow1"></script>
+  </body>
+</html>

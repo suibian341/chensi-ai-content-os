@@ -1,0 +1,4136 @@
+/*
+ * Light liquid glass pass.
+ * This file is intentionally loaded last so the existing product layout and
+ * navigation physics stay intact while every surface shares one material.
+ */
+:root {
+  color-scheme: light;
+  --ink: #17344c !important;
+  --muted: #5f7890 !important;
+  --muted-strong: #3d5c74 !important;
+  --line: rgba(39, 91, 124, .18) !important;
+  --line-strong: rgba(37, 87, 119, .30) !important;
+  --surface: rgba(255, 255, 255, .18) !important;
+  --surface-muted: rgba(255, 255, 255, .13) !important;
+  --surface-subtle: rgba(255, 255, 255, .09) !important;
+  --surface-solid: #f7fbff !important;
+  --glass-edge: rgba(255, 255, 255, .64) !important;
+  --accent: #146ca2 !important;
+  --accent-strong: #0e5686 !important;
+  --teal: #087d83 !important;
+  --coral: #a95767 !important;
+  --shadow: 0 22px 60px rgba(27, 69, 95, .14) !important;
+  --shadow-soft: 0 10px 30px rgba(27, 69, 95, .10) !important;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body.workspace-page,
+body.admin-page,
+body.auth-page,
+body.home-page {
+  position: relative !important;
+  isolation: isolate !important;
+  overflow-x: hidden;
+  color: var(--ink) !important;
+  background: #e9f1f7 !important;
+}
+
+/* Two independent color fields keep moving at a constant speed. The large
+   fields overlap to produce changing refraction through transparent surfaces. */
+body.workspace-page::before,
+body.admin-page::before,
+body.auth-page::before,
+body.home-page::before {
+  position: fixed !important;
+  z-index: -2 !important;
+  inset: -30% !important;
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  pointer-events: none !important;
+  content: "" !important;
+  opacity: .58 !important;
+  background:
+    linear-gradient(112deg,
+      rgba(18, 190, 235, .32) 0%,
+      rgba(112, 136, 238, .18) 22%,
+      rgba(255, 104, 180, .30) 43%,
+      rgba(255, 193, 62, .24) 63%,
+      rgba(27, 200, 164, .30) 82%,
+      rgba(18, 190, 235, .32) 100%),
+    radial-gradient(34% 38% at 8% 18%, rgba(26, 181, 233, .44), transparent 72%),
+    radial-gradient(35% 40% at 88% 14%, rgba(255, 112, 174, .36), transparent 72%),
+    radial-gradient(40% 36% at 74% 88%, rgba(255, 188, 56, .34), transparent 72%),
+    radial-gradient(38% 42% at 20% 86%, rgba(24, 196, 164, .34), transparent 72%),
+    radial-gradient(28% 36% at 52% 50%, rgba(145, 110, 237, .24), transparent 72%);
+  background-size: 220% 220%, 150% 150%, 160% 160%, 155% 155%, 165% 165%, 145% 145%;
+  background-position: 0% 45%, -20% 12%, 115% 0%, 92% 100%, -10% 92%, 50% 45%;
+  filter: saturate(118%);
+  animation: light-liquid-spectrum 9s linear infinite !important;
+}
+
+body.workspace-page::after,
+body.admin-page::after,
+body.auth-page::after,
+body.home-page::after {
+  position: fixed !important;
+  z-index: -1 !important;
+  inset: -24% !important;
+  display: block !important;
+  pointer-events: none !important;
+  content: "" !important;
+  opacity: .40 !important;
+  background:
+    conic-gradient(from 42deg at 44% 48%,
+      rgba(0, 170, 228, .23),
+      rgba(255, 99, 164, .20) 22%,
+      rgba(255, 204, 66, .20) 41%,
+      rgba(31, 194, 163, .22) 63%,
+      rgba(128, 105, 232, .19) 82%,
+      rgba(0, 170, 228, .23));
+  filter: blur(42px) saturate(125%);
+  mix-blend-mode: multiply;
+  animation: light-liquid-prism 10s linear infinite !important;
+}
+
+@keyframes light-liquid-spectrum {
+  0% { background-position: 0% 45%, -20% 12%, 115% 0%, 92% 100%, -10% 92%, 50% 45%; transform: translate3d(0, 0, 0) rotate(0deg) scale(1.02); }
+  25% { background-position: 52% 35%, 20% -8%, 82% 26%, 48% 118%, 16% 62%, 78% 28%; transform: translate3d(-2%, 1%, 0) rotate(1deg) scale(1.04); }
+  50% { background-position: 104% 46%, 72% 12%, 20% 88%, -12% 62%, 54% -8%, 18% 82%; transform: translate3d(-4%, 0, 0) rotate(0deg) scale(1.02); }
+  75% { background-position: 156% 58%, 118% 100%, -18% 64%, 42% -16%, 102% 26%, -22% 42%; transform: translate3d(-2%, -1%, 0) rotate(-1deg) scale(1.04); }
+  100% { background-position: 208% 45%, 164% 12%, -65% 0%, -8% 100%, 214% 92%, -34% 45%; transform: translate3d(0, 0, 0) rotate(0deg) scale(1.02); }
+}
+
+@keyframes light-liquid-prism {
+  0% { transform: translate3d(-3%, -2%, 0) rotate(0deg) scale(1.06); }
+  25% { transform: translate3d(4%, -5%, 0) rotate(90deg) scale(1.10); }
+  50% { transform: translate3d(8%, 3%, 0) rotate(180deg) scale(1.06); }
+  75% { transform: translate3d(-4%, 7%, 0) rotate(270deg) scale(1.10); }
+  100% { transform: translate3d(-3%, -2%, 0) rotate(360deg) scale(1.06); }
+}
+
+/* The runtime ambient fields add smaller, faster color currents over the two
+   broad fields above. */
+.liquid-ambient,
+.home-ambient {
+  z-index: 0 !important;
+  display: block !important;
+  position: fixed !important;
+  inset: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  opacity: 1 !important;
+}
+
+.liquid-ambient::before,
+.home-ambient::before {
+  position: absolute;
+  inset: -35%;
+  content: "";
+  background: conic-gradient(from 0deg at 50% 50%, rgba(34, 183, 232, .11), rgba(255, 116, 180, .09), rgba(255, 204, 72, .10), rgba(35, 201, 166, .11), rgba(143, 107, 235, .09), rgba(34, 183, 232, .11));
+  filter: blur(60px) saturate(135%);
+  mix-blend-mode: multiply;
+  animation: light-liquid-prism 7.5s linear infinite reverse;
+}
+
+.liquid-ambient::after,
+.home-ambient::after {
+  position: absolute;
+  inset: -12%;
+  content: "";
+  background: repeating-linear-gradient(112deg, transparent 0 12%, rgba(255,255,255,.12) 14%, transparent 19% 31%);
+  filter: blur(24px);
+  opacity: .42;
+  transform: translateX(-18%);
+  animation: light-liquid-sheen 5.8s linear infinite;
+}
+
+@keyframes light-liquid-sheen {
+  from { transform: translate3d(-22%, 0, 0) skewX(-8deg); }
+  to { transform: translate3d(22%, 0, 0) skewX(-8deg); }
+}
+
+.liquid-ambient span,
+.home-ambient .home-orb {
+  position: absolute !important;
+  display: block !important;
+  border-radius: 48% 52% 55% 45% !important;
+  opacity: .25 !important;
+  filter: blur(42px) saturate(148%) !important;
+  mix-blend-mode: multiply !important;
+  will-change: transform;
+  animation-timing-function: linear !important;
+  animation-iteration-count: infinite !important;
+  animation-direction: normal !important;
+}
+
+.liquid-ambient span:nth-child(1),
+.home-ambient .home-orb-one { inset: -9% auto auto 3% !important; width: 34rem !important; height: 29rem !important; background: radial-gradient(circle at 46% 48%, rgba(0, 172, 235, .66), rgba(55, 198, 244, .14) 60%, transparent 76%) !important; animation: light-liquid-blob-a 6.2s linear infinite !important; }
+.liquid-ambient span:nth-child(2),
+.home-ambient .home-orb-two { inset: 7% -8% auto auto !important; width: 31rem !important; height: 35rem !important; background: radial-gradient(circle at 45% 50%, rgba(255, 84, 165, .60), rgba(255, 144, 192, .12) 61%, transparent 76%) !important; animation: light-liquid-blob-b 7.4s linear infinite !important; }
+.liquid-ambient span:nth-child(3),
+.home-ambient .home-orb-three { inset: auto auto -11% 5% !important; width: 32rem !important; height: 29rem !important; background: radial-gradient(circle at 52% 46%, rgba(15, 194, 159, .60), rgba(81, 222, 180, .12) 60%, transparent 76%) !important; animation: light-liquid-blob-c 8.1s linear infinite !important; }
+.liquid-ambient span:nth-child(4) { inset: 34% auto auto 36% !important; width: 28rem !important; height: 26rem !important; background: radial-gradient(circle at 48% 50%, rgba(133, 91, 231, .52), rgba(176, 133, 247, .11) 60%, transparent 76%) !important; animation: light-liquid-blob-d 6.8s linear infinite !important; }
+.liquid-ambient span:nth-child(5) { inset: auto 14% 4% auto !important; width: 28rem !important; height: 25rem !important; background: radial-gradient(circle at 50% 46%, rgba(255, 182, 36, .56), rgba(255, 215, 104, .11) 60%, transparent 76%) !important; animation: light-liquid-blob-e 7.8s linear infinite !important; }
+
+@keyframes light-liquid-blob-a { 0% { transform: translate3d(-9vw, -3vh, 0) rotate(0deg) scale(.96); } 25% { transform: translate3d(25vw, 15vh, 0) rotate(90deg) scale(1.12); } 50% { transform: translate3d(52vw, -4vh, 0) rotate(180deg) scale(.98); } 75% { transform: translate3d(17vw, 48vh, 0) rotate(270deg) scale(1.08); } 100% { transform: translate3d(-9vw, -3vh, 0) rotate(360deg) scale(.96); } }
+@keyframes light-liquid-blob-b { 0% { transform: translate3d(8vw, -4vh, 0) rotate(0deg) scale(1.05); } 25% { transform: translate3d(-32vw, 20vh, 0) rotate(-90deg) scale(.94); } 50% { transform: translate3d(-47vw, 54vh, 0) rotate(-180deg) scale(1.12); } 75% { transform: translate3d(-12vw, 29vh, 0) rotate(-270deg) scale(.98); } 100% { transform: translate3d(8vw, -4vh, 0) rotate(-360deg) scale(1.05); } }
+@keyframes light-liquid-blob-c { 0% { transform: translate3d(-8vw, 8vh, 0) rotate(0deg) scale(1); } 25% { transform: translate3d(27vw, -34vh, 0) rotate(90deg) scale(1.10); } 50% { transform: translate3d(70vw, -13vh, 0) rotate(180deg) scale(.94); } 75% { transform: translate3d(41vw, 36vh, 0) rotate(270deg) scale(1.08); } 100% { transform: translate3d(-8vw, 8vh, 0) rotate(360deg) scale(1); } }
+@keyframes light-liquid-blob-d { 0% { transform: translate3d(-15vw, 4vh, 0) rotate(0deg) scale(.97); } 25% { transform: translate3d(27vw, 26vh, 0) rotate(90deg) scale(1.11); } 50% { transform: translate3d(11vw, -21vh, 0) rotate(180deg) scale(.96); } 75% { transform: translate3d(-36vw, -9vh, 0) rotate(270deg) scale(1.08); } 100% { transform: translate3d(-15vw, 4vh, 0) rotate(360deg) scale(.97); } }
+@keyframes light-liquid-blob-e { 0% { transform: translate3d(11vw, 8vh, 0) rotate(0deg) scale(1.04); } 25% { transform: translate3d(-29vw, -18vh, 0) rotate(-90deg) scale(.94); } 50% { transform: translate3d(-53vw, 11vh, 0) rotate(-180deg) scale(1.12); } 75% { transform: translate3d(-4vw, 38vh, 0) rotate(-270deg) scale(.98); } 100% { transform: translate3d(11vw, 8vh, 0) rotate(-360deg) scale(1.04); } }
+
+/* Content sits above the moving fields; transparent surfaces reveal them. */
+.workspace-shell,
+.admin-shell,
+.auth-shell,
+.home-page > :not(.home-ambient):not(.liquid-ambient) {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar,
+body.workspace-page .topbar,
+body.admin-page .topbar,
+body.home-page .home-nav-shell,
+body.auth-page .auth-shell {
+  color: var(--ink) !important;
+  border: 1px solid rgba(255,255,255,.62) !important;
+  background: rgba(255,255,255,.16) !important;
+  box-shadow: 0 24px 64px rgba(28, 68, 94, .14), inset 0 1px rgba(255,255,255,.82), inset 0 -1px rgba(25,66,91,.08), inset 1px 0 rgba(255,255,255,.34) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(145%) brightness(1.05) contrast(1.03) !important;
+  backdrop-filter: blur(26px) saturate(145%) brightness(1.05) contrast(1.03) !important;
+}
+
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  color: var(--ink) !important;
+  background: rgba(255,255,255,.13) !important;
+}
+
+body.workspace-page .workspace-shell .sidebar :is(.brand-name, .brand-sub, .workspace-label, .nav-section-label, .health-card, .user-chip),
+body.admin-page .admin-shell .sidebar :is(.brand-name, .brand-sub, .workspace-label, .nav-section-label, .health-card, .user-chip) { color: var(--ink) !important; }
+
+body.workspace-page .workspace-shell .nav-list::before,
+body.admin-page .admin-shell .nav-list::before { background: rgba(255,255,255,.11) !important; border-color: rgba(255,255,255,.38) !important; box-shadow: inset 0 1px rgba(255,255,255,.55) !important; }
+
+body.workspace-page .workspace-shell .nav-item,
+body.admin-page .admin-shell .nav-item { color: rgba(23,52,76,.72) !important; }
+body.workspace-page .workspace-shell .nav-item:hover,
+body.admin-page .admin-shell .nav-item:hover { color: #17344c !important; background: rgba(255,255,255,.18) !important; }
+body.workspace-page .workspace-shell .nav-item.active,
+body.admin-page .admin-shell .nav-item.active { color: #123a59 !important; background: rgba(255,255,255,.22) !important; box-shadow: inset 0 1px rgba(255,255,255,.68), inset 0 -1px rgba(25,66,91,.08) !important; }
+body.workspace-page .workspace-shell .nav-list.is-moving .nav-item.active,
+body.workspace-page .workspace-shell .nav-list.is-pressed .nav-item.active,
+body.admin-page .admin-shell .nav-list.is-moving .nav-item.active,
+body.admin-page .admin-shell .nav-list.is-pressed .nav-item.active { background: transparent !important; box-shadow: none !important; }
+
+/* Keep the existing optical capsule, but give its refraction a neutral clear
+   base so the animated spectrum remains visible through it. */
+body.workspace-page .workspace-shell .nav-liquid-filter,
+body.admin-page .admin-shell .nav-liquid-filter { background: rgba(255,255,255,.15) !important; border-color: rgba(255,255,255,.58) !important; box-shadow: 0 14px 30px rgba(25,66,91,.16), inset 0 1px rgba(255,255,255,.78), inset 0 -3px 8px rgba(25,66,91,.10) !important; }
+body.workspace-page .workspace-shell .nav-liquid-overlay,
+body.admin-page .admin-shell .nav-liquid-overlay { background: rgba(255,255,255,.05) !important; border-color: rgba(255,255,255,.28) !important; }
+body.workspace-page .workspace-shell .nav-liquid-specular,
+body.admin-page .admin-shell .nav-liquid-specular { box-shadow: inset 0 1px rgba(255,255,255,.52), inset 0 -4px 10px rgba(25,66,91,.06) !important; }
+body.workspace-page .workspace-shell .nav-liquid-rim,
+body.admin-page .admin-shell .nav-liquid-rim { box-shadow: inset 0 0 0 .55px rgba(255,255,255,.64) !important; }
+
+body.workspace-page :is(.panel, .metric-card, .feature-card, .asset-card, .template-card, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel, .result-block, .history-list, .table-panel, .dual-grid > section, .overview-bottom, .health-card, .user-chip),
+body.admin-page :is(.panel, .metric-card, .feature-card, .asset-card, .template-card, .table-panel, .dual-grid > section, .health-card, .user-chip),
+body.home-page :is(.home-product-window, .home-section, .home-workflow, .home-final-cta, .home-capability-item, .home-team-features article, .home-team-status, .home-workflow-steps li, .home-floating-card),
+body.auth-page :is(.auth-brand, .auth-form-panel) {
+  color: var(--ink) !important;
+  border-color: rgba(255,255,255,.52) !important;
+  background: rgba(255,255,255,.12) !important;
+  box-shadow: 0 18px 48px rgba(28,68,94,.10), inset 0 1px rgba(255,255,255,.76), inset 1px 0 rgba(255,255,255,.30), inset -1px 0 rgba(28,68,94,.055), inset 0 -1px rgba(28,68,94,.05) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(140%) brightness(1.045) contrast(1.02) !important;
+  backdrop-filter: blur(20px) saturate(140%) brightness(1.045) contrast(1.02) !important;
+}
+
+body.workspace-page :is(.metric-card, .feature-card, .asset-card, .template-card),
+body.admin-page :is(.metric-card, .feature-card, .asset-card, .template-card),
+body.home-page :is(.home-capability-item, .home-team-features article, .home-workflow-steps li) { background: rgba(255,255,255,.095) !important; }
+
+body.workspace-page :is(input, textarea, select, .ui-select-trigger),
+body.admin-page :is(input, textarea, select, .ui-select-trigger),
+body.auth-page :is(input, textarea, select, .ui-select-trigger) {
+  color: var(--ink) !important;
+  border: 1px solid rgba(255,255,255,.54) !important;
+  background: rgba(255,255,255,.13) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.58), inset 0 -1px rgba(28,68,94,.055), 0 5px 16px rgba(28,68,94,.06) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(138%) brightness(1.04) !important;
+  backdrop-filter: blur(16px) saturate(138%) brightness(1.04) !important;
+}
+
+body.workspace-page :is(input, textarea, select, .ui-select-trigger):hover,
+body.admin-page :is(input, textarea, select, .ui-select-trigger):hover,
+body.auth-page :is(input, textarea, select, .ui-select-trigger):hover { background: rgba(255,255,255,.19) !important; border-color: rgba(255,255,255,.72) !important; }
+body.workspace-page :is(input, textarea, select, .ui-select-trigger):focus,
+body.admin-page :is(input, textarea, select, .ui-select-trigger):focus,
+body.auth-page :is(input, textarea, select, .ui-select-trigger):focus,
+body.workspace-page .ui-select-trigger.is-open,
+body.admin-page .ui-select-trigger.is-open { background: rgba(255,255,255,.23) !important; border-color: rgba(20,108,162,.55) !important; box-shadow: 0 0 0 3px rgba(20,108,162,.13), inset 0 1px rgba(255,255,255,.72) !important; }
+
+body.workspace-page :is(input, textarea, select)::placeholder,
+body.admin-page :is(input, textarea, select)::placeholder,
+body.auth-page :is(input, textarea, select)::placeholder { color: rgba(45,78,101,.62) !important; }
+body.workspace-page select option,
+body.admin-page select option,
+body.auth-page select option { color: #17344c; background: #edf5fa; }
+
+body.workspace-page :is(.soft-badge, .status-badge, .tag, .chip, .metric-highlight, .permission-picker label, .member-permission-picker label),
+body.admin-page :is(.soft-badge, .status-badge, .tag, .chip, .permission-picker label, .member-permission-picker label) { border-color: rgba(255,255,255,.46) !important; background: rgba(255,255,255,.16) !important; color: var(--muted-strong) !important; box-shadow: inset 0 1px rgba(255,255,255,.58) !important; }
+
+body.workspace-page .dark-result { color: #17344c !important; border-color: rgba(255,255,255,.54) !important; background: rgba(255,255,255,.15) !important; }
+body.workspace-page :is(.asset-thumb.scene, .asset-thumb.product) { background: rgba(255,255,255,.13) !important; }
+
+body.home-page .home-hero-overlay { background: rgba(255,255,255,.13) !important; }
+body.home-page :is(.home-hero h1, .home-hero-lead, .home-section-heading h2, .home-teams h2, .home-final-cta h2, .home-workflow h2, .home-capability-item h3, .home-team-features h3, .home-workflow-steps strong) { color: #17344c !important; text-shadow: 0 1px 0 rgba(255,255,255,.45); }
+body.home-page :is(.home-hero-description, .home-section-heading > p, .home-capability-item p, .home-teams-copy > p:not(.home-kicker), .home-team-features p, .home-final-cta p:not(.home-kicker), .home-workflow-heading > p:last-child, .home-workflow-steps small, .home-footer-links, .home-footer-links a, .home-proof-list li) { color: #4f6b82 !important; }
+body.home-page :is(.home-kicker, .home-availability) { color: #176e9c !important; }
+body.home-page .home-workflow { color: var(--ink) !important; }
+body.home-page .home-footer { color: var(--ink) !important; background: rgba(255,255,255,.10) !important; }
+
+body.auth-page .auth-brand { background: rgba(255,255,255,.13) !important; }
+body.auth-page .auth-form-panel { background: rgba(255,255,255,.10) !important; }
+body.auth-page :is(.auth-brand h1, .auth-form-panel h2) { color: #17344c !important; }
+body.auth-page :is(.auth-brand p, .auth-hint) { color: #4f6b82 !important; }
+body.auth-page .auth-brand-logo { filter: drop-shadow(0 5px 12px rgba(20,75,107,.14)); }
+
+@media (prefers-reduced-motion: reduce) {
+  body.workspace-page::before, body.admin-page::before, body.auth-page::before, body.home-page::before,
+  body.workspace-page::after, body.admin-page::after, body.auth-page::after, body.home-page::after,
+  .liquid-ambient::before, .liquid-ambient::after, .home-ambient::before, .home-ambient::after,
+  .liquid-ambient span, .home-ambient .home-orb { animation-play-state: paused !important; }
+}
+
+/* Final animated spectrum. The legacy styles contain an important noise
+   texture on body::before; this final layer deliberately replaces it with
+   independent colour fields. Each field crosses the viewport on its own
+   closed route, so cyan, pink, yellow, green and violet continuously trade
+   places instead of sliding as one static rainbow. */
+body.workspace-page,
+body.admin-page,
+body.auth-page,
+body.home-page {
+  background: #edf5fa !important;
+}
+
+body.workspace-page::before,
+body.admin-page::before,
+body.auth-page::before,
+body.home-page::before {
+  z-index: -2 !important;
+  inset: -34% !important;
+  opacity: .72 !important;
+  background-image:
+    radial-gradient(42% 34% at 50% 50%, rgba(0, 184, 232, .62), rgba(0, 184, 232, .15) 49%, transparent 78%),
+    radial-gradient(44% 38% at 50% 50%, rgba(255, 93, 174, .56), rgba(255, 93, 174, .12) 50%, transparent 80%),
+    radial-gradient(40% 35% at 50% 50%, rgba(255, 192, 48, .48), rgba(255, 192, 48, .10) 50%, transparent 79%),
+    radial-gradient(43% 36% at 50% 50%, rgba(17, 199, 163, .54), rgba(17, 199, 163, .11) 50%, transparent 80%),
+    radial-gradient(36% 32% at 50% 50%, rgba(143, 102, 232, .43), rgba(143, 102, 232, .09) 52%, transparent 80%),
+    repeating-linear-gradient(118deg, rgba(0, 177, 228, .10) 0 9%, rgba(255, 101, 177, .09) 18% 27%, rgba(255, 197, 58, .08) 36% 45%, rgba(20, 197, 161, .10) 54% 63%, rgba(140, 101, 231, .08) 72% 81%, rgba(0, 177, 228, .10) 90% 100%) !important;
+  background-size: 148% 142%, 158% 150%, 150% 146%, 156% 148%, 145% 142%, 230% 230% !important;
+  /* Keep this declaration overridable by the keyframes below. An
+     !important background-position would freeze every colour field at its
+     initial coordinate and leave only the wrapper transform moving. */
+  background-position: -24% -15%, 122% -9%, 116% 118%, -17% 114%, 48% 46%, 0% 0%;
+  filter: saturate(115%);
+  animation: liquid-colour-crossing 15s linear infinite !important;
+}
+
+body.workspace-page::after,
+body.admin-page::after,
+body.auth-page::after,
+body.home-page::after {
+  z-index: -1 !important;
+  inset: -28% !important;
+  opacity: .34 !important;
+  background-image:
+    conic-gradient(from 22deg at 50% 50%, rgba(10, 182, 231, .18), rgba(255, 96, 173, .17) 22%, rgba(255, 200, 58, .15) 42%, rgba(20, 198, 164, .18) 63%, rgba(143, 103, 233, .15) 82%, rgba(10, 182, 231, .18)),
+    repeating-linear-gradient(104deg, transparent 0 13%, rgba(255,255,255,.10) 16%, transparent 21% 36%) !important;
+  background-size: 190% 190%, 245% 245% !important;
+  background-position: 0% 0%, -10% 0%;
+  filter: blur(44px) saturate(123%);
+  mix-blend-mode: normal;
+  animation: liquid-colour-sheen 11s linear infinite !important;
+}
+
+@keyframes liquid-colour-crossing {
+  0% {
+    background-position: -24% -15%, 122% -9%, 116% 118%, -17% 114%, 48% 46%, 0% 0%;
+    transform: translate3d(0, 0, 0) scale(1.02);
+  }
+  25% {
+    background-position: 34% 18%, 76% 25%, 66% 90%, 17% 73%, 88% 14%, 28% 22%;
+    transform: translate3d(-1.5%, 1%, 0) scale(1.04);
+  }
+  50% {
+    background-position: 112% 42%, 40% 82%, 14% 75%, 78% 31%, 22% 84%, 53% 48%;
+    transform: translate3d(-3%, 0, 0) scale(1.02);
+  }
+  75% {
+    background-position: 62% 108%, 8% 65%, -5% 15%, 55% -10%, 76% 61%, 78% 75%;
+    transform: translate3d(-1.5%, -1%, 0) scale(1.04);
+  }
+  100% {
+    background-position: -24% -15%, 122% -9%, 116% 118%, -17% 114%, 48% 46%, 0% 0%;
+    transform: translate3d(0, 0, 0) scale(1.02);
+  }
+}
+
+@keyframes liquid-colour-sheen {
+  0% {
+    background-position: 0% 0%, -10% 0%;
+    transform: translate3d(-2%, -1%, 0) rotate(0deg) scale(1.05);
+  }
+  25% {
+    background-position: 44% 28%, 32% 18%;
+    transform: translate3d(3%, -4%, 0) rotate(90deg) scale(1.08);
+  }
+  50% {
+    background-position: 96% 58%, 74% 52%;
+    transform: translate3d(6%, 2%, 0) rotate(180deg) scale(1.05);
+  }
+  75% {
+    background-position: 52% 92%, 122% 78%;
+    transform: translate3d(-4%, 5%, 0) rotate(270deg) scale(1.08);
+  }
+  100% {
+    background-position: 0% 0%, -10% 0%;
+    transform: translate3d(-2%, -1%, 0) rotate(360deg) scale(1.05);
+  }
+}
+
+/* Keep the travelling blobs as soft optical illumination rather than opaque
+   colour cards. GSAP still drives their closed paths from liquid-motion.js. */
+body.workspace-page .liquid-ambient span,
+body.admin-page .liquid-ambient span,
+body.auth-page .liquid-ambient span,
+body.home-page .home-ambient .home-orb {
+  opacity: .34 !important;
+  filter: blur(64px) saturate(145%) !important;
+  mix-blend-mode: normal !important;
+}
+
+/* The dark optical-glass rules precede this file and otherwise win on the
+   main content. Restore a readable light foreground without filling the
+   transparent panels. */
+body.workspace-page .workspace-shell .main-content,
+body.admin-page .admin-shell .main-content {
+  color: #17344c !important;
+}
+body.workspace-page .workspace-shell .main-content :is(h1, h2, h3, h4, h5, h6, strong, th, td),
+body.admin-page .admin-shell .main-content :is(h1, h2, h3, h4, h5, h6, strong, th, td) {
+  color: #17344c !important;
+}
+body.workspace-page .workspace-shell .main-content :is(p, small, label, li, dt, dd, .field-hint, .save-hint, .metric-label, .metric-foot, .asset-info, .template-extra),
+body.admin-page .admin-shell .main-content :is(p, small, label, li, dt, dd, .field-hint, .save-hint, .metric-label, .metric-foot, .asset-info, .template-extra) {
+  color: #48657b !important;
+}
+body.workspace-page .workspace-shell :is(.nav-item, .brand-name, .brand-sub, .workspace-label, .nav-section-label),
+body.admin-page .admin-shell :is(.nav-item, .brand-name, .brand-sub, .workspace-label, .nav-section-label) {
+  color: #173f5d !important;
+}
+/* Clear nested glass layers: legacy component fills were bright enough to
+   read as white masks and hid the moving spectrum behind them. */
+body.workspace-page :is(.settings-row, .copy-source-controls, .jianying-root-bar, .publish-section-heading),
+body.admin-page :is(.settings-row, .copy-source-controls, .jianying-root-bar, .publish-section-heading) {
+  color: var(--ink) !important;
+  background: rgba(255,255,255,.028) !important;
+  border-color: rgba(255,255,255,.30) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.34), inset 0 -1px rgba(18,50,70,.035) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.08) !important;
+  backdrop-filter: blur(10px) saturate(1.08) !important;
+}
+body.workspace-page :is(.production-mode-switcher, .render-asset-picker, .permission-picker, .member-permission-picker),
+body.admin-page :is(.production-mode-switcher, .render-asset-picker, .permission-picker, .member-permission-picker) {
+  background: rgba(255,255,255,.032) !important;
+  border-color: rgba(255,255,255,.32) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.38), inset 0 -1px rgba(18,50,70,.035) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.10) !important;
+  backdrop-filter: blur(12px) saturate(1.10) !important;
+}
+body.workspace-page :is(.production-mode-tab, .publish-mode-option, .platform-card, .render-asset-option, .image-reference-option, .copy-reference-option, .permission-picker label, .member-permission-picker label),
+body.admin-page :is(.production-mode-tab, .publish-mode-option, .platform-card, .render-asset-option, .image-reference-option, .copy-reference-option, .permission-picker label, .member-permission-picker label) {
+  background: rgba(255,255,255,.045) !important;
+  border-color: rgba(255,255,255,.34) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.40), inset 0 -1px rgba(18,50,70,.035) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.10) !important;
+  backdrop-filter: blur(10px) saturate(1.10) !important;
+}
+body.workspace-page :is(.production-mode-tab.active, .publish-mode-option.selected, .platform-card.selected, .render-asset-option.selected, .image-reference-option.selected, .copy-reference-option.selected, .permission-picker label:has(input:checked), .member-permission-picker label:has(input:checked)),
+body.admin-page :is(.production-mode-tab.active, .publish-mode-option.selected, .platform-card.selected, .render-asset-option.selected, .image-reference-option.selected, .copy-reference-option.selected, .permission-picker label:has(input:checked), .member-permission-picker label:has(input:checked)) {
+  background: rgba(122,198,232,.16) !important;
+  border-color: rgba(51,133,178,.30) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.54), 0 0 0 2px rgba(51,133,178,.055) !important;
+}
+body.workspace-page :is(.render-asset-option:has(input:checked), .image-reference-option:has(input:checked), .copy-reference-option:has(input:checked)),
+body.admin-page :is(.render-asset-option:has(input:checked), .image-reference-option:has(input:checked), .copy-reference-option:has(input:checked)) {
+  background: rgba(122,198,232,.16) !important;
+  background-image: none !important;
+  border-color: rgba(51,133,178,.30) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.54), 0 0 0 2px rgba(51,133,178,.055) !important;
+}
+body.workspace-page .production-mode-switcher.liquid-segment-host > .production-mode-tab.active,
+body.workspace-page .copy-modes.liquid-segment-host > .copy-mode.active,
+body.workspace-page .publish-mode-group.liquid-segment-host > .publish-mode-option.selected,
+body.admin-page .production-mode-switcher.liquid-segment-host > .production-mode-tab.active {
+  background: rgba(122,198,232,.16) !important;
+  background-image: none !important;
+  border-color: rgba(51,133,178,.30) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.54), 0 0 0 2px rgba(51,133,178,.055) !important;
+}
+body.workspace-page :is(.table-row, .team-member-row, .history-row, .output-row, .provider-status-row, .requirement-row, .ticket-row, .distribution-row, .audit-row, .user-row),
+body.admin-page :is(.table-row, .team-member-row, .history-row, .output-row, .provider-status-row, .requirement-row, .ticket-row, .distribution-row, .audit-row, .user-row) {
+  background: rgba(255,255,255,.024) !important;
+}
+body.workspace-page :is(.production-direction, .suggestion-row, .ingest-note, .media-library-copy, .image-output-preview, .latest-output, .step-status, .custom-template-row, .publish-attempt, .publish-platform-result, .account-summary),
+body.admin-page :is(.production-direction, .suggestion-row, .ingest-note, .media-library-copy, .image-output-preview, .latest-output, .step-status, .custom-template-row, .publish-attempt, .publish-platform-result, .account-summary) {
+  background: rgba(255,255,255,.045) !important;
+  border-color: rgba(255,255,255,.28) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.38), inset 0 -1px rgba(18,50,70,.035) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.08) !important;
+  backdrop-filter: blur(10px) saturate(1.08) !important;
+}
+
+/* Optical switches use a white thumb and a coloured track. Remove the old
+   checkbox check-mark pseudo-element that otherwise appears as a white bar. */
+body.workspace-page input[type="checkbox"].optical-switch::after,
+body.admin-page input[type="checkbox"].optical-switch::after,
+body.auth-page input[type="checkbox"].optical-switch::after,
+input[type="checkbox"].optical-switch::after {
+  content: none !important;
+  display: none !important;
+  border: 0 !important;
+}
+
+/* Keep the track itself legible on both states. These selectors include the
+   page scope so they outrank the legacy checkbox theme. */
+body.workspace-page input[type="checkbox"].optical-switch,
+body.admin-page input[type="checkbox"].optical-switch,
+body.auth-page input[type="checkbox"].optical-switch {
+  background: rgba(38,72,93,.30) !important;
+}
+body.workspace-page input[type="checkbox"].optical-switch:checked,
+body.admin-page input[type="checkbox"].optical-switch:checked,
+body.auth-page input[type="checkbox"].optical-switch:checked {
+  background: rgba(24,173,178,.72) !important;
+  border-color: rgba(255,255,255,.42) !important;
+}
+
+/* Final surface and layout corrections ---------------------------------- */
+body.workspace-page .overview-bottom {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+body.workspace-page .copy-value {
+  min-width: 0;
+  max-width: 100%;
+  padding: 8px 10px !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,.055) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.24), inset 0 -1px rgba(24,64,86,.035) !important;
+  overflow-wrap: anywhere;
+}
+
+body.workspace-page .copy-reference-option,
+body.workspace-page .render-asset-option {
+  min-width: 0;
+  max-width: 100%;
+  background: rgba(255,255,255,.045) !important;
+  background-image: none !important;
+}
+
+body.workspace-page .copy-reference-option {
+  border-radius: 12px !important;
+}
+
+body.workspace-page .copy-reference-preview,
+body.workspace-page .copy-reference-body,
+body.workspace-page .copy-reference-body > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body.workspace-page .copy-reference-preview {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+}
+
+body.workspace-page .team-member-form {
+  min-width: 0;
+  max-width: 100%;
+  background: rgba(255,255,255,.045) !important;
+  border-color: rgba(255,255,255,.34) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.38), inset 0 -1px rgba(18,50,70,.035) !important;
+}
+
+body.workspace-page .team-member-row:hover,
+body.workspace-page .team-member-row:focus-within,
+body.admin-page .team-member-row:hover,
+body.admin-page .team-member-row:focus-within {
+  background: rgba(255,255,255,.065) !important;
+  border-color: rgba(56,136,181,.26) !important;
+}
+
+body.workspace-page .image-reference-option {
+  grid-template-columns: 60px minmax(0,1fr) !important;
+  min-height: 72px;
+  padding: 6px 8px !important;
+  gap: 9px;
+  border-radius: 12px !important;
+}
+
+body.workspace-page .image-reference-option img {
+  width: 60px !important;
+  height: 60px !important;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+body.workspace-page .image-reference-option span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.workspace-page .settings-row > *,
+body.workspace-page .settings-row .field,
+body.workspace-page .field-hint,
+body.workspace-page .production-direction,
+body.workspace-page .render-asset-picker,
+body.workspace-page .render-asset-option,
+body.workspace-page .team-member-form > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body.workspace-page .field-hint,
+body.workspace-page .production-direction {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+body.workspace-page .render-asset-picker {
+  overflow: visible;
+}
+
+body.workspace-page #refreshButton::before {
+  content: "↻";
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+body.workspace-page .workspace-shell .nav-list.is-moving .nav-item.active,
+body.workspace-page .workspace-shell .nav-list.is-pressed .nav-item.active,
+body.admin-page .admin-shell .nav-list.is-moving .nav-item.active,
+body.admin-page .admin-shell .nav-list.is-pressed .nav-item.active {
+  background: rgba(255,255,255,.055) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.24) !important;
+  color: #173f5d !important;
+}
+
+body.workspace-page .health-card,
+body.admin-page .health-card {
+  min-height: 44px !important;
+  padding: 8px 10px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255,255,255,.38) !important;
+  background: rgba(255,255,255,.045) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.35) !important;
+}
+
+body.workspace-page .health-line,
+body.workspace-page .health-meta,
+body.admin-page .health-line,
+body.admin-page .health-meta {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+body.admin-page #adminLogoutButton {
+  min-width: 76px !important;
+  white-space: nowrap !important;
+  flex: 0 0 auto;
+}
+
+body.workspace-page .user-action,
+body.admin-page .user-action {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+body.workspace-page *,
+body.admin-page * {
+  box-sizing: border-box;
+}
+
+body.workspace-page .main-content,
+body.admin-page .main-content,
+body.workspace-page .main-content > *,
+body.admin-page .main-content > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body.workspace-page .top-actions,
+body.admin-page .top-actions,
+body.workspace-page .view-heading,
+body.admin-page .view-heading {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Final pass: keep transparent pages from accumulating opaque legacy fills. */
+body.workspace-page .content-view .overview-bottom {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+body.workspace-page .copy-benchmark-references {
+  min-width: 0;
+  max-width: 100%;
+  padding-top: 12px !important;
+}
+
+body.workspace-page .copy-reference-list {
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+body.workspace-page .copy-reference-option {
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 8px 10px !important;
+  gap: 8px !important;
+  align-items: flex-start !important;
+  border-radius: 11px !important;
+  background: rgba(255,255,255,.025) !important;
+  border-color: rgba(255,255,255,.22) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.23) !important;
+}
+
+body.workspace-page .copy-reference-option > input {
+  margin-top: 3px !important;
+}
+
+body.workspace-page .copy-reference-body {
+  display: grid !important;
+  min-height: 0 !important;
+  max-height: 88px !important;
+  overflow: hidden !important;
+  gap: 3px !important;
+}
+
+body.workspace-page .copy-reference-body strong,
+body.workspace-page .copy-reference-body small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.workspace-page .copy-reference-body strong {
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  line-height: 1.35 !important;
+}
+
+body.workspace-page .copy-reference-body p,
+body.workspace-page .copy-reference-preview {
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  max-height: 4.35em !important;
+  overflow: hidden !important;
+  line-height: 1.45 !important;
+}
+
+body.workspace-page .team-member-form {
+  background: rgba(255,255,255,.018) !important;
+  border-color: rgba(255,255,255,.23) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.25) !important;
+}
+
+body.workspace-page .team-member-form :is(input, select, .permission-picker),
+body.workspace-page .team-member-form .permission-picker label {
+  background: rgba(255,255,255,.028) !important;
+  border-color: rgba(255,255,255,.24) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.25) !important;
+}
+
+body.workspace-page .image-reference-option {
+  position: relative;
+  isolation: isolate;
+  grid-template-columns: 72px minmax(0,1fr) !important;
+  min-height: 84px !important;
+  padding: 7px 9px !important;
+  gap: 10px !important;
+  overflow: hidden !important;
+}
+
+body.workspace-page .image-reference-option img {
+  position: relative;
+  z-index: 1;
+  width: 72px !important;
+  height: 72px !important;
+  border-radius: 10px !important;
+}
+
+body.workspace-page .image-reference-option input[type="checkbox"],
+body.workspace-page .image-reference-option input[type="radio"] {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+}
+
+body.workspace-page .production-direction,
+body.workspace-page .render-asset-picker,
+body.workspace-page .platform-card,
+body.workspace-page .image-output-card,
+body.workspace-page .permission-picker,
+body.workspace-page .member-permission-picker {
+  background: rgba(255,255,255,.018) !important;
+  border-color: rgba(255,255,255,.24) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.25) !important;
+}
+
+body.workspace-page .field-hint,
+body.workspace-page .production-direction,
+body.workspace-page .render-asset-picker,
+body.workspace-page .render-asset-option {
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+}
+
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  background: rgba(255,255,255,.055) !important;
+  border-color: rgba(255,255,255,.42) !important;
+  box-shadow: 0 18px 46px rgba(27,69,95,.10), inset 0 1px rgba(255,255,255,.48) !important;
+}
+
+body.workspace-page .workspace-shell .nav-item.active:hover,
+body.admin-page .admin-shell .nav-item.active:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  opacity: 1 !important;
+}
+
+body.workspace-page .health-card,
+body.admin-page .health-card {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+  padding: 9px 11px !important;
+  background: rgba(255,255,255,.028) !important;
+  border-color: rgba(255,255,255,.30) !important;
+}
+
+body.workspace-page #refreshButton,
+body.workspace-page #refreshButton::before {
+  color: #17415f !important;
+}
+
+body.workspace-page #refreshButton::before {
+  content: "\21BB" !important;
+}
+
+body.workspace-page .main-content,
+body.admin-page .main-content {
+  overflow-x: clip;
+}
+
+body.workspace-page .content-view,
+body.admin-page .admin-view {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* Clear-material pass ---------------------------------------------------
+   The base theme still gives every .panel a fairly opaque white fill.  On
+   the moving spectrum that compounds into a white mask, especially where a
+   panel contains another panel.  Keep one quiet hierarchy of translucent
+   layers instead: shell, panel, control, then selected state. */
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  background: rgba(255,255,255,.035) !important;
+  border-color: rgba(255,255,255,.34) !important;
+  box-shadow: 0 18px 44px rgba(27,69,95,.08), inset 0 1px rgba(255,255,255,.36) !important;
+}
+
+body.workspace-page .topbar,
+body.admin-page .topbar {
+  background: rgba(255,255,255,.075) !important;
+  border-color: rgba(255,255,255,.46) !important;
+  box-shadow: 0 18px 46px rgba(27,69,95,.09), inset 0 1px rgba(255,255,255,.56), inset 0 -1px rgba(20,65,90,.045) !important;
+}
+
+body.workspace-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel),
+body.admin-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel) {
+  background: rgba(255,255,255,.045) !important;
+  border-color: rgba(255,255,255,.36) !important;
+  box-shadow: 0 14px 38px rgba(27,69,95,.07), inset 0 1px rgba(255,255,255,.46), inset 0 -1px rgba(20,65,90,.035) !important;
+}
+
+body.workspace-page :is(.metric-card, .feature-card, .asset-card, .template-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item),
+body.admin-page :is(.metric-card, .feature-card, .asset-card, .template-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item) {
+  background: rgba(255,255,255,.028) !important;
+  background-image: none !important;
+  border-color: rgba(255,255,255,.30) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.32), 0 8px 22px rgba(27,69,95,.045) !important;
+}
+
+body.workspace-page :is(input, textarea, select, .ui-select-trigger),
+body.admin-page :is(input, textarea, select, .ui-select-trigger) {
+  background: rgba(255,255,255,.055) !important;
+  border-color: rgba(255,255,255,.40) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.42), inset 0 -1px rgba(20,65,90,.035), 0 4px 12px rgba(27,69,95,.045) !important;
+}
+
+body.workspace-page .overview-bottom,
+body.workspace-page .overview-bottom > :is(.task-panel, .output-panel) {
+  background: transparent !important;
+  border-color: rgba(255,255,255,.28) !important;
+  box-shadow: none !important;
+}
+body.workspace-page .overview-bottom > :is(.task-panel, .output-panel) {
+  background: rgba(255,255,255,.028) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.34), 0 10px 26px rgba(27,69,95,.045) !important;
+}
+
+/* AI reference cards are supporting evidence, not a second editor panel. */
+body.workspace-page .copy-editor-panel {
+  background: rgba(255,255,255,.035) !important;
+  border-color: rgba(255,255,255,.36) !important;
+}
+body.workspace-page .copy-source-controls {
+  background: rgba(255,255,255,.016) !important;
+  border-color: rgba(255,255,255,.22) !important;
+}
+body.workspace-page .copy-reference-option.copy-reference-option,
+body.workspace-page .copy-reference-option.copy-reference-option:has(input:checked) {
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 7px 9px !important;
+  background: rgba(255,255,255,.022) !important;
+  background-image: none !important;
+  border-color: rgba(255,255,255,.26) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.30) !important;
+}
+body.workspace-page .copy-reference-body {
+  max-height: 68px !important;
+  gap: 2px !important;
+}
+body.workspace-page .copy-reference-body strong {
+  -webkit-line-clamp: 1 !important;
+  line-clamp: 1 !important;
+  line-height: 1.3 !important;
+}
+body.workspace-page .copy-reference-body p,
+body.workspace-page .copy-reference-preview {
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  max-height: 2.8em !important;
+  line-height: 1.4 !important;
+}
+
+/* The reference image label has three siblings: switch, image and name.
+   Give each its own column so the 52px glass switch never sits on top of
+   the thumbnail. */
+body.workspace-page .image-reference-option {
+  grid-template-columns: 52px 82px minmax(0,1fr) !important;
+  grid-template-rows: minmax(0,1fr) !important;
+  min-height: 94px !important;
+  padding: 8px 10px !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: rgba(255,255,255,.022) !important;
+  background-image: none !important;
+  border-color: rgba(255,255,255,.28) !important;
+}
+body.workspace-page .image-reference-option > input[type="checkbox"],
+body.workspace-page .image-reference-option > input[type="radio"] {
+  position: static !important;
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: center !important;
+  z-index: 2 !important;
+}
+body.workspace-page .image-reference-option > img {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  width: 78px !important;
+  height: 78px !important;
+  object-fit: cover !important;
+  border-radius: 11px !important;
+}
+body.workspace-page .image-reference-option > span {
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+  min-width: 0 !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* Render/publish selectors share the same transparent material. */
+body.workspace-page :is(.production-mode-switcher, .render-asset-picker, .permission-picker, .member-permission-picker) {
+  background: rgba(255,255,255,.018) !important;
+  border-color: rgba(255,255,255,.26) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.30) !important;
+}
+body.workspace-page :is(.production-mode-tab, .render-asset-option, .platform-card, .image-output-card, .permission-picker label, .member-permission-picker label),
+body.workspace-page :is(.render-asset-option:has(input:checked), .platform-card.selected) {
+  background: rgba(255,255,255,.028) !important;
+  background-image: none !important;
+  border-color: rgba(255,255,255,.28) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.34) !important;
+}
+body.workspace-page :is(.production-mode-tab.active, .render-asset-option:has(input:checked), .platform-card.selected, .permission-picker label:has(input:checked), .member-permission-picker label:has(input:checked)) {
+  background: rgba(92,183,218,.12) !important;
+  border-color: rgba(24,125,169,.32) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.48), 0 0 0 1px rgba(24,125,169,.10) !important;
+}
+body.workspace-page .settings-row {
+  background: rgba(255,255,255,.012) !important;
+  border-color: rgba(255,255,255,.20) !important;
+}
+body.workspace-page .field-hint,
+body.workspace-page .production-direction {
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+}
+
+/* Seats and permissions: preserve the grouping without a bright sheet. */
+body.workspace-page #teamMembersPanel,
+body.workspace-page .team-member-form,
+body.workspace-page .team-member-row,
+body.workspace-page .permission-picker {
+  background: rgba(255,255,255,.022) !important;
+}
+body.workspace-page #teamMembersPanel {
+  border-color: rgba(255,255,255,.34) !important;
+}
+body.workspace-page .team-member-form {
+  border-color: rgba(255,255,255,.24) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.28) !important;
+}
+body.workspace-page .team-member-row {
+  border-color: rgba(255,255,255,.18) !important;
+}
+
+body.workspace-page .health-card,
+body.workspace-page .user-chip,
+body.admin-page .health-card,
+body.admin-page .user-chip {
+  width: 100% !important;
+  min-width: 0 !important;
+  background: rgba(255,255,255,.022) !important;
+  border-color: rgba(255,255,255,.30) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.32) !important;
+}
+body.workspace-page .health-card { min-height: 50px !important; }
+body.workspace-page .health-line { font-size: 11px; }
+body.workspace-page #logoutButton,
+body.admin-page #adminLogoutButton {
+  flex: 0 0 auto !important;
+  min-width: 52px !important;
+  white-space: nowrap !important;
+  text-align: center;
+}
+
+/* Hovering the current tab must not make the selected state disappear. */
+body.workspace-page .workspace-shell .nav-item.active:hover,
+body.admin-page .admin-shell .nav-item.active:hover {
+  opacity: 1 !important;
+  background: rgba(255,255,255,.035) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+body.workspace-page .main-content,
+body.admin-page .main-content,
+body.workspace-page .content-view,
+body.admin-page .admin-view {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: clip !important;
+}
+
+/* Final clear-material pass -------------------------------------------------
+   optical-glass.js adds a per-surface filter and fill variable at runtime.
+   The legacy theme is loaded before this file, but several of its selectors
+   still used !important white fills. Keep this last layer authoritative so
+   the moving colour field remains visible through every glass surface. */
+body.workspace-page .optical-glass-surface.optical-glass-structural,
+body.admin-page .optical-glass-surface.optical-glass-structural {
+  background: rgba(255,255,255,.042) !important;
+  border-color: rgba(255,255,255,.38) !important;
+}
+
+body.workspace-page .optical-glass-surface.optical-glass-panel,
+body.admin-page .optical-glass-surface.optical-glass-panel {
+  background: rgba(255,255,255,.026) !important;
+  border-color: rgba(255,255,255,.30) !important;
+  box-shadow: 0 14px 34px rgba(27,69,95,.065), inset 0 1px rgba(255,255,255,.34), inset 0 -1px rgba(20,65,90,.032) !important;
+}
+
+body.workspace-page .optical-glass-surface.optical-glass-card,
+body.admin-page .optical-glass-surface.optical-glass-card {
+  background: rgba(255,255,255,.016) !important;
+  border-color: rgba(255,255,255,.26) !important;
+  box-shadow: 0 8px 22px rgba(27,69,95,.045), inset 0 1px rgba(255,255,255,.28) !important;
+}
+
+body.workspace-page .optical-glass-surface.optical-glass-overlay,
+body.admin-page .optical-glass-surface.optical-glass-overlay {
+  background: rgba(255,255,255,.052) !important;
+}
+
+/* Main panels get one quiet layer; nested controls are lighter still. */
+body.workspace-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel),
+body.admin-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel) {
+  background: rgba(255,255,255,.026) !important;
+  background-image: none !important;
+  border-color: rgba(255,255,255,.30) !important;
+  box-shadow: 0 14px 34px rgba(27,69,95,.065), inset 0 1px rgba(255,255,255,.34), inset 0 -1px rgba(20,65,90,.032) !important;
+}
+
+body.workspace-page :is(.metric-card, .feature-card, .asset-card, .template-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item),
+body.admin-page :is(.metric-card, .feature-card, .asset-card, .template-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item) {
+  background: rgba(255,255,255,.016) !important;
+  background-image: none !important;
+}
+
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  background: rgba(255,255,255,.028) !important;
+  border-color: rgba(255,255,255,.32) !important;
+  box-shadow: 0 18px 44px rgba(27,69,95,.075), inset 0 1px rgba(255,255,255,.36) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(132%) !important;
+  backdrop-filter: blur(20px) saturate(132%) !important;
+}
+
+body.workspace-page .health-card,
+body.workspace-page .user-chip,
+body.admin-page .health-card,
+body.admin-page .user-chip {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 56px !important;
+  padding: 10px 12px !important;
+  background: rgba(255,255,255,.018) !important;
+  border-color: rgba(255,255,255,.28) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.30), 0 6px 16px rgba(27,69,95,.045) !important;
+}
+
+/* Keep the active navigation readable while the liquid lens is on top. */
+body.workspace-page .workspace-shell .nav-item.active:hover,
+body.admin-page .admin-shell .nav-item.active:hover {
+  opacity: 1 !important;
+  color: #123a59 !important;
+  background: rgba(255,255,255,.055) !important;
+  border-color: transparent !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.24) !important;
+}
+
+/* The source editor is supporting input, not a second full-size white card. */
+body.workspace-page .copy-editor-panel {
+  background: rgba(255,255,255,.026) !important;
+}
+
+body.workspace-page .copy-source-controls {
+  grid-template-columns: minmax(0,1.25fr) minmax(230px,.75fr) !important;
+  gap: 14px !important;
+  padding: 12px 14px !important;
+  background: rgba(255,255,255,.012) !important;
+  border-bottom: 1px solid rgba(255,255,255,.18) !important;
+}
+
+body.workspace-page .copy-source-controls textarea {
+  min-height: 66px !important;
+  max-height: 118px !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,.018) !important;
+  border-color: rgba(255,255,255,.26) !important;
+}
+
+body.workspace-page .copy-source-options {
+  align-content: center !important;
+  padding: 4px 0 !important;
+}
+
+body.workspace-page .copy-reference-option {
+  border-radius: 14px !important;
+}
+
+/* Seats and permissions should read as a group, not as a white sheet. */
+body.workspace-page #teamMembersPanel,
+body.workspace-page #teamMembersPanel .team-member-form,
+body.workspace-page #teamMembersPanel .team-member-row,
+body.workspace-page #teamMembersPanel .permission-picker,
+body.workspace-page #teamMembersPanel .permission-picker label {
+  background: rgba(255,255,255,.018) !important;
+}
+
+body.workspace-page #teamMembersPanel .team-member-form,
+body.workspace-page #teamMembersPanel .team-member-row {
+  border-color: rgba(255,255,255,.22) !important;
+}
+
+/* Restore contrast lost by the original dark theme's white labels. */
+body.workspace-page .main-content :is(.section-kicker, .field > span, .copy-control-label, .quality-pill, .form-section-heading, .image-reference-heading, .production-panel-heading, .team-member-form-field > span, .team-member-list-header, legend),
+body.admin-page .main-content :is(.section-kicker, .field > span, .copy-control-label, .quality-pill, .form-section-heading, .image-reference-heading, .production-panel-heading, .team-member-form-field > span, .team-member-list-header, legend) {
+  color: #315b75 !important;
+}
+
+body.workspace-page .main-content :is(.field-hint, .save-hint, .copy-source-options small, .copy-reference-heading small, .copy-reference-option small, .metric-label, .metric-foot, .asset-info small, .template-info span),
+body.admin-page .main-content :is(.field-hint, .save-hint, .copy-source-options small, .copy-reference-heading small, .copy-reference-option small, .metric-label, .metric-foot, .asset-info small, .template-info span) {
+  color: #486b82 !important;
+}
+
+/* Keep every view inside the app frame and prevent long labels from widening
+   a grid track. */
+body.workspace-page .workspace-shell,
+body.admin-page .admin-shell,
+body.workspace-page .main-content,
+body.admin-page .main-content,
+body.workspace-page .content-view,
+body.admin-page .admin-view {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: clip !important;
+}
+
+body.workspace-page .sidebar-bottom,
+body.admin-page .sidebar-bottom {
+  min-width: 0 !important;
+}
+
+body.workspace-page .user-copy,
+body.admin-page .user-copy {
+  min-width: 0 !important;
+}
+
+body.workspace-page :is(.user-action, #logoutButton),
+body.admin-page :is(.user-action, #adminLogoutButton) {
+  min-width: 42px !important;
+  padding-inline: 6px !important;
+  white-space: nowrap !important;
+  flex: 0 0 auto !important;
+}
+
+/* Final cleanup: remove legacy white decoration layers that read as opaque
+   masks on top of the moving colour field. The glass surface itself supplies
+   the edge highlight, so these old pseudo-elements are redundant. */
+body.workspace-page .workspace-shell .sidebar::before,
+body.admin-page .admin-shell .sidebar::before,
+body.workspace-page .workspace-shell .sidebar::after,
+body.admin-page .admin-shell .sidebar::after,
+body.workspace-page .workspace-shell .nav-list::before,
+body.admin-page .admin-shell .nav-list::before,
+body.workspace-page .hero-panel::before,
+body.admin-page .hero-panel::before,
+body.workspace-page .hero-panel::after,
+body.admin-page .hero-panel::after,
+body.workspace-page .metric-card::before,
+body.admin-page .metric-card::before,
+body.workspace-page .metric-card::after,
+body.admin-page .metric-card::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+  opacity: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Empty states should remain a quiet glass layer instead of a white panel. */
+body.workspace-page :is(.empty-state, .overview-bottom .empty-state),
+body.admin-page :is(.empty-state, .overview-bottom .empty-state) {
+  min-height: 96px !important;
+  padding: 20px 16px !important;
+  color: #476a82 !important;
+  background: rgba(255,255,255,.012) !important;
+  background-image: none !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+  border-radius: 16px !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.18) !important;
+}
+
+/* The AI reference list is supporting context; keep it compact and legible. */
+body.workspace-page .copy-reference-option,
+body.workspace-page .copy-reference-option:has(input:checked) {
+  min-height: 62px !important;
+  height: 64px !important;
+  max-height: 70px !important;
+  min-width: 0 !important;
+  padding: 6px 8px !important;
+  gap: 8px !important;
+  align-items: center !important;
+  border-radius: 15px !important;
+  background: rgba(255,255,255,.014) !important;
+  background-image: none !important;
+  border-color: rgba(255,255,255,.20) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.22) !important;
+  overflow: hidden !important;
+}
+
+body.workspace-page .copy-reference-option.copy-reference-option > input {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+}
+
+body.workspace-page .copy-reference-option.copy-reference-option .copy-reference-body {
+  min-width: 0 !important;
+  max-height: 50px !important;
+  gap: 2px !important;
+  overflow: hidden !important;
+}
+
+body.workspace-page .copy-reference-option.copy-reference-option .copy-reference-body strong,
+body.workspace-page .copy-reference-option.copy-reference-option .copy-reference-body p,
+body.workspace-page .copy-reference-option.copy-reference-option .copy-reference-preview {
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+body.workspace-page .copy-reference-option.copy-reference-option .copy-reference-body strong {
+  -webkit-line-clamp: 1 !important;
+  line-clamp: 1 !important;
+  line-height: 1.3 !important;
+}
+
+body.workspace-page .copy-reference-option.copy-reference-option .copy-reference-body p,
+body.workspace-page .copy-reference-option.copy-reference-option .copy-reference-preview {
+  -webkit-line-clamp: 1 !important;
+  line-clamp: 1 !important;
+  max-height: 1.5em !important;
+  line-height: 1.45 !important;
+}
+
+/* Reference thumbnails need their own column. At 1280px the four-column
+   layout leaves only ~30px for the filename, which causes visual overlap. */
+body.workspace-page .image-reference-option.image-reference-option {
+  min-width: 0 !important;
+  min-height: 108px !important;
+  padding: 7px 9px !important;
+  gap: 9px !important;
+  grid-template-columns: 52px 94px minmax(0,1fr) !important;
+  grid-template-rows: minmax(0,1fr) !important;
+  align-items: center !important;
+  overflow: hidden !important;
+  border-radius: 15px !important;
+  background: rgba(255,255,255,.018) !important;
+  background-image: none !important;
+  border-color: rgba(255,255,255,.22) !important;
+}
+
+body.workspace-page .image-reference-option.image-reference-option > input[type="checkbox"],
+body.workspace-page .image-reference-option.image-reference-option > input[type="radio"] {
+  position: static !important;
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: center !important;
+  z-index: 2 !important;
+}
+
+body.workspace-page .image-reference-option.image-reference-option > img {
+  display: block !important;
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  width: 94px !important;
+  height: 94px !important;
+  min-width: 0 !important;
+  object-fit: cover !important;
+  border-radius: 12px !important;
+}
+
+body.workspace-page .image-reference-option.image-reference-option > span {
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+  line-height: 1.4 !important;
+}
+
+@media (max-width: 1450px) and (min-width: 961px) {
+  body.workspace-page .image-reference-picker {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+    gap: 10px !important;
+  }
+}
+
+/* Keep technical descriptions from splitting punctuation such as `>` onto
+   its own line while still allowing long Chinese labels to wrap. */
+body.workspace-page :is(.production-direction, .field-hint, .render-asset-option small, .render-asset-option > span:last-child),
+body.admin-page :is(.production-direction, .field-hint, .render-asset-option small, .render-asset-option > span:last-child) {
+  white-space: normal !important;
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+  line-break: strict !important;
+}
+
+/* Seats and permissions share the same low-alpha material as other controls;
+   their borders provide grouping without a white sheet behind the content. */
+body.workspace-page #teamMembersPanel,
+body.workspace-page #teamMembersPanel .team-member-form,
+body.workspace-page #teamMembersPanel .team-member-row,
+body.workspace-page #teamMembersPanel .permission-picker,
+body.workspace-page #teamMembersPanel .permission-picker label,
+body.workspace-page #teamMembersPanel .member-permission-picker label {
+  background: rgba(255,255,255,.010) !important;
+  background-image: none !important;
+}
+
+body.workspace-page #teamMembersPanel {
+  border-color: rgba(255,255,255,.24) !important;
+  box-shadow: 0 12px 30px rgba(27,69,95,.05), inset 0 1px rgba(255,255,255,.28) !important;
+}
+
+body.workspace-page #teamMembersPanel .team-member-form,
+body.workspace-page #teamMembersPanel .team-member-row,
+body.workspace-page #teamMembersPanel .permission-picker,
+body.workspace-page #teamMembersPanel .permission-picker label,
+body.workspace-page #teamMembersPanel .member-permission-picker label {
+  border-color: rgba(255,255,255,.16) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.18) !important;
+}
+
+/* Sidebar status and account controls keep a stable footprint at narrow
+   desktop widths, so the logout action cannot be clipped by the username. */
+body.workspace-page .health-card,
+body.admin-page .health-card {
+  min-width: 0 !important;
+  min-height: 58px !important;
+  padding: 10px 12px !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,.022) !important;
+  border-color: rgba(255,255,255,.28) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.28), 0 5px 14px rgba(27,69,95,.04) !important;
+}
+
+body.workspace-page .user-chip,
+body.admin-page .user-chip {
+  display: grid !important;
+  grid-template-columns: 30px minmax(0,1fr) auto auto !important;
+  align-items: center !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+  min-height: 58px !important;
+  padding: 9px 10px !important;
+  overflow: hidden !important;
+}
+
+body.workspace-page .user-copy,
+body.admin-page .user-copy {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+body.workspace-page .user-copy strong,
+body.workspace-page .user-copy small,
+body.admin-page .user-copy strong,
+body.admin-page .user-copy small {
+  display: block !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+body.workspace-page .user-action,
+body.admin-page .user-action,
+body.workspace-page #logoutButton,
+body.admin-page #adminLogoutButton {
+  min-width: 42px !important;
+  min-height: 30px !important;
+  padding: 0 6px !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+  flex: 0 0 auto !important;
+}
+
+body.workspace-page #refreshButton,
+body.admin-page #refreshButton {
+  flex: 0 0 44px !important;
+  min-width: 44px !important;
+  min-height: 40px !important;
+  font-size: 0 !important;
+}
+
+body.workspace-page #refreshButton::before,
+body.admin-page #refreshButton::before {
+  content: "\21BB" !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  color: #17415f !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+}
+
+/* Prevent any child grid from widening the application frame. */
+body.workspace-page .workspace-shell,
+body.admin-page .admin-shell,
+body.workspace-page .main-content,
+body.admin-page .main-content,
+body.workspace-page .content-view,
+body.admin-page .admin-view,
+body.workspace-page .content-view > *,
+body.admin-page .admin-view > * {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+body.workspace-page .main-content,
+body.admin-page .main-content,
+body.workspace-page .content-view,
+body.admin-page .admin-view {
+  overflow-x: clip !important;
+}
+
+body.workspace-page :is(.form-grid, .dual-grid, .summary-grid, .feature-grid, .image-form-row, .settings-row, .copy-source-controls),
+body.admin-page :is(.form-grid, .dual-grid, .summary-grid, .feature-grid, .settings-row) {
+  min-width: 0 !important;
+}
+
+body.workspace-page :is(.form-grid > *, .dual-grid > *, .summary-grid > *, .feature-grid > *, .image-form-row > *, .settings-row > *, .copy-source-controls > *),
+body.admin-page :is(.form-grid > *, .dual-grid > *, .summary-grid > *, .feature-grid > *, .settings-row > *) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* Keep the optical layers covering the full document instead of only the viewport.
+   This prevents a white band appearing below the first screen on long views. */
+body.workspace-page::before,
+body.admin-page::before,
+body.auth-page::before,
+body.home-page::before,
+body.workspace-page::after,
+body.admin-page::after,
+body.auth-page::after,
+body.home-page::after {
+  position: absolute !important;
+  inset-inline: 0 !important;
+  top: 0 !important;
+  pointer-events: none !important;
+}
+
+body.workspace-page::before,
+body.admin-page::before,
+body.auth-page::before,
+body.home-page::before {
+  min-height: 100% !important;
+  height: 168% !important;
+}
+
+body.workspace-page::after,
+body.admin-page::after,
+body.auth-page::after,
+body.home-page::after {
+  min-height: 100% !important;
+  height: 158% !important;
+}
+
+body.workspace-page .liquid-ambient,
+body.admin-page .liquid-ambient,
+body.auth-page .liquid-ambient {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  pointer-events: none !important;
+  overflow: clip !important;
+}
+
+html:has(body.workspace-page),
+body.workspace-page {
+  overflow-x: clip !important;
+}
+
+/* Small status tokens should read as glass details, not opaque badges. */
+body.workspace-page :is(.step-number, .live-badge, .analysis-chip, .asset-info, .asset-play-mark, .ticket-token, .template-token, .history-type),
+body.admin-page :is(.step-number, .live-badge, .analysis-chip, .asset-info, .asset-play-mark, .ticket-token, .template-token, .history-type) {
+  background: rgba(255,255,255,.075) !important;
+  border-color: rgba(255,255,255,.20) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.22) !important;
+}
+
+body.workspace-page :is(.live-badge, .quality-pill),
+body.admin-page :is(.live-badge, .quality-pill) {
+  background: rgba(100,180,218,.15) !important;
+  border-color: rgba(57,137,178,.24) !important;
+}
+
+/* These two tokens have older, more specific fills in the base theme. */
+body.workspace-page .main-content .quality-pill,
+body.admin-page .main-content .quality-pill,
+body.workspace-page .view-heading .live-badge,
+body.admin-page .view-heading .live-badge,
+body.workspace-page #accountModeBadge,
+body.admin-page #accountModeBadge {
+  background: rgba(100,180,218,.15) !important;
+  border-color: rgba(57,137,178,.24) !important;
+}
+
+body.workspace-page :is(.platform-card, .connection-row),
+body.admin-page :is(.platform-card, .connection-row) {
+  background: rgba(255,255,255,.018) !important;
+  border-color: rgba(255,255,255,.16) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.16) !important;
+}
+
+body.workspace-page .platform-symbol,
+body.admin-page .platform-symbol {
+  background: rgba(84,185,222,.16) !important;
+  border: 1px solid rgba(42,141,180,.24) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.28) !important;
+}
+
+body.workspace-page .status-text,
+body.admin-page .status-text {
+  background: rgba(91,143,211,.14) !important;
+  border-color: rgba(72,126,191,.22) !important;
+  color: #1f5c99 !important;
+}
+
+body.workspace-page .team-summary > span,
+body.admin-page .team-summary > span {
+  background: rgba(255,255,255,.075) !important;
+  border: 1px solid rgba(255,255,255,.20) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.24), 0 4px 12px rgba(27,69,95,.035) !important;
+  color: #234a66 !important;
+}
+
+body.workspace-page .production-mode-symbol,
+body.admin-page .production-mode-symbol {
+  background: rgba(255,255,255,.055) !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.22) !important;
+}
+
+body.workspace-page .production-mode-tab.active .production-mode-symbol,
+body.admin-page .production-mode-tab.active .production-mode-symbol {
+  background: rgba(35,183,194,.18) !important;
+  border-color: rgba(32,139,164,.34) !important;
+}
+
+body.workspace-page .toast,
+body.admin-page .toast {
+  background: rgba(255,255,255,.26) !important;
+  border-color: rgba(255,255,255,.28) !important;
+  box-shadow: 0 10px 30px rgba(28,78,105,.10), inset 0 1px rgba(255,255,255,.34) !important;
+}
+
+/* Let the ambient colors remain visible behind the document instead of
+   falling back to an opaque white body fill below short views. */
+body.workspace-page {
+  background-color: transparent !important;
+}
+
+html:has(body.workspace-page) {
+  background-color: #d5eaf4 !important;
+}
+
+body.workspace-page .mini-icon.coral,
+body.admin-page .mini-icon.coral {
+  background: rgba(255,132,154,.18) !important;
+  border-color: rgba(206,92,119,.25) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.22) !important;
+}
+
+body.workspace-page .copy-reference-option,
+body.admin-page .copy-reference-option {
+  background: rgba(255,255,255,.014) !important;
+  border-color: rgba(255,255,255,.15) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.14) !important;
+}
+
+body.workspace-page .workspace-shell .nav-item.active:hover,
+body.admin-page .admin-shell .nav-item.active:hover {
+  opacity: 1 !important;
+  background: rgba(255,255,255,.085) !important;
+  color: #123a59 !important;
+  border-color: transparent !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.26) !important;
+}
+
+/* Long views must keep the same moving colour field while scrolling.  The
+   document body can be shorter than its scrollable content, so the root gets
+   its own animated base instead of exposing a flat fallback colour. */
+html:has(body.workspace-page),
+html:has(body.admin-page) {
+  background-color: #d9edf5 !important;
+  background-image:
+    radial-gradient(48% 52% at 7% 16%, rgba(21, 190, 235, .34), transparent 72%),
+    radial-gradient(44% 50% at 93% 12%, rgba(255, 108, 181, .28), transparent 72%),
+    radial-gradient(52% 48% at 78% 92%, rgba(245, 190, 73, .25), transparent 74%),
+    radial-gradient(46% 48% at 18% 88%, rgba(24, 194, 166, .28), transparent 74%),
+    linear-gradient(118deg, #d8f1f4 0%, #d8eafa 26%, #f0def0 52%, #e7e1f5 74%, #d7f0ec 100%) !important;
+  background-size: 170% 170%, 160% 160%, 175% 175%, 165% 165%, 220% 220% !important;
+  background-position: 0% 18%, 100% 2%, 84% 100%, 0% 100%, 0% 45% !important;
+  background-attachment: fixed !important;
+  animation: light-liquid-root-flow 18s linear infinite !important;
+}
+
+@keyframes light-liquid-root-flow {
+  0% { background-position: 0% 18%, 100% 2%, 84% 100%, 0% 100%, 0% 45%; }
+  50% { background-position: 84% 72%, 12% 70%, 4% 18%, 90% 26%, 100% 55%; }
+  100% { background-position: 168% 18%, -76% 2%, -76% 100%, 180% 100%, 200% 45%; }
+}
+
+/* Keep the full-screen material moving without transforming a fixed pseudo
+   element. Transforming that layer is reported as layout shift by Chromium
+   even though it is visually fixed to the viewport. */
+@media (prefers-reduced-motion: no-preference) {
+  body.workspace-page::before,
+  body.admin-page::before,
+  body.auth-page::before,
+  body.home-page::before {
+    animation: workspace-liquid-spectrum-bg 18s linear infinite !important;
+    transform: none !important;
+  }
+
+  body.workspace-page::after,
+  body.admin-page::after,
+  body.auth-page::after,
+  body.home-page::after {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+@keyframes workspace-liquid-spectrum-bg {
+  0% { background-position: 0% 45%, -20% 12%, 115% 0%, 92% 100%, -10% 92%, 50% 45%; }
+  50% { background-position: 104% 46%, 72% 12%, 20% 88%, -12% 62%, 54% -8%, 18% 82%; }
+  100% { background-position: 208% 45%, 164% 12%, -65% 0%, -8% 100%, 214% 92%, -34% 45%; }
+}
+
+/* The workspace already has its animated material on the root and ambient
+   layers. Keeping these legacy pseudo layers out of the render tree avoids
+   Chromium reporting their fixed-position paint changes as CLS. */
+body.workspace-page::before,
+body.workspace-page::after { display: none !important; }
+
+/* Keep the optical layers viewport-bound.  This avoids a second, clipped
+   backdrop competing with the root field on very tall views. */
+body.workspace-page::before,
+body.admin-page::before,
+body.auth-page::before,
+body.home-page::before,
+body.workspace-page::after,
+body.admin-page::after,
+body.auth-page::after,
+body.home-page::after,
+body.workspace-page .liquid-ambient,
+body.admin-page .liquid-ambient,
+body.auth-page .liquid-ambient {
+  position: fixed !important;
+  inset: -30% !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+body.workspace-page .liquid-ambient,
+body.admin-page .liquid-ambient,
+body.auth-page .liquid-ambient {
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Supporting copy references should scan like a compact list, not a grid of
+   opaque cards. */
+body.workspace-page .copy-source-controls textarea {
+  min-height: 74px !important;
+  height: 76px !important;
+  max-height: 92px !important;
+}
+
+body.workspace-page .copy-reference-option,
+body.workspace-page .copy-reference-option.copy-reference-option:has(input:checked) {
+  min-height: 54px !important;
+  height: 56px !important;
+  max-height: 62px !important;
+  padding: 5px 8px !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255,255,255,.16) !important;
+  border-radius: 8px !important;
+  background: rgba(255,255,255,.008) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.12) !important;
+}
+
+body.workspace-page .copy-reference-option:has(input:checked) {
+  background: rgba(52, 177, 204, .085) !important;
+  box-shadow: inset 2px 0 rgba(31, 154, 184, .46), inset 0 1px rgba(255,255,255,.18) !important;
+}
+
+body.workspace-page .copy-reference-option .copy-reference-body {
+  max-height: 44px !important;
+}
+
+/* Give image references a real thumbnail column with enough breathing room
+   for the switch and filename at desktop widths. */
+body.workspace-page .image-reference-option.image-reference-option {
+  min-height: 122px !important;
+  grid-template-columns: 52px 108px minmax(0,1fr) !important;
+  padding: 7px 10px !important;
+  gap: 10px !important;
+}
+
+body.workspace-page .image-reference-option.image-reference-option > img {
+  width: 108px !important;
+  height: 108px !important;
+  border-radius: 13px !important;
+}
+
+/* Keep punctuation with the preceding phrase in technical descriptions. */
+body.workspace-page :is(.production-direction, .field-hint, .render-asset-option small, .render-asset-option > span:last-child),
+body.admin-page :is(.production-direction, .field-hint, .render-asset-option small, .render-asset-option > span:last-child) {
+  white-space: normal !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  line-break: strict !important;
+  text-wrap: pretty !important;
+}
+
+/* Low-alpha structural layers prevent the account/team area and sidebar from
+   turning into white sheets over bright parts of the spectrum. */
+body.workspace-page #teamMembersPanel,
+body.workspace-page #teamMembersPanel .team-member-form,
+body.workspace-page #teamMembersPanel .team-member-row,
+body.workspace-page #teamMembersPanel .permission-picker,
+body.workspace-page #teamMembersPanel .permission-picker label,
+body.workspace-page #teamMembersPanel .member-permission-picker,
+body.workspace-page #teamMembersPanel .member-permission-picker label {
+  background: rgba(255,255,255,.006) !important;
+  background-image: none !important;
+}
+
+body.workspace-page #teamMembersPanel {
+  border-color: rgba(255,255,255,.19) !important;
+  box-shadow: 0 10px 26px rgba(27,69,95,.035), inset 0 1px rgba(255,255,255,.22) !important;
+}
+
+body.workspace-page #teamMembersPanel .team-member-form,
+body.workspace-page #teamMembersPanel .team-member-row,
+body.workspace-page #teamMembersPanel .permission-picker,
+body.workspace-page #teamMembersPanel .permission-picker label,
+body.workspace-page #teamMembersPanel .member-permission-picker label {
+  border-color: rgba(255,255,255,.11) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.13) !important;
+}
+
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  background: rgba(255,255,255,.014) !important;
+  border-color: rgba(255,255,255,.24) !important;
+  box-shadow: 0 16px 38px rgba(27,69,95,.055), inset 0 1px rgba(255,255,255,.26) !important;
+}
+
+body.workspace-page .health-card,
+body.workspace-page .user-chip,
+body.admin-page .health-card,
+body.admin-page .user-chip {
+  background: rgba(255,255,255,.010) !important;
+  border-color: rgba(255,255,255,.20) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.22), 0 4px 12px rgba(27,69,95,.03) !important;
+}
+
+body.workspace-page .user-chip {
+  grid-template-columns: 30px minmax(0,1fr) 42px 52px !important;
+}
+
+body.workspace-page #logoutButton,
+body.admin-page #adminLogoutButton {
+  min-width: 52px !important;
+  padding-inline: 5px !important;
+  overflow: visible !important;
+}
+
+/* Colored status tokens carry their meaning without a bright white fill. */
+body.workspace-page :is(.soft-badge, .status-badge, .tag, .chip, .metric-highlight, .permission-picker label, .member-permission-picker label),
+body.admin-page :is(.soft-badge, .status-badge, .tag, .chip, .metric-highlight, .permission-picker label, .member-permission-picker label) {
+  background: rgba(43, 158, 190, .095) !important;
+  border-color: rgba(42, 133, 164, .20) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.18) !important;
+}
+
+/* Extend optical layers across the complete scrollable document.  Fixed
+   pseudo-elements stop at the viewport and expose a flat fallback on long
+   pages, so these final overrides keep the animated field continuous. */
+body.workspace-page::before,
+body.admin-page::before,
+body.auth-page::before,
+body.home-page::before,
+body.workspace-page::after,
+body.admin-page::after,
+body.auth-page::after,
+body.home-page::after {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+}
+
+body.workspace-page .liquid-ambient,
+body.admin-page .liquid-ambient,
+body.auth-page .liquid-ambient {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  overflow: hidden !important;
+  contain: paint !important;
+}
+
+/* The legacy background-shift animation scales the body pseudo-layer.  That
+   transform expands the document's scroll box and creates a pale band after
+   the overview content.  Colour motion is provided by the ambient blobs and
+   root gradient, so keep these full-bleed layers geometrically stable. */
+body.workspace-page::before,
+body.workspace-page::after,
+body.admin-page::before,
+body.admin-page::after,
+body.auth-page::before,
+body.auth-page::after,
+body.home-page::before,
+body.home-page::after {
+  transform: none !important;
+  animation: none !important;
+}
+
+/* Final component pass.  Keep this block last so the legacy theme and the
+   earlier exploratory overrides cannot reintroduce white masks, clipping, or
+   unstable grid tracks. */
+body.workspace-page .main-content,
+body.admin-page .main-content {
+  padding-bottom: 40px !important;
+}
+
+body.workspace-page .content-view,
+body.admin-page .admin-view {
+  padding-bottom: 28px !important;
+}
+
+body.workspace-page .overview-bottom {
+  margin-bottom: 8px !important;
+  padding-bottom: 8px !important;
+  background: transparent !important;
+}
+
+body.workspace-page .copy-source-controls {
+  grid-template-columns: minmax(0, 1fr) minmax(200px, .72fr) !important;
+  align-items: stretch !important;
+}
+
+body.workspace-page .copy-reference-option,
+body.workspace-page .copy-reference-option.copy-reference-option:has(input:checked) {
+  height: auto !important;
+  min-height: 68px !important;
+  max-height: none !important;
+  padding: 8px 10px !important;
+  align-items: center !important;
+  overflow: visible !important;
+  border: 1px solid rgba(255,255,255,.19) !important;
+  border-radius: 13px !important;
+}
+
+body.workspace-page .copy-reference-option .copy-reference-body {
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+body.workspace-page .copy-reference-option .copy-reference-body strong {
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  overflow: hidden !important;
+  line-height: 1.35 !important;
+}
+
+body.workspace-page .copy-reference-option .copy-reference-body p,
+body.workspace-page .copy-reference-option .copy-reference-preview {
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  max-height: 2.8em !important;
+  overflow: hidden !important;
+  line-height: 1.4 !important;
+}
+
+body.workspace-page .image-reference-picker {
+  gap: 12px !important;
+}
+
+body.workspace-page .image-reference-option.image-reference-option {
+  min-height: 128px !important;
+  grid-template-columns: 44px 116px minmax(0, 1fr) !important;
+  gap: 12px !important;
+  padding: 8px 10px !important;
+  overflow: hidden !important;
+}
+
+body.workspace-page .image-reference-option.image-reference-option > input[type="checkbox"],
+body.workspace-page .image-reference-option.image-reference-option > input[type="radio"] {
+  width: 26px !important;
+  height: 26px !important;
+  margin: 0 auto !important;
+}
+
+body.workspace-page .image-reference-option.image-reference-option > img {
+  width: 116px !important;
+  height: 110px !important;
+  object-fit: cover !important;
+}
+
+body.workspace-page .production-mode-tab.active,
+body.workspace-page .render-asset-option:has(input:checked),
+body.workspace-page .platform-card.selected,
+body.workspace-page .permission-picker label:has(input:checked),
+body.workspace-page .member-permission-picker label:has(input:checked) {
+  background: rgba(34, 157, 205, .20) !important;
+  border-color: rgba(20, 122, 173, .46) !important;
+  color: #123f61 !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.56), 0 5px 18px rgba(25,123,166,.12) !important;
+}
+
+body.workspace-page #teamMembersPanel,
+body.workspace-page #teamMembersPanel .team-member-form,
+body.workspace-page #teamMembersPanel .team-member-row,
+body.workspace-page #teamMembersPanel .permission-picker,
+body.workspace-page #teamMembersPanel .permission-picker label,
+body.workspace-page #teamMembersPanel .member-permission-picker,
+body.workspace-page #teamMembersPanel .member-permission-picker label {
+  background: rgba(255,255,255,.014) !important;
+  background-image: none !important;
+}
+
+body.workspace-page #teamMembersPanel {
+  border-color: rgba(255,255,255,.26) !important;
+  box-shadow: 0 12px 30px rgba(27,69,95,.05), inset 0 1px rgba(255,255,255,.30) !important;
+}
+
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  background: rgba(255,255,255,.022) !important;
+  border-color: rgba(255,255,255,.28) !important;
+}
+
+body.workspace-page .workspace-shell .nav-list,
+body.admin-page .admin-shell .nav-list {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-bottom: 10px !important;
+}
+
+body.workspace-page .sidebar-bottom,
+body.admin-page .sidebar-bottom {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  padding-top: 10px !important;
+  background: transparent !important;
+}
+
+body.workspace-page .health-card,
+body.admin-page .health-card {
+  min-height: 58px !important;
+  width: 100% !important;
+  padding: 10px 12px !important;
+  border-radius: 16px !important;
+}
+
+body.workspace-page .health-line,
+body.admin-page .health-line {
+  min-width: 0 !important;
+  white-space: nowrap !important;
+}
+
+body.workspace-page .user-chip,
+body.admin-page .user-chip {
+  grid-template-columns: 30px minmax(0,1fr) auto auto !important;
+  min-height: 58px !important;
+  gap: 8px !important;
+  padding: 9px 10px !important;
+  overflow: visible !important;
+}
+
+body.workspace-page #logoutButton,
+body.admin-page #adminLogoutButton {
+  min-width: 58px !important;
+  width: auto !important;
+  min-height: 32px !important;
+  padding: 0 8px !important;
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+
+body.workspace-page #refreshButton,
+body.admin-page #refreshButton {
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  flex: 0 0 40px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  font-size: 0 !important;
+}
+
+body.workspace-page #refreshButton::before,
+body.admin-page #refreshButton::before {
+  content: "\21BB" !important;
+  display: block !important;
+  color: #164461 !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+}
+
+body.workspace-page .workspace-shell .nav-item.active:hover,
+body.admin-page .admin-shell .nav-item.active:hover {
+  opacity: 1 !important;
+  color: #123f61 !important;
+  background: rgba(45, 165, 208, .16) !important;
+  border-color: rgba(28, 133, 177, .24) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.40), 0 4px 14px rgba(34, 131, 172, .08) !important;
+}
+
+body.workspace-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel, .settings-row, .connection-row, .empty-state),
+body.admin-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel, .settings-row, .connection-row, .empty-state) {
+  background-image: none !important;
+}
+
+body.workspace-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel),
+body.admin-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel) {
+  background-color: rgba(255,255,255,.038) !important;
+}
+
+/* Last-mile layout and material corrections.  These rules intentionally sit
+   after every legacy mobile breakpoint so the compact shell cannot regress to
+   the old absolute-positioned navigation or opaque white sheets. */
+body.workspace-page .avatar-preview,
+body.workspace-page .avatar-preview img,
+body.workspace-page .asset-thumb img,
+body.workspace-page .asset-thumb video {
+  background: rgba(255,255,255,.012) !important;
+}
+
+body.workspace-page .copy-value,
+body.workspace-page .script-box,
+body.workspace-page .copy-result-section,
+body.workspace-page .copy-library-content,
+body.workspace-page .analysis-chip,
+body.workspace-page pre {
+  background: rgba(255,255,255,.016) !important;
+  background-image: none !important;
+  border-color: rgba(255,255,255,.18) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.16) !important;
+}
+
+body.workspace-page .copy-value,
+body.workspace-page .script-box {
+  border-radius: 16px !important;
+  padding: 14px 16px !important;
+}
+
+body.workspace-page .copy-reference-used {
+  background: rgba(34,143,167,.055) !important;
+  border-color: rgba(30,133,161,.24) !important;
+}
+
+body.workspace-page .production-direction,
+body.workspace-page .field-hint,
+body.workspace-page .render-asset-option small,
+body.workspace-page .render-asset-option > span:last-child {
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+  line-break: strict !important;
+  text-wrap: pretty !important;
+}
+
+body.workspace-page #teamMembersPanel,
+body.workspace-page #teamMembersPanel .team-member-form,
+body.workspace-page #teamMembersPanel .team-member-row,
+body.workspace-page #teamMembersPanel .permission-picker,
+body.workspace-page #teamMembersPanel .member-permission-picker,
+body.workspace-page #teamMembersPanel .permission-picker label,
+body.workspace-page #teamMembersPanel .member-permission-picker label {
+  background: rgba(255,255,255,.008) !important;
+  background-image: none !important;
+}
+
+body.workspace-page #teamMembersPanel .permission-picker label,
+body.workspace-page #teamMembersPanel .member-permission-picker label {
+  border-color: rgba(255,255,255,.14) !important;
+}
+
+body.workspace-page .user-chip,
+body.admin-page .user-chip {
+  grid-template-columns: 30px minmax(0,1fr) auto auto !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+}
+
+body.workspace-page .user-action,
+body.admin-page .user-action,
+body.workspace-page #logoutButton,
+body.admin-page #adminLogoutButton {
+  min-width: 52px !important;
+  width: max-content !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+/* The old <=820px rules position the nav over the brand.  Use a compact two
+   row flex shell instead: brand on row one, horizontally draggable tabs on
+   row two. */
+@media (max-width: 820px) {
+  body.workspace-page .workspace-shell,
+  body.admin-page .admin-shell {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 8px !important;
+  }
+
+  body.workspace-page .workspace-shell .sidebar,
+  body.admin-page .admin-shell .sidebar {
+    position: sticky !important;
+    top: 7px !important;
+    z-index: 40 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 0 10px !important;
+    padding: 8px !important;
+    gap: 7px !important;
+    overflow: visible !important;
+  }
+
+  body.workspace-page .workspace-shell .brand-lockup,
+  body.admin-page .admin-shell .brand-lockup {
+    position: static !important;
+    inset: auto !important;
+    display: flex !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-height: 38px !important;
+    max-width: none !important;
+    padding: 0 4px 6px !important;
+    border-bottom: 1px solid rgba(255,255,255,.14) !important;
+  }
+
+  body.workspace-page .workspace-shell .brand-lockup > div:last-child,
+  body.admin-page .admin-shell .brand-lockup > div:last-child {
+    display: block !important;
+  }
+
+  body.workspace-page .workspace-shell .brand-sub,
+  body.admin-page .admin-shell .brand-sub,
+  body.workspace-page .workspace-shell .workspace-label,
+  body.admin-page .admin-shell .workspace-label,
+  body.workspace-page .workspace-shell .nav-section-label,
+  body.admin-page .admin-shell .nav-section-label,
+  body.workspace-page .sidebar-bottom,
+  body.admin-page .sidebar-bottom {
+    display: none !important;
+  }
+
+  body.workspace-page .workspace-shell .nav-list,
+  body.admin-page .admin-shell .nav-list {
+    position: relative !important;
+    inset: auto !important;
+    display: flex !important;
+    flex: 0 0 46px !important;
+    width: 100% !important;
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 0 4px !important;
+    gap: 3px !important;
+    mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent) !important;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 22px), transparent) !important;
+  }
+
+  body.workspace-page .workspace-shell .nav-item,
+  body.admin-page .admin-shell .nav-item {
+    flex: 0 0 auto !important;
+    width: max-content !important;
+    min-width: 48px !important;
+    min-height: 40px !important;
+    padding: 7px 11px !important;
+    white-space: nowrap !important;
+  }
+
+  body.workspace-page .workspace-shell .nav-icon,
+  body.admin-page .admin-shell .nav-icon { display: none !important; }
+
+  body.workspace-page .workspace-shell .main-content,
+  body.admin-page .admin-shell .main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 2px 42px !important;
+  }
+
+  body.workspace-page .workspace-shell .user-chip,
+  body.admin-page .admin-shell .user-chip { display: none !important; }
+}
+
+@media (max-width: 480px) {
+  body.workspace-page .workspace-shell .brand-name,
+  body.admin-page .admin-shell .brand-name { font-size: 12px !important; }
+  body.workspace-page .workspace-shell .brand-logo-mark,
+  body.admin-page .admin-shell .brand-logo-mark { width: 32px !important; height: 32px !important; }
+  body.workspace-page .workspace-shell .nav-item,
+  body.admin-page .admin-shell .nav-item { min-height: 38px !important; padding-inline: 10px !important; }
+}
+
+/* Final page-boundary pass. Keep dense application surfaces clear while
+   making their tracks stable enough that media, team controls and long copy
+   cannot bleed into neighbouring controls at intermediate widths. */
+body.workspace-page .main-content,
+body.admin-page .main-content,
+body.workspace-page .content-view,
+body.admin-page .admin-view {
+  min-width: 0 !important;
+  overflow-x: clip !important;
+}
+
+body.workspace-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel),
+body.admin-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel) {
+  background-color: rgba(255,255,255,.024) !important;
+  border-color: rgba(255,255,255,.28) !important;
+  box-shadow: 0 14px 34px rgba(28,68,94,.055), inset 0 1px rgba(255,255,255,.30), inset 0 -1px rgba(20,65,90,.035) !important;
+}
+
+body.workspace-page :is(.copy-value, .script-box, .copy-result-section, .copy-library-content, .analysis-chip, pre) {
+  background: rgba(255,255,255,.010) !important;
+  border-color: rgba(255,255,255,.14) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.13) !important;
+}
+
+body.workspace-page .image-reference-picker {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+}
+
+body.workspace-page .image-reference-option.image-reference-option {
+  grid-template-columns: 38px 98px minmax(0, 1fr) !important;
+  min-height: 116px !important;
+  gap: 10px !important;
+  padding: 8px !important;
+  background: rgba(255,255,255,.014) !important;
+  border-color: rgba(255,255,255,.20) !important;
+}
+
+body.workspace-page .image-reference-option.image-reference-option > input[type="checkbox"],
+body.workspace-page .image-reference-option.image-reference-option > input[type="radio"] {
+  position: relative !important;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  min-height: 26px !important;
+  margin: 0 auto !important;
+}
+
+body.workspace-page .image-reference-option.image-reference-option > img {
+  width: 98px !important;
+  height: 98px !important;
+  max-width: 100% !important;
+  object-fit: cover !important;
+  background: transparent !important;
+}
+
+body.workspace-page .image-reference-option.image-reference-option > span {
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+  white-space: normal !important;
+}
+
+body.workspace-page .render-asset-picker {
+  background: rgba(255,255,255,.010) !important;
+  border-color: rgba(255,255,255,.18) !important;
+}
+
+body.workspace-page .render-asset-option {
+  background: rgba(255,255,255,.008) !important;
+  border-color: rgba(255,255,255,.12) !important;
+}
+
+body.workspace-page .render-asset-option :is(strong, small),
+body.workspace-page .production-direction,
+body.workspace-page .field-hint {
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+  word-break: normal !important;
+}
+
+body.workspace-page .image-output-card,
+body.workspace-page .media-library-item,
+body.workspace-page .avatar-preview,
+body.workspace-page .asset-thumb {
+  background-color: rgba(255,255,255,.010) !important;
+  border-color: rgba(255,255,255,.18) !important;
+}
+
+body.workspace-page #teamMembersPanel,
+body.workspace-page #teamMembersPanel .team-member-form,
+body.workspace-page #teamMembersPanel .team-member-row,
+body.workspace-page #teamMembersPanel .permission-picker,
+body.workspace-page #teamMembersPanel .member-permission-picker,
+body.workspace-page #teamMembersPanel .permission-picker label,
+body.workspace-page #teamMembersPanel .member-permission-picker label {
+  background-color: rgba(255,255,255,.006) !important;
+  border-color: rgba(255,255,255,.14) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.15) !important;
+}
+
+body.workspace-page #teamMembersPanel .team-member-form {
+  grid-template-columns: minmax(220px, 1.05fr) minmax(132px, .48fr) minmax(255px, .96fr) auto !important;
+}
+
+body.workspace-page #teamMembersPanel .team-member-row,
+body.workspace-page #teamMembersPanel .team-member-list-header {
+  grid-template-columns: 34px minmax(170px, 1.02fr) minmax(130px, .44fr) minmax(220px, .76fr) minmax(126px, auto) !important;
+}
+
+body.workspace-page .health-card,
+body.admin-page .health-card {
+  min-height: 58px !important;
+  padding: 10px 12px !important;
+  background: rgba(255,255,255,.018) !important;
+  border-color: rgba(255,255,255,.26) !important;
+}
+
+body.workspace-page .user-chip,
+body.admin-page .user-chip {
+  grid-template-columns: 30px minmax(0, 1fr) auto auto !important;
+  min-height: 58px !important;
+  padding: 9px 10px !important;
+  background: rgba(255,255,255,.018) !important;
+  border-color: rgba(255,255,255,.26) !important;
+}
+
+body.workspace-page .user-copy,
+body.admin-page .user-copy {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+body.workspace-page .user-copy :is(strong, small),
+body.admin-page .user-copy :is(strong, small) {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+body.workspace-page #refreshButton::before,
+body.admin-page #refreshButton::before {
+  content: "\21BB" !important;
+}
+
+@media (max-width: 1080px) {
+  body.workspace-page #teamMembersPanel .team-member-form {
+    grid-template-columns: minmax(0, 1fr) minmax(120px, .42fr) !important;
+  }
+
+  body.workspace-page #teamMembersPanel .permission-picker {
+    grid-column: 1 / -1 !important;
+  }
+
+  body.workspace-page #teamMembersPanel .team-member-form > .primary-button {
+    grid-column: 2 !important;
+  }
+}
+
+/* Final optical pass: older theme layers use high-specificity solid fills.
+   Every generated glass surface must resolve through the live inline fill so
+   the animated colour field remains visible instead of becoming a white mask. */
+body.workspace-page .optical-glass-surface,
+body.admin-page .optical-glass-surface {
+  background: var(--optical-glass-fill) !important;
+  background-image: none !important;
+}
+
+body.workspace-page .optical-glass-surface.optical-glass-structural,
+body.admin-page .optical-glass-surface.optical-glass-structural {
+  --optical-glass-fill: rgba(255,255,255,.010) !important;
+  background: rgba(255,255,255,.010) !important;
+}
+
+body.workspace-page .optical-glass-surface.optical-glass-panel,
+body.admin-page .optical-glass-surface.optical-glass-panel {
+  --optical-glass-fill: rgba(255,255,255,.006) !important;
+  background: rgba(255,255,255,.006) !important;
+}
+
+body.workspace-page .optical-glass-surface.optical-glass-card,
+body.admin-page .optical-glass-surface.optical-glass-card {
+  --optical-glass-fill: rgba(255,255,255,.004) !important;
+  background: rgba(255,255,255,.004) !important;
+}
+
+body.workspace-page .optical-glass-surface.optical-glass-overlay,
+body.admin-page .optical-glass-surface.optical-glass-overlay {
+  --optical-glass-fill: rgba(255,255,255,.016) !important;
+  background: rgba(255,255,255,.016) !important;
+}
+
+body.workspace-page .workspace-shell .sidebar.optical-glass-surface,
+body.admin-page .admin-shell .sidebar.optical-glass-surface {
+  background: rgba(255,255,255,.010) !important;
+}
+
+body.workspace-page .health-card.optical-glass-surface,
+body.workspace-page .user-chip.optical-glass-surface,
+body.admin-page .health-card.optical-glass-surface,
+body.admin-page .user-chip.optical-glass-surface {
+  background: rgba(255,255,255,.006) !important;
+}
+
+body.workspace-page .workspace-shell .nav-liquid-filter,
+body.admin-page .admin-shell .nav-liquid-filter {
+  background: rgba(255,255,255,.022) !important;
+  background-image: none !important;
+  opacity: 1 !important;
+}
+
+body.workspace-page .workspace-shell .nav-liquid-filter::before,
+body.workspace-page .workspace-shell .nav-liquid-filter::after,
+body.admin-page .admin-shell .nav-liquid-filter::before,
+body.admin-page .admin-shell .nav-liquid-filter::after {
+  display: none !important;
+}
+
+/* Final clarity pass. Keep the optical silhouette visible while removing the
+   stacked white haze left by the legacy theme. Larger surfaces are nearly
+   clear; controls retain just enough fill for hierarchy and contrast. */
+body.workspace-page .topbar,
+body.admin-page .topbar,
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  background: rgba(255,255,255,.006) !important;
+  border-color: rgba(255,255,255,.22) !important;
+  box-shadow: 0 16px 38px rgba(20,64,91,.055), inset 0 1px rgba(255,255,255,.22), inset 0 -1px rgba(18,58,79,.025) !important;
+}
+
+body.workspace-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel),
+body.admin-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel) {
+  background: rgba(255,255,255,.009) !important;
+  border-color: rgba(255,255,255,.20) !important;
+  box-shadow: 0 12px 30px rgba(20,64,91,.045), inset 0 1px rgba(255,255,255,.20), inset 0 -1px rgba(18,58,79,.022) !important;
+}
+
+body.workspace-page :is(.metric-card, .feature-card, .asset-card, .template-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item),
+body.admin-page :is(.metric-card, .feature-card, .asset-card, .template-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item) {
+  background: rgba(255,255,255,.006) !important;
+  border-color: rgba(255,255,255,.17) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.17), 0 7px 18px rgba(20,64,91,.035) !important;
+}
+
+body.workspace-page :is(input, textarea, select, .ui-select-trigger),
+body.admin-page :is(input, textarea, select, .ui-select-trigger) {
+  background: rgba(255,255,255,.018) !important;
+  border-color: rgba(255,255,255,.28) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.24), inset 0 -1px rgba(18,58,79,.025), 0 3px 10px rgba(20,64,91,.035) !important;
+}
+
+body.workspace-page .health-card,
+body.workspace-page .user-chip,
+body.admin-page .health-card,
+body.admin-page .user-chip {
+  background: rgba(255,255,255,.006) !important;
+  border-color: rgba(255,255,255,.20) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.20), 0 5px 13px rgba(20,64,91,.035) !important;
+}
+
+/* Resting selection is a quiet blue tint. During a press/drag the lens owns
+   the surface and the tab returns to clear so the liquid can travel freely. */
+body.workspace-page .workspace-shell .nav-item.active,
+body.admin-page .admin-shell .nav-item.active {
+  color: #0d4164 !important;
+  background: rgba(20,111,157,.15) !important;
+  border-color: rgba(19,113,157,.18) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.24), inset 0 -1px rgba(10,67,97,.08) !important;
+}
+body.workspace-page .workspace-shell .nav-item.active:hover,
+body.admin-page .admin-shell .nav-item.active:hover {
+  color: #0d4164 !important;
+  background: rgba(20,111,157,.15) !important;
+  border-color: rgba(19,113,157,.18) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.24), inset 0 -1px rgba(10,67,97,.08) !important;
+}
+body.workspace-page .workspace-shell .nav-list:is(.is-moving, .is-pressed, .is-dragging) .nav-item.active,
+body.admin-page .admin-shell .nav-list:is(.is-moving, .is-pressed, .is-dragging) .nav-item.active {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+body.workspace-page .workspace-shell .nav-liquid-filter,
+body.admin-page .admin-shell .nav-liquid-filter {
+  background: rgba(255,255,255,.015) !important;
+  border-color: rgba(255,255,255,.42) !important;
+  box-shadow: 0 11px 24px rgba(16,62,86,.10), inset 0 1px rgba(255,255,255,.36), inset 0 -2px 6px rgba(16,62,86,.045) !important;
+}
+
+body.workspace-page .sidebar-bottom,
+body.admin-page .sidebar-bottom {
+  background: transparent !important;
+}
+
+body.workspace-page :is(.overview-bottom, .copy-source-controls, .settings-row, .connection-row, .empty-state),
+body.admin-page :is(.settings-row, .connection-row, .empty-state) {
+  background: rgba(255,255,255,.006) !important;
+  border-color: rgba(255,255,255,.15) !important;
+}
+
+/* The previous override accidentally emitted a literal \\21BB. Use the
+   actual glyph so refresh remains visible in every browser. */
+body.workspace-page #refreshButton::before,
+body.admin-page #refreshButton::before {
+  content: "\21BB" !important;
+}
+
+/* Match the runtime optical classes explicitly; their selector specificity is
+   higher than the generic component rules above. */
+body.workspace-page .topbar.optical-glass-structural,
+body.admin-page .topbar.optical-glass-structural,
+body.workspace-page .workspace-shell .sidebar.optical-glass-structural,
+body.admin-page .admin-shell .sidebar.optical-glass-structural {
+  background: rgba(255,255,255,.006) !important;
+  border-color: rgba(255,255,255,.22) !important;
+  box-shadow: 0 16px 38px rgba(20,64,91,.055), inset 0 1px rgba(255,255,255,.22), inset 0 -1px rgba(18,58,79,.025) !important;
+}
+
+body.workspace-page .panel.optical-glass-panel,
+body.admin-page .panel.optical-glass-panel {
+  background: rgba(255,255,255,.009) !important;
+  border-color: rgba(255,255,255,.20) !important;
+  box-shadow: 0 12px 30px rgba(20,64,91,.045), inset 0 1px rgba(255,255,255,.20), inset 0 -1px rgba(18,58,79,.022) !important;
+}
+
+body.workspace-page .metric-card.optical-glass-card,
+body.workspace-page .feature-card.optical-glass-card,
+body.workspace-page .asset-card.optical-glass-card,
+body.workspace-page .template-card.optical-glass-card,
+body.admin-page .metric-card.optical-glass-card,
+body.admin-page .feature-card.optical-glass-card,
+body.admin-page .asset-card.optical-glass-card,
+body.admin-page .template-card.optical-glass-card {
+  background: rgba(255,255,255,.006) !important;
+  border-color: rgba(255,255,255,.17) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.17), 0 7px 18px rgba(20,64,91,.035) !important;
+}
+
+body.workspace-page .health-card.optical-glass-panel,
+body.workspace-page .user-chip.optical-glass-panel,
+body.admin-page .health-card.optical-glass-panel,
+body.admin-page .user-chip.optical-glass-panel {
+  background: rgba(255,255,255,.006) !important;
+  border-color: rgba(255,255,255,.20) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.20), 0 5px 13px rgba(20,64,91,.035) !important;
+}
+
+/* Final material contract. Earlier passes intentionally remain above this
+   block for compatibility, but all live workspace/admin surfaces resolve to
+   these quieter values. The animated spectrum should remain visible through
+   every layer instead of reading as a white mask. */
+body.workspace-page .workspace-shell .nav-item.active,
+body.admin-page .admin-shell .nav-item.active,
+body.workspace-page .workspace-shell .nav-item.liquid-target.active,
+body.admin-page .admin-shell .nav-item.liquid-target.active,
+body.workspace-page .workspace-shell .nav-item.active:hover,
+body.admin-page .admin-shell .nav-item.active:hover {
+  background: rgba(20, 111, 157, .15) !important;
+  border-color: rgba(19, 113, 157, .18) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.24), inset 0 -1px rgba(10,67,97,.08), 0 4px 13px rgba(20,64,91,.08) !important;
+  color: #0d4164 !important;
+}
+
+body.workspace-page .workspace-shell .nav-list:is(.is-moving, .is-pressed, .is-dragging) .nav-item.active,
+body.admin-page .admin-shell .nav-list:is(.is-moving, .is-pressed, .is-dragging) .nav-item.active {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: #123c5c !important;
+}
+
+body.workspace-page .workspace-shell .nav-item.active .nav-icon,
+body.admin-page .admin-shell .nav-item.active .nav-icon {
+  color: #146ca2 !important;
+  filter: drop-shadow(0 1px 2px rgba(20,108,162,.16));
+}
+
+body.workspace-page .workspace-shell .nav-liquid-filter,
+body.admin-page .admin-shell .nav-liquid-filter {
+  border: .5px solid rgba(255,255,255,.28) !important;
+  background: rgba(255,255,255,.008) !important;
+  box-shadow:
+    0 5px 13px rgba(16,62,86,.12),
+    0 0 10px rgba(255,255,255,.08),
+    inset 0 1px rgba(255,255,255,.24),
+    inset 0 -.5px rgba(16,62,86,.035) !important;
+}
+body.workspace-page .workspace-shell .nav-list:is(.is-pressed, .is-dragging) .nav-liquid-filter,
+body.admin-page .admin-shell .nav-list:is(.is-pressed, .is-dragging) .nav-liquid-filter {
+  border-color: rgba(255,255,255,.38) !important;
+  box-shadow:
+    0 6px 15px rgba(16,62,86,.16),
+    0 0 13px rgba(255,255,255,.11),
+    inset 0 1px rgba(255,255,255,.32),
+    inset 0 -.5px rgba(16,62,86,.05) !important;
+}
+
+body.workspace-page :is(.topbar, .workspace-shell .sidebar),
+body.admin-page :is(.topbar, .admin-shell .sidebar) {
+  background: rgba(255,255,255,.003) !important;
+  border-color: rgba(255,255,255,.15) !important;
+  box-shadow:
+    0 14px 32px rgba(20,64,91,.035),
+    inset 0 1px rgba(255,255,255,.14),
+    inset 0 -1px rgba(18,58,79,.018) !important;
+}
+
+body.workspace-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel, .hero-panel, .hero-console),
+body.admin-page :is(.panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel, .hero-panel, .hero-console) {
+  background: rgba(255,255,255,.004) !important;
+  border-color: rgba(255,255,255,.14) !important;
+  box-shadow:
+    0 10px 25px rgba(20,64,91,.03),
+    inset 0 1px rgba(255,255,255,.14),
+    inset 0 -1px rgba(18,58,79,.016) !important;
+}
+
+body.workspace-page :is(.metric-card, .feature-card, .asset-card, .template-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item, .overview-bottom > *),
+body.admin-page :is(.metric-card, .feature-card, .asset-card, .template-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item) {
+  background: rgba(255,255,255,.003) !important;
+  border-color: rgba(255,255,255,.12) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.12), 0 6px 15px rgba(20,64,91,.025) !important;
+}
+
+body.workspace-page :is(input, textarea, select, .ui-select-trigger),
+body.admin-page :is(input, textarea, select, .ui-select-trigger) {
+  background: rgba(255,255,255,.010) !important;
+  border-color: rgba(255,255,255,.20) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.16), inset 0 -1px rgba(18,58,79,.02), 0 3px 8px rgba(20,64,91,.025) !important;
+}
+
+body.workspace-page :is(.health-card, .user-chip),
+body.admin-page :is(.health-card, .user-chip) {
+  background: rgba(255,255,255,.002) !important;
+  border-color: rgba(255,255,255,.16) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.15), 0 4px 10px rgba(20,64,91,.025) !important;
+}
+
+/* Secondary copy stays readable over the moving spectrum without introducing
+   an opaque backing layer. */
+body.workspace-page .workspace-shell :is(.page-context, .view-heading p, .field-hint, .save-hint, .panel p, .metric-foot, .metric-label, .feature-card p, .asset-info, .template-extra, .hero-panel p, .hero-console span, .hero-console p),
+body.admin-page .admin-shell :is(.page-context, .view-heading p, .field-hint, .save-hint, .panel p, .metric-foot, .metric-label, .feature-card p, .asset-info, .template-extra, .hero-panel p, .hero-console span, .hero-console p) {
+  color: rgba(30,65,91,.78) !important;
+  text-shadow: 0 1px rgba(255,255,255,.18);
+}
+
+/* Segmented controls and reference tiles use the same layered material and
+   stay inside their parent width at every desktop breakpoint. */
+body.workspace-page .production-mode-switcher,
+body.workspace-page .copy-source-controls,
+body.workspace-page .image-reference-option,
+body.workspace-page .copy-reference-option,
+body.admin-page .permission-picker,
+body.admin-page .member-permission-picker {
+  background: rgba(255,255,255,.006) !important;
+  border-color: rgba(255,255,255,.15) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.14), 0 5px 14px rgba(20,64,91,.025) !important;
+  backdrop-filter: blur(10px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
+}
+body.workspace-page .production-mode-tab,
+body.workspace-page .image-reference-option,
+body.workspace-page .copy-reference-option,
+body.admin-page .permission-picker label,
+body.admin-page .member-permission-picker label {
+  min-width: 0 !important;
+  background: rgba(255,255,255,.004) !important;
+  border-color: rgba(255,255,255,.12) !important;
+  overflow: hidden !important;
+}
+body.workspace-page .production-mode-tab.active,
+body.workspace-page .image-reference-option.selected,
+body.workspace-page .copy-reference-option.selected,
+body.workspace-page .image-reference-option:has(input:checked),
+body.workspace-page .copy-reference-option:has(input:checked),
+body.admin-page .permission-picker label:has(input:checked),
+body.admin-page .member-permission-picker label:has(input:checked) {
+  background: rgba(63,169,207,.12) !important;
+  border-color: rgba(28,132,177,.32) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.22), 0 4px 12px rgba(20,108,162,.06) !important;
+}
+/* Keep the optical switch in its native 52x30 track. The previous 28px
+   column forced the pseudo-element to overflow and made the control look
+   like two overlapping circles. */
+body.workspace-page .image-reference-option img { min-width: 0; width: 72px !important; height: 72px !important; border-radius: 12px; }
+body.workspace-page .image-reference-option.image-reference-option {
+  grid-template-columns: 52px 72px minmax(0, 1fr) !important;
+  min-height: 88px !important;
+  align-items: center !important;
+}
+body.workspace-page .image-reference-option.image-reference-option > input[type="checkbox"],
+body.workspace-page .image-reference-option.image-reference-option > input[type="radio"] {
+  width: 52px !important;
+  min-width: 52px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  margin: 0 !important;
+}
+body.workspace-page .image-reference-option span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+body.workspace-page .production-direction { overflow-wrap: anywhere; word-break: break-word; }
+body.workspace-page #teamMembersPanel,
+body.workspace-page .team-member-form,
+body.workspace-page .team-member-list,
+body.workspace-page .team-member-row { min-width: 0; max-width: 100%; overflow: hidden; }
+body.workspace-page .team-member-row { background: rgba(255,255,255,.003) !important; border-color: rgba(255,255,255,.12) !important; }
+body.workspace-page .team-member-actions { min-width: 0; flex-wrap: wrap; }
+body.workspace-page .sidebar-bottom { min-width: 0; }
+body.workspace-page .health-card { min-height: 62px; }
+body.workspace-page .user-chip { grid-template-columns: 30px minmax(0, 1fr) auto auto !important; }
+body.workspace-page .user-copy { min-width: 0; }
+body.workspace-page .user-action { min-width: 42px; padding-inline: 8px; white-space: nowrap; }
+
+/* Performance budget for long workspaces. The navigation lens, segmented tab
+   indicator and switch controls stay untouched; only the decorative full-page
+   colour fields are made static so scrolling and pointer feedback keep the
+   frame budget. */
+html:has(body.workspace-page),
+html:has(body.admin-page) {
+  animation: none !important;
+  background-attachment: scroll !important;
+}
+
+/* Keep the two video-workshop panels in their own layout and paint scope so
+   switching tabs does not invalidate the rest of the long workspace. */
+body.workspace-page #renderView {
+  contain: layout paint;
+}
+
+body.workspace-page .liquid-ambient span,
+body.admin-page .liquid-ambient span {
+  animation: none !important;
+  opacity: .26 !important;
+  filter: blur(36px) saturate(125%) !important;
+  transform: none !important;
+}
+
+/* Let Chromium skip layout/paint work for long result lists outside the
+   viewport. Visible items keep their existing styles and controls. */
+body.workspace-page :is(.media-library-item, .image-output-card, .asset-card, .template-card, .history-list > *) {
+  content-visibility: auto;
+  contain-intrinsic-size: 180px 120px;
+}
+
+body.workspace-page .main-content,
+body.admin-page .main-content,
+body.workspace-page .content-view,
+body.admin-page .content-view { min-width: 0; max-width: 100%; }
+
+/* Details summaries are disclosure labels, so keep edit/delete controls
+   beside the disclosure instead of nesting interactive elements in summary. */
+body.workspace-page .copy-library-item,
+body.workspace-page .publish-attempt {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  min-width: 0;
+}
+
+body.workspace-page .copy-library-item > details,
+body.workspace-page .publish-attempt > details { min-width: 0; }
+
+body.workspace-page .copy-library-item > details > summary,
+body.workspace-page .publish-attempt > details > summary {
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+}
+
+body.workspace-page .copy-library-item > .copy-library-actions,
+body.workspace-page .publish-attempt > .publish-attempt-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+body.workspace-page .publish-attempt > .publish-attempt-actions { padding-top: 11px; }
+
+@media (max-width: 700px) {
+  body.workspace-page .copy-library-item,
+  body.workspace-page .publish-attempt { grid-template-columns: 1fr; }
+
+  body.workspace-page .copy-library-item > .copy-library-actions,
+  body.workspace-page .publish-attempt > .publish-attempt-actions {
+    padding: 0 16px 12px 76px;
+    justify-content: flex-start;
+  }
+}
+
+/* Final override: the legacy body pseudo layers are redundant on the
+   workspace and can be reported as layout-shift sources while loading. */
+body.workspace-page::before,
+body.workspace-page::after { display: none !important; }
+
+/* Two reference cards are useful on desktop, but at phone widths the global
+   two-column rule leaves no room for the filename column. Stack the cards
+   while keeping the switch and thumbnail tracks stable inside each card. */
+@media (max-width: 820px) {
+  body.workspace-page .image-reference-picker {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  body.workspace-page .image-reference-option.image-reference-option {
+    grid-template-columns: 52px 72px minmax(0, 1fr) !important;
+    min-height: 88px !important;
+  }
+}
+
+/* Brand color policy: one deep-blue-to-white system replaces the former
+   multicolour liquid spectrum. This block changes background layers only;
+   component colors and glass material remain under their existing rules. */
+
+body.workspace-page,
+body.admin-page,
+body.auth-page,
+body.home-page {
+  background: linear-gradient(135deg, #ffffff 0%, #f2f8ff 42%, #dceeff 72%, #c7e0fa 100%) !important;
+}
+
+/* The document root used to retain the earlier multi-colour animation on long
+   pages. Keep its fallback in the same static brand system so it cannot peek
+   through while scrolling or consume a continuous paint budget. */
+html:has(body.workspace-page),
+html:has(body.admin-page),
+html:has(body.auth-page),
+html:has(body.home-page) {
+  background-color: #dceeff !important;
+  background-image: linear-gradient(135deg, #083f7d 0%, #0a5ca8 30%, #dceeff 70%, #ffffff 100%) !important;
+  background-size: 100% 100% !important;
+  background-position: center !important;
+  background-attachment: scroll !important;
+  animation: none !important;
+}
+
+body.workspace-page::before,
+body.admin-page::before,
+body.auth-page::before,
+body.home-page::before {
+  opacity: 1 !important;
+  filter: none !important;
+  transform: none !important;
+  animation: none !important;
+  background-image:
+    radial-gradient(58% 68% at 8% 6%, rgba(6, 59, 121, .30), transparent 72%),
+    radial-gradient(48% 58% at 96% 98%, rgba(10, 92, 168, .20), transparent 72%),
+    linear-gradient(135deg, #083f7d 0%, #0a5ca8 30%, #dceeff 70%, #ffffff 100%) !important;
+  background-size: 100% 100% !important;
+  background-position: center !important;
+}
+
+body.workspace-page::after,
+body.admin-page::after,
+body.auth-page::after,
+body.home-page::after,
+.liquid-ambient::before,
+.liquid-ambient::after,
+.home-ambient::before,
+.home-ambient::after {
+  display: none !important;
+  animation: none !important;
+}
+
+body.workspace-page .liquid-ambient span,
+body.admin-page .liquid-ambient span,
+body.auth-page .liquid-ambient span,
+body.home-page .home-ambient .home-orb {
+  animation: none !important;
+  filter: none !important;
+  opacity: .16 !important;
+  mix-blend-mode: normal !important;
+}
+
+body.workspace-page .liquid-ambient span:nth-child(1),
+body.admin-page .liquid-ambient span:nth-child(1),
+body.auth-page .liquid-ambient span:nth-child(1),
+body.home-page .home-ambient .home-orb-one {
+  background: radial-gradient(circle, rgba(6, 59, 121, .55), rgba(6, 59, 121, .08) 62%, transparent 78%) !important;
+}
+
+body.workspace-page .liquid-ambient span:nth-child(2),
+body.admin-page .liquid-ambient span:nth-child(2),
+body.auth-page .liquid-ambient span:nth-child(2),
+body.home-page .home-ambient .home-orb-two {
+  background: radial-gradient(circle, rgba(10, 92, 168, .42), rgba(10, 92, 168, .06) 62%, transparent 78%) !important;
+}
+
+body.workspace-page .liquid-ambient span:nth-child(3),
+body.workspace-page .liquid-ambient span:nth-child(4),
+body.workspace-page .liquid-ambient span:nth-child(5),
+body.admin-page .liquid-ambient span:nth-child(3),
+body.admin-page .liquid-ambient span:nth-child(4),
+body.admin-page .liquid-ambient span:nth-child(5),
+body.auth-page .liquid-ambient span:nth-child(3),
+body.auth-page .liquid-ambient span:nth-child(4),
+body.auth-page .liquid-ambient span:nth-child(5),
+body.home-page .home-ambient .home-orb-three {
+  background: radial-gradient(circle, rgba(142, 198, 241, .42), rgba(255, 255, 255, 0) 70%) !important;
+}
+
+.copy-result-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.copy-compliance-copy { min-width: 0; }
+.copy-compliance-copy strong,
+.copy-compliance-copy span { display: block; }
+.copy-compliance-copy span { margin-top: 3px; }
+.copy-compliance-action { margin-left: auto; white-space: nowrap; }
+
+@media (max-width: 600px) {
+  .panel-footer { align-items: flex-start; flex-direction: column; }
+  .copy-result-actions { width: 100%; justify-content: flex-start; }
+  .copy-compliance-action { margin-left: 0; }
+}
+
+/* Final workspace polish: align compact actions to their control rows while
+   leaving the existing tab, button and switch interaction states intact. */
+@media (min-width: 821px) {
+  body.workspace-page .top-actions,
+  body.admin-page .top-actions {
+    align-items: flex-end !important;
+    flex-wrap: nowrap !important;
+  }
+
+  body.workspace-page .top-actions .project-switcher,
+  body.admin-page .top-actions .project-switcher {
+    align-self: flex-end !important;
+  }
+
+  body.workspace-page .top-actions > :is(.icon-button, .primary-button, .secondary-button),
+  body.admin-page .top-actions > :is(.icon-button, .primary-button, .secondary-button) {
+    align-self: flex-end !important;
+    flex: 0 0 auto !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+body.workspace-page .user-chip,
+body.admin-page .user-chip {
+  display: flex !important;
+  align-items: center !important;
+}
+
+body.workspace-page .user-copy,
+body.admin-page .user-copy {
+  flex: 1 1 auto !important;
+  align-self: center !important;
+}
+
+body.workspace-page .user-action,
+body.admin-page .user-action {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: center !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  line-height: 1 !important;
+  box-sizing: border-box !important;
+}
+
+/* Keep form values readable even when browser autofill or the legacy theme
+   supplies a white text fill. Checkboxes and radios retain their native UI. */
+body.workspace-page :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ui-select-trigger),
+body.admin-page :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ui-select-trigger),
+body.auth-page :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ui-select-trigger),
+body.home-page :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ui-select-trigger) {
+  color: #17344c !important;
+  -webkit-text-fill-color: #17344c !important;
+  caret-color: #17344c !important;
+}
+
+body.workspace-page :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ui-select-trigger):disabled,
+body.admin-page :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ui-select-trigger):disabled,
+body.auth-page :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ui-select-trigger):disabled,
+body.home-page :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ui-select-trigger):disabled {
+  color: rgba(23, 52, 76, .58) !important;
+  -webkit-text-fill-color: rgba(23, 52, 76, .58) !important;
+}
+
+body.workspace-page select option,
+body.admin-page select option,
+body.auth-page select option,
+body.home-page select option {
+  color: #17344c !important;
+  background: #edf5fa !important;
+}
+
+/* optical-glass.css scopes a legacy foreground colour through .workspace-shell
+   with higher specificity. Repeat the readable value at that scope so every
+   text-entry control remains visible, including IP profile fields and custom
+   selects. Binary/range controls keep their native interaction styling. */
+body.workspace-page .workspace-shell :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ui-select-trigger),
+body.admin-page .admin-shell :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]), textarea, select, .ui-select-trigger) {
+  color: #17344c !important;
+  -webkit-text-fill-color: #17344c !important;
+  caret-color: #17344c !important;
+}
+
+body.workspace-page .copy-reference-toggle {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 7px 8px !important;
+  min-height: 42px !important;
+  margin-top: 0 !important;
+  padding: 10px 12px !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+  border-radius: 11px !important;
+  background: rgba(255,255,255,.035) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.22) !important;
+  color: #17344c !important;
+  cursor: pointer;
+}
+
+body.workspace-page .copy-reference-toggle input {
+  width: 16px !important;
+  min-width: 16px !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  margin: 0 !important;
+  accent-color: #146ca2;
+}
+
+body.workspace-page .copy-reference-toggle > span {
+  color: #17344c !important;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+body.workspace-page .copy-reference-toggle small {
+  flex: 1 1 100%;
+  margin-left: 24px;
+  color: #486b82 !important;
+  line-height: 1.4;
+}
+
+body.workspace-page .copy-reference-toggle.is-unavailable {
+  cursor: not-allowed;
+  opacity: .72;
+}
+
+body.workspace-page .copy-reference-toggle.is-unavailable input {
+  cursor: not-allowed;
+}
+
+body.workspace-page .copy-reference-selection[hidden] { display: none !important; }
+
+/* Audio cards have no image layer, so give their type mark a quiet light
+   surface with enough contrast against the blue/white page background. */
+body.workspace-page .asset-thumb:has(.asset-type-mark) {
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(135deg, rgba(255,255,255,.44), rgba(213,236,255,.34)) !important;
+  color: #17344c !important;
+}
+
+body.workspace-page .asset-thumb:has(.asset-type-mark) .asset-type-mark {
+  margin: 0 !important;
+  padding: 11px 15px !important;
+  border: 1px solid rgba(23,52,76,.20) !important;
+  border-radius: 8px;
+  background: rgba(255,255,255,.54) !important;
+  color: #17344c !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.62), 0 4px 12px rgba(20,64,91,.08);
+}
+
+body.workspace-page .asset-preview-body:has(.audio-preview),
+body.workspace-page .audio-preview {
+  background: linear-gradient(135deg, rgba(255,255,255,.56), rgba(214,237,255,.42)) !important;
+  color: #17344c !important;
+}
+
+body.workspace-page .audio-preview {
+  min-height: 220px !important;
+  border: 1px solid rgba(255,255,255,.50);
+  border-radius: 10px;
+  box-shadow: inset 0 1px rgba(255,255,255,.42);
+}
+
+body.workspace-page .audio-preview audio {
+  display: block;
+  width: min(600px, 100%) !important;
+  min-height: 42px;
+  color-scheme: light;
+  accent-color: #146ca2;
+  filter: none !important;
+}
+
+/* Chromium's native audio chrome can inherit the document's dark theme. Keep
+   both the asset modal player and saved voice previews legible on the light
+   glass surface without replacing the native controls or their interaction. */
+body.workspace-page .audio-preview audio,
+body.workspace-page .voice-preview {
+  color-scheme: light !important;
+  accent-color: #146ca2;
+  border-radius: 10px;
+  background: rgba(237, 247, 255, .9) !important;
+  box-shadow: inset 0 0 0 1px rgba(39, 93, 132, .16), 0 4px 12px rgba(22, 70, 105, .08);
+}
+
+body.workspace-page .audio-preview audio::-webkit-media-controls-enclosure,
+body.workspace-page .voice-preview::-webkit-media-controls-enclosure {
+  border-radius: 10px;
+  background: rgba(237, 247, 255, .96);
+}
+
+body.workspace-page .audio-preview audio::-webkit-media-controls-panel,
+body.workspace-page .voice-preview::-webkit-media-controls-panel {
+  background-color: #edf7ff;
+}
+
+body.workspace-page .voice-preview {
+  width: calc(100% - 20px) !important;
+  min-height: 38px;
+  height: 38px;
+  margin: 0 10px;
+}
+
+body.workspace-page .talking-photo-selected-voice-preview .voice-preview {
+  width: 100% !important;
+  margin: 0;
+}
+
+body.workspace-page .talking-photo-selected-voice-preview .voice-preview[hidden] {
+  display: none !important;
+}
+
+/* Keep the generated audio player readable over the blue-to-white background.
+   The native source stays hidden; only the lightweight custom controls render. */
+body.workspace-page .optical-audio-player,
+body.admin-page .optical-audio-player {
+  background: linear-gradient(135deg, rgba(245,251,255,.94), rgba(220,239,252,.88)) !important;
+  border: 1px solid rgba(24,88,128,.24) !important;
+  box-shadow: 0 8px 24px rgba(15,61,92,.14), inset 0 1px rgba(255,255,255,.92), inset 0 -1px rgba(24,88,128,.08) !important;
+  color: #17344c !important;
+  -webkit-backdrop-filter: blur(12px) saturate(120%) !important;
+  backdrop-filter: blur(12px) saturate(120%) !important;
+}
+
+body.workspace-page .optical-audio-play,
+body.admin-page .optical-audio-play {
+  background: rgba(255,255,255,.86) !important;
+  border: 1px solid rgba(24,88,128,.20) !important;
+  color: #0d4164 !important;
+  box-shadow: 0 3px 10px rgba(15,61,92,.12), inset 0 1px rgba(255,255,255,.96) !important;
+}
+
+body.workspace-page .optical-audio-play:hover,
+body.admin-page .optical-audio-play:hover,
+body.workspace-page .optical-audio-play:focus-visible,
+body.admin-page .optical-audio-play:focus-visible {
+  background: #fff !important;
+  border-color: rgba(20,108,164,.46) !important;
+  outline: 2px solid rgba(20,108,164,.22);
+  outline-offset: 2px;
+}
+
+body.workspace-page .optical-audio-time,
+body.admin-page .optical-audio-time {
+  color: #173f5d !important;
+  text-shadow: 0 1px rgba(255,255,255,.72);
+}
+
+body.workspace-page .optical-audio-player .optical-range-track,
+body.admin-page .optical-audio-player .optical-range-track {
+  background: rgba(24,88,128,.22) !important;
+  box-shadow: inset 0 1px 2px rgba(15,61,92,.15), 0 1px rgba(255,255,255,.82) !important;
+}
+
+body.workspace-page .optical-audio-player .optical-range-fill,
+body.admin-page .optical-audio-player .optical-range-fill {
+  background: #146ca2 !important;
+  box-shadow: 0 0 12px rgba(20,108,164,.24) !important;
+}
+
+body.workspace-page .optical-audio-player .optical-range-thumb,
+body.admin-page .optical-audio-player .optical-range-thumb {
+  background: rgba(255,255,255,.92) !important;
+  border: 1px solid rgba(24,88,128,.20);
+  box-shadow: 0 3px 12px rgba(15,61,92,.16), inset 0 1px rgba(255,255,255,.98) !important;
+}
+
+/* Final contrast pass: the light overhaul is loaded after the legacy button
+   theme, so restore deliberate foreground/background pairs here. */
+body.workspace-page .workspace-shell :is(.primary-button),
+body.admin-page .admin-shell :is(.primary-button) {
+  color: #fff !important;
+  background: linear-gradient(145deg, #397eff, #2464ee 62%, #415be0) !important;
+  border-color: rgba(46,104,236,.72) !important;
+  box-shadow: 0 9px 22px rgba(36,107,254,.20), inset 0 1px rgba(255,255,255,.30) !important;
+  text-shadow: 0 1px 1px rgba(13,48,112,.20);
+}
+
+body.workspace-page .workspace-shell :is(.secondary-button, .quiet-button, .icon-button),
+body.admin-page .admin-shell :is(.secondary-button, .quiet-button, .icon-button) {
+  color: #244361 !important;
+  background: rgba(247,252,255,.72) !important;
+  border-color: rgba(39,93,132,.24) !important;
+  box-shadow: 0 5px 14px rgba(20,64,91,.08), inset 0 1px rgba(255,255,255,.90) !important;
+  text-shadow: none;
+}
+
+body.workspace-page .workspace-shell :is(.secondary-button, .quiet-button, .icon-button):hover,
+body.admin-page .admin-shell :is(.secondary-button, .quiet-button, .icon-button):hover {
+  color: #164f78 !important;
+  background: rgba(255,255,255,.90) !important;
+  border-color: rgba(20,108,164,.38) !important;
+}
+
+body.workspace-page .workspace-shell :is(.primary-button):hover,
+body.admin-page .admin-shell :is(.primary-button):hover {
+  color: #fff !important;
+  background: linear-gradient(145deg, #4a8aff, #2669f3 62%, #455fe4) !important;
+}
+
+/* Make depth legible on the pale end of the blue-to-white background while
+   keeping the surfaces translucent. Panels carry the stronger rim; repeated
+   cards use a quieter rim and shadow for hierarchy. */
+body.workspace-page .workspace-shell .main-content :is(.optical-glass-panel, .panel, .hero-panel, .workflow-strip),
+body.admin-page .admin-shell .main-content :is(.optical-glass-panel, .panel, .hero-panel, .workflow-strip) {
+  border-color: rgba(24,88,128,.25) !important;
+  box-shadow: 0 14px 34px rgba(27,69,95,.085), inset 0 1px rgba(255,255,255,.58), inset 0 -1px rgba(18,58,79,.10) !important;
+}
+
+body.workspace-page .workspace-shell .main-content :is(.optical-glass-card, .feature-card, .metric-card),
+body.admin-page .admin-shell .main-content :is(.optical-glass-card, .feature-card, .metric-card) {
+  border-color: rgba(24,88,128,.20) !important;
+  box-shadow: 0 8px 20px rgba(27,69,95,.07), inset 0 1px rgba(255,255,255,.52), inset 0 -1px rgba(18,58,79,.08) !important;
+}
+
+/* Glass hierarchy: the navigation sits above content and gets the strongest
+   blur/rim, while content panels stay lighter to keep scrolling inexpensive. */
+body.workspace-page .topbar,
+body.admin-page .topbar {
+  position: relative;
+  z-index: 10;
+  background: rgba(244,250,255,.72) !important;
+  border: 1px solid rgba(255,255,255,.78) !important;
+  border-bottom-color: rgba(24,88,128,.24) !important;
+  backdrop-filter: blur(22px) saturate(145%);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+  box-shadow: 0 14px 30px rgba(23,67,98,.12), inset 0 1px rgba(255,255,255,.90) !important;
+}
+
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  backdrop-filter: blur(16px) saturate(128%);
+  -webkit-backdrop-filter: blur(16px) saturate(128%);
+  box-shadow: 8px 0 28px rgba(20,64,91,.10), inset -1px 0 rgba(255,255,255,.56) !important;
+}
+
+body.workspace-page .benchmark-library-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(24,88,128,.14);
+}
+
+body.workspace-page .benchmark-library-actions .secondary-button.small,
+body.workspace-page .benchmark-library-actions .quiet-button {
+  min-height: 34px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.workspace-page .topbar,
+  body.admin-page .topbar,
+  body.workspace-page .workspace-shell > .sidebar,
+  body.admin-page .admin-shell > .sidebar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Final brand/background and glass hierarchy pass.
+   Keep the canvas static so scroll remains cheap; only the navigation chrome
+   gets a strong blur layer. Content panels use a lighter blur and repeated
+   cards stay translucent without their own expensive backdrop filter. */
+body.workspace-page,
+body.admin-page,
+body.auth-page,
+body.home-page {
+  background: linear-gradient(145deg, #9bc9e2 0%, #c8e3f1 26%, #edf7fb 62%, #ffffff 100%) !important;
+  background-attachment: scroll !important;
+}
+
+html:has(body.workspace-page),
+html:has(body.admin-page),
+html:has(body.auth-page),
+html:has(body.home-page) {
+  background: #e8f5fb !important;
+  background-image: linear-gradient(145deg, #9bc9e2 0%, #c8e3f1 26%, #edf7fb 62%, #ffffff 100%) !important;
+  background-attachment: scroll !important;
+  animation: none !important;
+}
+
+body.workspace-page .topbar,
+body.admin-page .topbar {
+  background: rgba(245, 251, 255, .78) !important;
+  border-color: rgba(255, 255, 255, .86) !important;
+  border-bottom-color: rgba(18, 76, 119, .28) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
+  backdrop-filter: blur(22px) saturate(140%) !important;
+  box-shadow: 0 14px 32px rgba(14, 57, 91, .16), inset 0 1px rgba(255, 255, 255, .94) !important;
+}
+
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  background: rgba(245, 251, 255, .62) !important;
+  border-color: rgba(255, 255, 255, .80) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(132%) !important;
+  backdrop-filter: blur(18px) saturate(132%) !important;
+  box-shadow: 8px 0 30px rgba(14, 57, 91, .14), inset -1px 0 rgba(255, 255, 255, .78) !important;
+}
+
+body.workspace-page .workspace-shell .main-content :is(.panel, .hero-panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel),
+body.admin-page .admin-shell .main-content :is(.panel, .hero-panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel) {
+  background: rgba(247, 252, 255, .34) !important;
+  border-color: rgba(255, 255, 255, .66) !important;
+  -webkit-backdrop-filter: blur(9px) saturate(122%) !important;
+  backdrop-filter: blur(9px) saturate(122%) !important;
+  box-shadow: 0 14px 34px rgba(14, 57, 91, .10), inset 0 1px rgba(255, 255, 255, .74), inset 0 -1px rgba(18, 68, 101, .08) !important;
+}
+
+body.workspace-page .workspace-shell .main-content :is(.metric-card, .feature-card, .asset-card, .template-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item),
+body.admin-page .admin-shell .main-content :is(.metric-card, .feature-card, .asset-card, .template-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item) {
+  background: rgba(247, 252, 255, .24) !important;
+  border-color: rgba(255, 255, 255, .52) !important;
+  box-shadow: 0 8px 20px rgba(14, 57, 91, .07), inset 0 1px rgba(255, 255, 255, .64), inset 0 -1px rgba(18, 68, 101, .06) !important;
+}
+
+/* The reference is informational now: it follows the latest completed
+   teardown and has no selectable checkbox. Keep it visually distinct from
+   editable source controls while avoiding another blur layer. */
+body.workspace-page .copy-reference-summary {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  min-width: 0;
+  padding: 11px 13px !important;
+  color: #17344c !important;
+  background: rgba(255, 255, 255, .22) !important;
+  border: 1px solid rgba(255, 255, 255, .60) !important;
+  border-left: 3px solid rgba(20, 108, 162, .56) !important;
+  border-radius: 10px !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .66), 0 5px 14px rgba(14, 57, 91, .06) !important;
+}
+
+body.workspace-page .copy-reference-summary > span:last-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+body.workspace-page .copy-reference-summary strong {
+  color: #17344c !important;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+body.workspace-page .copy-reference-summary small {
+  min-width: 0;
+  color: #486b82 !important;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+body.workspace-page .copy-reference-mark {
+  flex: 0 0 auto;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  color: #0e5686;
+  background: rgba(142, 211, 239, .28);
+  border: 1px solid rgba(20, 108, 162, .28);
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+body.workspace-page .copy-reference-summary.is-unavailable {
+  opacity: .78;
+  border-left-color: rgba(95, 120, 144, .45) !important;
+}
+
+/* Keep the optical switch geometry and pointer states owned by optical-glass.js. */
+body.workspace-page .optical-switch-shell,
+body.admin-page .optical-switch-shell {
+  flex: 0 0 68px !important;
+  width: 68px !important;
+  min-width: 68px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+}
+
+/* The workspace canvas is already supplied by the static blue-to-white body
+   gradient and its single pseudo-layer. Remove the legacy ambient stack so
+   scrolling does not repaint five full-viewport radial gradients. */
+html body.workspace-page .liquid-ambient,
+html body.admin-page .liquid-ambient {
+  display: none !important;
+}
+
+/* The legacy sidebar sheen also animates a large blurred layer for the whole
+   session. Keep the sidebar crisp and geometrically stable; navigation
+   feedback remains owned by the Tab indicator and its press states. */
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  animation: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Keep the brand canvas static. The legacy pseudo layers contain several
+   full-viewport animated gradients and continue repainting during scroll even
+   after the runtime ambient layer is hidden. The body gradient below supplies
+   the same blue-to-white field without a permanent animation cost. */
+body.workspace-page::before,
+body.workspace-page::after,
+body.admin-page::before,
+body.admin-page::after {
+  display: none !important;
+  animation: none !important;
+  content: none !important;
+}
+
+@media (min-width: 821px) {
+  body.workspace-page .topbar,
+  body.admin-page .topbar {
+    min-height: 64px !important;
+    padding: 9px 13px 9px 16px !important;
+    gap: 14px !important;
+    margin-bottom: 14px !important;
+  }
+
+  body.workspace-page .page-heading-copy h1,
+  body.admin-page .topbar h1 {
+    font-size: clamp(18px, 1.75vw, 23px) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.workspace-page,
+  body.admin-page,
+  body.auth-page,
+  body.home-page {
+    background-attachment: scroll !important;
+  }
+}
+
+/* Final scroll-performance guard. The canvas is static and uses normal
+   scrolling; only the top chrome keeps a strong blur layer. Repeated cards
+   are translucent surfaces without backdrop filtering so a long workspace
+   does not repaint every card while the document scrolls. Tab and switch
+   interaction layers are intentionally excluded from these rules. */
+body.workspace-page,
+body.admin-page {
+  background-attachment: scroll !important;
+  background-position: 0 0 !important;
+}
+
+body.workspace-page .workspace-shell .topbar,
+body.admin-page .admin-shell .topbar {
+  -webkit-backdrop-filter: blur(22px) saturate(140%) !important;
+  backdrop-filter: blur(22px) saturate(140%) !important;
+}
+
+body.workspace-page .workspace-shell .sidebar,
+body.admin-page .admin-shell .sidebar {
+  -webkit-backdrop-filter: blur(14px) saturate(125%) !important;
+  backdrop-filter: blur(14px) saturate(125%) !important;
+}
+
+body.workspace-page .workspace-shell .main-content :is(.panel, .hero-panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel),
+body.admin-page .admin-shell .main-content :is(.panel, .hero-panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel) {
+  -webkit-backdrop-filter: blur(8px) saturate(118%) !important;
+  backdrop-filter: blur(8px) saturate(118%) !important;
+}
+
+body.workspace-page .workspace-shell .main-content :is(.metric-card, .feature-card, .asset-card, .template-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item, .workflow-step, .analysis-chip),
+body.admin-page .admin-shell .main-content :is(.metric-card, .feature-card, .asset-card, .template-card, .platform-card, .image-output-card, .copy-library-item, .media-library-item, .workflow-step, .analysis-chip) {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* No full-viewport animated layers are needed on the workspace/admin canvas. */
+body.workspace-page::before,
+body.workspace-page::after,
+body.admin-page::before,
+body.admin-page::after,
+body.workspace-page .liquid-ambient,
+body.admin-page .liquid-ambient,
+body.workspace-page .liquid-ambient * ,
+body.admin-page .liquid-ambient * {
+  display: none !important;
+  animation: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.workspace-page .workspace-shell .topbar,
+  body.admin-page .admin-shell .topbar,
+  body.workspace-page .workspace-shell .sidebar,
+  body.admin-page .admin-shell .sidebar,
+  body.workspace-page .workspace-shell .main-content :is(.panel, .hero-panel, .workflow-strip, .output-panel, .production-mode-panel, .profile-panel, .image-studio-panel) {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* Final readability pass: keep the sidebar in the same light glass family as
+   the canvas. Navigation geometry and active/pressed indicator ownership stay
+   unchanged; only the surface and text contrast are adjusted. */
+body.workspace-page .workspace-shell > .sidebar,
+body.admin-page .admin-shell > .sidebar {
+  background: rgba(250, 253, 255, .9) !important;
+  background-color: rgba(250, 253, 255, .9) !important;
+  color: #25435b !important;
+  border-right-color: rgba(73, 132, 171, .24) !important;
+  box-shadow: 8px 0 26px rgba(38, 84, 115, .08), inset -1px 0 rgba(255, 255, 255, .9) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(118%) !important;
+  backdrop-filter: blur(14px) saturate(118%) !important;
+}
+
+/* Runtime optical surfaces carry a more specific translucent fill rule.
+   Match both generated classes so the readable sidebar tint remains the
+   winning layer without changing navigation or switch interaction styles. */
+body.workspace-page .workspace-shell .sidebar.optical-glass-surface.optical-glass-structural,
+body.admin-page .admin-shell .sidebar.optical-glass-surface.optical-glass-structural {
+  background: rgba(250, 253, 255, .9) !important;
+  background-color: rgba(250, 253, 255, .9) !important;
+}
+
+body.workspace-page .workspace-shell .sidebar :is(.brand-name, .brand-sub, .workspace-label, .nav-section-label, .nav-item, .health-card, .health-line, .health-meta, .user-chip, .user-copy, .user-copy strong, .user-copy small, .user-action),
+body.admin-page .admin-shell .sidebar :is(.brand-name, .brand-sub, .workspace-label, .nav-section-label, .nav-item, .health-card, .health-line, .health-meta, .user-chip, .user-copy, .user-copy strong, .user-copy small, .user-action) {
+  color: #294b65 !important;
+}
+
+body.workspace-page .workspace-shell .sidebar .nav-section-label,
+body.admin-page .admin-shell .sidebar .nav-section-label {
+  color: #58748a !important;
+}
+
+body.workspace-page .workspace-shell .sidebar .nav-item:hover,
+body.admin-page .admin-shell .sidebar .nav-item:hover {
+  color: #173c58 !important;
+  background: rgba(218, 239, 249, .56) !important;
+}
+
+body.workspace-page .workspace-shell .sidebar .nav-item.active,
+body.admin-page .admin-shell .sidebar .nav-item.active {
+  color: #123b59 !important;
+  background: rgba(208, 234, 247, .72) !important;
+}
+
+body.workspace-page .workspace-shell .sidebar .nav-item .nav-icon,
+body.admin-page .admin-shell .sidebar .nav-item .nav-icon {
+  color: #32749d !important;
+}
+
+body.workspace-page .workspace-shell .sidebar .user-chip,
+body.admin-page .admin-shell .sidebar .user-chip {
+  background: rgba(234, 246, 252, .74) !important;
+  border-color: rgba(84, 143, 178, .24) !important;
+}
+
+body.workspace-page {
+  font-size: 14px;
+}
+
+body.workspace-page .main-content :is(.page-context, .view-heading p, .field-hint, .save-hint, .panel p, .metric-foot, .metric-label, .asset-info, .template-extra, .field > span, .switcher-label) {
+  font-size: 13px !important;
+}
+
+body.workspace-page :is(input, select, textarea) {
+  color: #1f405a !important;
+  caret-color: #1f405a;
+}
+
+body.workspace-page :is(input, textarea)::placeholder {
+  color: #69879a !important;
+  opacity: 1;
+}
+
+body.workspace-page .digital-auto-subtitle-toggle {
+  align-items: start;
+  gap: 7px;
+}
+
+body.workspace-page .digital-auto-subtitle-toggle input {
+  width: auto;
+  accent-color: #2878a6;
+}
+
+/* Slight readability scale-up for dense workspace chrome. Keep dimensions
+   stable so tab/switch press feedback and the surrounding grid do not shift. */
+body.workspace-page .workspace-shell .nav-item,
+body.workspace-page .workspace-shell button,
+body.workspace-page .workspace-shell .workflow-step {
+  font-size: 12px !important;
+  line-height: 1.35;
+}
+
+body.workspace-page .workspace-shell .brand-sub,
+body.workspace-page .workspace-shell .workspace-label,
+body.workspace-page .workspace-shell .nav-section-label,
+body.workspace-page .workspace-shell .user-copy small,
+body.workspace-page .workspace-shell .health-line,
+body.workspace-page .workspace-shell .health-meta {
+  font-size: 11px !important;
+  line-height: 1.35;
+}
+
+body.workspace-page .main-content :is(.page-context, .view-heading p, .field-hint, .save-hint, .panel p, .metric-foot, .metric-label, .asset-info, .template-extra, .field > span, .switcher-label) {
+  font-size: 14px !important;
+  line-height: 1.45;
+}
+
+/* Scroll budget: keep the persistent chrome glassy, but remove backdrop
+   sampling from utility surfaces and form controls in the long workspace.
+   These layers are small visual accents rather than interaction surfaces; a
+   translucent fill, rim and shadow preserves the hierarchy without forcing a
+   repaint of the page behind every field while scrolling.  Segmented tabs,
+   their indicators, and optical switches are deliberately excluded. */
+body.workspace-page .workspace-shell .main-content :is(
+  .overview-bottom,
+  .step-status,
+  .copy-source-controls,
+  .production-direction,
+  .suggestion-row,
+  .ingest-note,
+  .media-library-copy,
+  .image-output-preview,
+  .latest-output,
+  .custom-template-row,
+  .publish-attempt,
+  .publish-platform-result,
+  .account-summary,
+  .settings-row,
+  .render-asset-picker,
+  .permission-picker,
+  .member-permission-picker,
+  .team-member-form,
+  .team-member-list,
+  .copy-value,
+  .result-block
+),
+body.admin-page .admin-shell .main-content :is(
+  .step-status,
+  .settings-row,
+  .permission-picker,
+  .member-permission-picker,
+  .team-member-form,
+  .team-member-list,
+  .result-block
+) {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Inputs keep their focus ring and pressed states, while their background is
+   painted locally instead of sampling the whole document behind them. */
+body.workspace-page .workspace-shell .main-content :is(
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select,
+  .ui-select-trigger
+),
+body.admin-page .admin-shell .main-content :is(
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select,
+  .ui-select-trigger
+) {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Video scripts are primary editing surfaces. Keep their reading size and
+   full-row geometry above the compact control defaults from the glass theme. */
+body.workspace-page .workspace-shell .main-content .video-script-field {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+}
+
+body.workspace-page .workspace-shell .main-content .video-script-field textarea {
+  min-height: 148px !important;
+  padding: 13px 14px !important;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+}
+
+body.workspace-page .workspace-shell .main-content .digital-render-column .video-script-field textarea {
+  min-height: 176px !important;
+}
+
+@media (max-width: 600px) {
+  body.workspace-page .workspace-shell .main-content .video-script-field textarea,
+  body.workspace-page .workspace-shell .main-content .digital-render-column .video-script-field textarea {
+    min-height: 138px !important;
+  }
+}
+
+/* Keep only compositor-friendly hints on the two persistent chrome layers.
+   The hint is intentionally absent from cards and controls to avoid retaining
+   hundreds of unnecessary promoted layers. */
+body.workspace-page .workspace-shell > .sidebar,
+body.workspace-page .workspace-shell .topbar,
+body.admin-page .admin-shell > .sidebar,
+body.admin-page .admin-shell .topbar {
+  will-change: transform;
+}
+
+/* Programmatic view changes already use instant scroll in app.js. Avoid an
+   inherited smooth-scroll animation competing with the tab transition. */
+html:has(body.workspace-page),
+html:has(body.admin-page) {
+  scroll-behavior: auto !important;
+}
+
+/* Readability pass: enlarge only the persistent sidebar copy so navigation
+   remains easy to scan without changing the geometry of interactive controls. */
+body.workspace-page .workspace-shell > .sidebar :is(.nav-item, .brand-sub, .workspace-label, .nav-section-label, .user-copy small, .health-line, .health-meta),
+body.admin-page .admin-shell > .sidebar :is(.nav-item, .brand-sub, .workspace-label, .nav-section-label, .user-copy small, .health-line, .health-meta) {
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+body.workspace-page .workspace-shell > .sidebar .nav-item,
+body.admin-page .admin-shell > .sidebar .nav-item {
+  font-size: 13px !important;
+}
+
+/* The broad sidebar :is(...) readability rule includes a nested strong
+   selector, which gives it a higher specificity than the simple nav-item
+   override above. Keep this selector explicit so navigation copy reliably
+   renders at the intended readable size. */
+body.workspace-page .workspace-shell > aside.sidebar > nav.nav-list > button.nav-item,
+body.admin-page .admin-shell > aside.sidebar > nav.nav-list > button.nav-item {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+/* Keep the shared transparent line mark unframed on both workspaces. */
+body.workspace-page .workspace-shell .brand-lockup,
+body.admin-page .admin-shell .brand-lockup {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+body.workspace-page .workspace-shell .brand-logo-mark,
+body.admin-page .admin-shell .brand-logo-mark {
+  box-sizing: border-box !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  mix-blend-mode: multiply;
+}
+
+/* Restore the icon glyphs for navigation and production mode controls. The
+   markup carries the symbol so it remains available without an icon font or
+   network-loaded asset; the pseudo-element keeps the layout dimensions stable
+   and lets the existing active/pressed color transitions continue to apply. */
+body.workspace-page .nav-icon::before,
+body.admin-page .nav-icon::before,
+body.workspace-page .production-mode-symbol::before,
+body.admin-page .production-mode-symbol::before {
+  content: attr(data-icon);
+  display: block;
+  color: currentColor;
+  font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+
+body.workspace-page .workspace-shell .nav-icon,
+body.admin-page .admin-shell .nav-icon {
+  display: grid !important;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px !important;
+  min-width: 28px;
+  height: 28px !important;
+  color: #347da6 !important;
+  background: rgba(224, 243, 251, .82) !important;
+  border: 1px solid rgba(85, 153, 186, .22) !important;
+  border-radius: 10px;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .72), 0 4px 10px rgba(31, 93, 123, .08) !important;
+}
+
+body.workspace-page .workspace-shell .nav-item.active .nav-icon,
+body.admin-page .admin-shell .nav-item.active .nav-icon {
+  color: #ffffff !important;
+  background: linear-gradient(145deg, #4b9fd0, #2878aa) !important;
+  border-color: rgba(255, 255, 255, .55) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .55), 0 6px 14px rgba(38, 118, 164, .2) !important;
+}
+
+body.workspace-page .workspace-shell .nav-item:hover .nav-icon,
+body.admin-page .admin-shell .nav-item:hover .nav-icon {
+  color: #185d84 !important;
+  background: rgba(210, 237, 248, .94) !important;
+}
+
+/* Hover may preview an unselected icon, but it must not erase the filled
+   icon block that communicates the current tab. */
+body.workspace-page .workspace-shell .nav-item.active:hover .nav-icon,
+body.admin-page .admin-shell .nav-item.active:hover .nav-icon {
+  color: #ffffff !important;
+  background: linear-gradient(145deg, #4b9fd0, #2878aa) !important;
+  border-color: rgba(255, 255, 255, .55) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .55), 0 6px 14px rgba(38, 118, 164, .2) !important;
+}
+
+/* Keep tab content above the moving liquid capsule.  The capsule is a
+   pointer-transparent visual layer, but its refraction/filter stack still
+   paints above a button when it is moving.  A higher button stacking level
+   prevents the active icon from being masked during hover, press and drag. */
+body.workspace-page .workspace-shell .nav-list > .nav-item,
+body.admin-page .admin-shell .nav-list > .nav-item {
+  position: relative !important;
+  z-index: 4 !important;
+}
+
+body.workspace-page .production-mode-symbol,
+body.admin-page .production-mode-symbol {
+  display: grid !important;
+  place-items: center;
+  width: 34px !important;
+  height: 34px !important;
+  color: #39799b !important;
+  background: rgba(220, 241, 250, .88) !important;
+  border: 1px solid rgba(75, 143, 177, .28) !important;
+  border-radius: 10px !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .78), 0 5px 12px rgba(31, 93, 123, .08) !important;
+}
+
+body.workspace-page .production-mode-tab.active .production-mode-symbol,
+body.admin-page .production-mode-tab.active .production-mode-symbol {
+  color: #15577b !important;
+  background: rgba(190, 228, 244, .94) !important;
+  border-color: rgba(52, 126, 163, .36) !important;
+}
+
+/* These labels are static grouping surfaces. Their translucent fill and rim
+   remain, but they no longer sample the whole page during scroll. */
+body.workspace-page .workspace-shell .main-content :is(.publish-section-heading, .permission-picker label, .member-permission-picker label),
+body.admin-page .admin-shell .main-content :is(.publish-section-heading, .permission-picker label, .member-permission-picker label) {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Keep account identity, account type and compute balance as separate rows. */
+body.workspace-page .workspace-shell .user-chip {
+  display: grid !important;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto !important;
+  grid-template-rows: auto auto auto !important;
+  column-gap: 8px !important;
+  row-gap: 4px !important;
+  align-items: start !important;
+  min-height: 126px !important;
+  padding: 12px !important;
+}
+
+body.workspace-page .workspace-shell .user-chip .avatar {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  width: 34px !important;
+  height: 34px !important;
+}
+
+body.workspace-page .workspace-shell .user-chip .user-copy {
+  display: contents !important;
+}
+
+body.workspace-page .workspace-shell .user-chip #adminEntry {
+  grid-column: 3 !important;
+  grid-row: 3 !important;
+}
+
+body.workspace-page .workspace-shell .user-chip #logoutButton {
+  grid-column: 4 !important;
+  grid-row: 3 !important;
+}
+
+body.workspace-page .workspace-shell .user-copy,
+body.admin-page .admin-shell .user-copy,
+body.workspace-page .workspace-shell .user-copy strong,
+body.admin-page .admin-shell .user-copy strong,
+body.workspace-page .workspace-shell .user-copy small,
+body.admin-page .admin-shell .user-copy small {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+body.workspace-page .workspace-shell .user-meta-lines,
+body.admin-page .admin-shell .user-meta-lines {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  gap: 6px !important;
+  margin-top: 6px !important;
+  line-height: 1.35 !important;
+}
+
+body.workspace-page .workspace-shell .user-meta-lines {
+  grid-column: 1 / -1 !important;
+  grid-row: 2 !important;
+}
+
+body.workspace-page .workspace-shell .user-info-row,
+body.admin-page .admin-shell .user-info-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+  min-height: 30px !important;
+  padding: 6px 7px !important;
+  border: 1px solid rgba(80, 129, 156, .16) !important;
+  border-radius: 7px !important;
+  background: rgba(255, 255, 255, .24) !important;
+}
+
+body.workspace-page .workspace-shell .user-name-row,
+body.admin-page .admin-shell .user-name-row {
+  grid-column: 2 / -1 !important;
+  grid-row: 1 !important;
+  min-height: 34px !important;
+  padding: 0 0 0 8px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+body.workspace-page .workspace-shell .user-info-label,
+body.admin-page .admin-shell .user-info-label {
+  flex: 0 0 auto !important;
+  color: rgba(54, 91, 113, .66) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  line-height: 1.45 !important;
+}
+
+body.workspace-page .workspace-shell .user-info-row > :last-child,
+body.admin-page .admin-shell .user-info-row > :last-child {
+  min-width: 0 !important;
+  color: #274e65 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+body.admin-page .admin-shell .user-chip {
+  display: grid !important;
+  grid-template-columns: 34px minmax(0, 1fr) !important;
+  grid-template-rows: auto auto !important;
+  column-gap: 8px !important;
+  row-gap: 4px !important;
+  min-height: 92px !important;
+  padding: 12px !important;
+}
+
+body.admin-page .admin-shell .user-chip .user-copy {
+  display: contents !important;
+}
+
+body.admin-page .admin-shell .user-meta-lines {
+  grid-column: 1 / -1 !important;
+  grid-row: 2 !important;
+}
+
+/* The sticky glass header is translucent, so controls can remain visible while
+   scrolling underneath it. Let its empty surface pass pointer input through;
+   the project actions in the header remain fully interactive. */
+body.workspace-page .workspace-shell .topbar {
+  pointer-events: none !important;
+}
+
+body.workspace-page .workspace-shell .topbar .top-actions {
+  pointer-events: auto !important;
+}

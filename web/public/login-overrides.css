@@ -1,0 +1,179 @@
+/* Login-only finish: one continuous brand gradient, without oval light fields. */
+html:has(body.auth-page),
+body.auth-page {
+  background-color: #edf7fc !important;
+  background-image: linear-gradient(135deg, #8fc5e0 0%, #c4e2f0 38%, #edf7fc 70%, #ffffff 100%) !important;
+  background-attachment: scroll !important;
+}
+
+body.auth-page::before {
+  position: fixed !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  opacity: 1 !important;
+  content: "" !important;
+  background: linear-gradient(135deg, rgba(113, 183, 219, .30) 0%, rgba(212, 235, 246, .18) 52%, rgba(255, 255, 255, .10) 100%) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  clip-path: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  animation: none !important;
+}
+
+body.auth-page::after,
+body.auth-page .liquid-ambient,
+body.auth-page .auth-brand::before,
+body.auth-page .auth-brand::after {
+  display: none !important;
+  content: none !important;
+  animation: none !important;
+}
+
+body.auth-page .auth-shell {
+  color: #202b33 !important;
+  background: linear-gradient(122deg, rgba(76, 153, 198, .46) 0%, rgba(171, 213, 234, .36) 43%, rgba(248, 253, 255, .52) 100%) !important;
+}
+
+body.auth-page .auth-brand,
+body.auth-page .auth-form-panel {
+  background: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+body.auth-page .auth-brand {
+  justify-content: center !important;
+  border-right-color: rgba(255, 255, 255, .48) !important;
+}
+
+body.auth-page .auth-brand-home {
+  display: block;
+  width: min(210px, 76%) !important;
+  margin: 0 0 20px !important;
+  border-radius: 8px;
+  line-height: 0;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+body.auth-page .auth-brand-home:hover {
+  opacity: .88;
+}
+
+body.auth-page .auth-brand-home:active {
+  transform: scale(.985);
+}
+
+body.auth-page .auth-brand-home:focus-visible {
+  outline: 2px solid rgba(25, 107, 158, .72);
+  outline-offset: 6px;
+}
+
+body.auth-page .auth-brand-logo {
+  display: block;
+  width: 100% !important;
+  margin: 0 !important;
+  filter: drop-shadow(0 5px 14px rgba(15, 67, 101, .20)) !important;
+}
+
+body.auth-page .auth-brand > .section-kicker {
+  margin-top: 0 !important;
+  font-size: 14px !important;
+  font-weight: 720 !important;
+  line-height: 1.5 !important;
+  letter-spacing: 0 !important;
+}
+
+body.auth-page :is(.auth-brand h1, .auth-form-panel h2) {
+  color: #17232c !important;
+  text-shadow: 0 1px rgba(255, 255, 255, .36) !important;
+}
+
+body.auth-page :is(.auth-brand p, .auth-hint, .field > span, .section-kicker) {
+  color: #3f4d57 !important;
+}
+
+body.auth-page .auth-status {
+  position: absolute !important;
+  bottom: clamp(30px, 4vw, 48px) !important;
+  left: clamp(38px, 5vw, 64px) !important;
+  margin-top: 0 !important;
+  color: #34434d !important;
+  border-color: rgba(31, 54, 67, .20) !important;
+  background: rgba(255, 255, 255, .20) !important;
+}
+
+body.auth-page #authForm input.optical-search,
+body.auth-page #authForm input:not([type="checkbox"]):not([type="radio"]),
+body.auth-page #authForm textarea,
+body.auth-page #authForm select {
+  color: #1f2a32 !important;
+  -webkit-text-fill-color: #1f2a32 !important;
+  caret-color: #1f2a32 !important;
+  border: 1px solid rgba(30, 57, 72, .34) !important;
+  background: rgba(255, 255, 255, .26) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .76), inset 0 -1px rgba(22, 49, 63, .10), 0 4px 12px rgba(27, 58, 74, .07) !important;
+}
+
+body.auth-page #authForm :is(input, textarea)::placeholder {
+  color: #61707a !important;
+  -webkit-text-fill-color: #61707a !important;
+  opacity: 1 !important;
+}
+
+body.auth-page #authForm input.optical-search:hover,
+body.auth-page #authForm input:not([type="checkbox"]):not([type="radio"]):hover,
+body.auth-page #authForm textarea:hover,
+body.auth-page #authForm select:hover {
+  border-color: rgba(26, 53, 68, .48) !important;
+  background: rgba(255, 255, 255, .32) !important;
+}
+
+body.auth-page #authForm input.optical-search:focus,
+body.auth-page #authForm input:not([type="checkbox"]):not([type="radio"]):focus,
+body.auth-page #authForm textarea:focus,
+body.auth-page #authForm select:focus {
+  border-color: rgba(24, 65, 88, .68) !important;
+  background: rgba(255, 255, 255, .40) !important;
+  box-shadow: 0 0 0 3px rgba(39, 99, 130, .14), inset 0 1px rgba(255, 255, 255, .82) !important;
+}
+
+body.auth-page #authButton {
+  color: #1b2831 !important;
+  border: 1px solid rgba(27, 54, 68, .38) !important;
+  background: rgba(255, 255, 255, .30) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .86), inset 0 -1px rgba(21, 46, 59, .12), 0 6px 16px rgba(26, 57, 73, .09) !important;
+}
+
+body.auth-page #authButton:hover {
+  color: #111b22 !important;
+  border-color: rgba(21, 47, 61, .54) !important;
+  background: rgba(255, 255, 255, .40) !important;
+}
+
+@media (max-width: 700px) {
+  body.auth-page .auth-brand {
+    justify-content: center !important;
+    border-right: 0 !important;
+    border-bottom-color: rgba(255, 255, 255, .48) !important;
+  }
+
+  body.auth-page .auth-brand-home {
+    width: min(160px, 62%) !important;
+    margin-bottom: 14px !important;
+  }
+
+  body.auth-page .auth-brand > .section-kicker {
+    font-size: 13px !important;
+  }
+
+  body.auth-page .auth-status {
+    position: static !important;
+    margin-top: 16px !important;
+  }
+}

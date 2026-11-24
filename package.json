@@ -1,0 +1,27 @@
+{
+  "name": "chensi-ai-content-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "辰思AI内容创作与账号管理系统本地MVP",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:api": "node backend/server.js",
+    "dev:web": "node web/server.js",
+    "start": "node scripts/dev.mjs",
+    "start:api": "node backend/server.js",
+    "start:web": "node web/server.js",
+    "issue:backend-key": "node scripts/issue-backend-api-key.mjs",
+    "import:super-ip-config": "node scripts/import-super-ip-env.mjs",
+    "setup:jianying": "python -m pip install -r backend/jianying/requirements.txt",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@volcengine/openapi": "^1.36.2",
+    "ali-oss": "^6.23.0",
+    "gsap": "^3.13.0",
+    "pg": "8.16.3",
+    "redis": "4.7.1",
+    "undici": "7.29.1"
+  }
+}

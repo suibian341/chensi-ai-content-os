@@ -1,0 +1,985 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e9eff8" />
+    <meta name="description" content="杈版€滱I鍐呭鍒涗綔銆佺礌鏉愮鐞嗐€佽棰戝埗浣滀笌璐﹀彿鍙戝竷宸ヤ綔鍙般€? />
+    <title>杈版€滱I 路 鍐呭鍒涗綔涓庤处鍙风鐞?/title>
+    <link rel="icon" type="image/png" href="/assets/brand/chensi-mark-blue.png" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/liquid-glass.css" />
+    <link rel="stylesheet" href="/liquid-system.css" />
+    <link rel="stylesheet" href="/workspace-liquid.css" />
+    <link rel="stylesheet" href="/liquid-overhaul.css" />
+    <link rel="stylesheet" href="/optical-glass.css?v=20260827-lit-rim2" />
+  </head>
+  <body class="workspace-page">
+    <div class="app-shell workspace-shell">
+      <aside class="sidebar">
+        <a class="brand-lockup workspace-home-link" href="/" aria-label="杩斿洖杈版€滱I棣栭〉">
+          <img class="brand-logo-mark" src="/assets/brand/chensi-mark-white.png" alt="" width="512" height="512" aria-hidden="true" />
+          <div>
+            <div class="brand-name">杈版€滱I</div>
+            <div class="brand-sub">鍐呭鍒涗綔涓庤处鍙风鐞?/div>
+          </div>
+        </a>
+        <div class="workspace-label">鍒涗綔宸ヤ綔鍙?<span class="workspace-mode">AI CONTENT</span></div>
+        <nav class="nav-list" aria-label="涓诲鑸?>
+          <div class="nav-section-label">鍒涗綔涓庤处鍙?/div>
+          <button class="nav-item active" data-view="overview">
+            <span class="nav-icon">鈼?/span>鎬昏
+          </button>
+          <button class="nav-item" data-view="strategy">
+            <span class="nav-icon">鈼?/span>IP 妗ｆ
+          </button>
+          <button class="nav-item" data-view="benchmark">
+            <span class="nav-icon">鈼?/span>鐖嗘澶嶅埢
+          </button>
+          <button class="nav-item" data-view="copy">
+            <span class="nav-icon">鈻?/span>AI 鏂囨
+          </button>
+          <div class="nav-section-label nav-section-spaced">鐢熶骇涓庡彂甯?/div>
+          <button class="nav-item" data-view="media">
+            <span class="nav-icon">鈼?/span>濯掍綋瀹為獙瀹?          </button>
+          <button class="nav-item" data-view="render">
+            <span class="nav-icon">鈻?/span>瑙嗛宸ュ潑
+          </button>
+          <button class="nav-item" data-view="publish">
+            <span class="nav-icon">鈫?/span>璐﹀彿鍙戝竷
+          </button>
+          <button class="nav-item" data-view="library">
+            <span class="nav-icon">鈻?/span>鏂囨搴?          </button>
+          <button class="nav-item" data-view="assets">
+            <span class="nav-icon">鈻?/span>绱犳潗搴?          </button>
+          <button class="nav-item" data-view="account">
+            <span class="nav-icon">浜?/span>璐﹀彿涓庡洟闃?          </button>
+          <button class="nav-item" data-view="support">
+            <span class="nav-icon">?</span>宸ュ崟涓庢潈鐩?          </button>
+          <button class="nav-item" data-view="templates">
+            <span class="nav-icon">鈻?/span>瀹氬埗闇€姹?          </button>
+          <button class="nav-item" data-view="history">
+            <span class="nav-icon">鈼?/span>鐢熸垚璁板綍
+          </button>
+        </nav>
+        <div class="sidebar-bottom">
+          <div class="health-card">
+            <div class="health-line">
+              <span class="status-dot" id="healthDot"></span
+              ><span id="healthText">鏈湴鏈嶅姟妫€鏌ヤ腑</span>
+            </div>
+            <div class="health-meta">鏈湴鏁版嵁宸ヤ綔鍖?/div>
+          </div>
+          <div class="user-chip">
+            <span class="avatar" id="userAvatar">IP</span
+            ><span class="user-copy"
+              ><strong id="currentUserName">鐧诲綍鐢ㄦ埛</strong><small id="currentUserMeta">姝ｅ湪璇诲彇韬唤</small></span
+            >
+            <a class="user-action" id="adminEntry" href="/admin.html" title="鍚庡彴绠＄悊">绠＄悊</a>
+            <button class="user-action" id="logoutButton" title="閫€鍑虹櫥褰?>閫€鍑?/button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="page-heading-copy">
+            <div class="eyebrow">杈版€滱I / 褰撳墠 IP</div>
+            <h1 id="pageTitle">灏氭湭閫夋嫨椤圭洰</h1>
+            <div class="page-context" id="pageContext">AI 鍐呭鍒涗綔宸ヤ綔鍙?/div>
+          </div>
+          <div class="top-actions">
+            <div class="project-switcher"><label class="switcher-label" for="projectSelect">褰撳墠椤圭洰</label><select class="project-select" id="projectSelect"></select></div
+            ><button class="icon-button" id="refreshButton" title="鍒锋柊鏁版嵁">
+              鈫?/button
+            ><button class="secondary-button" id="newProjectButton">
+              锛?鏂板缓妗ｆ</button
+          </div>
+        </header>
+
+        <section class="content-view" id="overviewView">
+          <div class="hero-panel">
+            <div>
+              <div class="section-kicker">CONTENT OPERATING SYSTEM</div>
+              <h2>鎶婁竴涓汉鐨勭粡楠岋紝鍙樻垚鎸佺画鐢熶骇鐨勫唴瀹硅祫浜с€?/h2>
+              <p>
+                IP 妗ｆ銆佹枃妗堛€佺礌鏉愬拰鎴愮墖鍦ㄤ竴涓伐浣滃尯娴佽浆锛屽洟闃熸垚鍛樺叡浜竻鏅扮殑鍒涗綔杩涘害銆?              </p>
+            </div>
+            <div class="hero-actions">
+              <button class="primary-button" data-go="strategy">
+                鍒涘缓 IP 妗ｆ <span class="button-arrow">鈫?/span></button
+              ><button class="secondary-button" data-go="render">
+                杩涘叆瑙嗛宸ュ潑 <span class="button-arrow">鈫?/span>
+              </button>
+            </div>
+            <div class="hero-console" aria-label="椤圭洰鐘舵€佹憳瑕?>
+              <div class="hero-console-top"><span>CREATION STATUS</span><strong id="heroProjectSignal">鍒濆鍖栦腑</strong></div>
+              <div class="hero-progress"><span id="heroProgressBar"></span></div>
+              <div class="hero-console-bottom"><span>鏍稿績鐜妭</span><strong id="heroProgressText">0 / 4</strong><span class="hero-console-divider"></span><span>鐪熷疄鏁版嵁</span><i class="signal-live"></i></div>
+            </div>
+          </div>
+          <div class="workflow-strip" aria-label="鍐呭鐢熶骇娴佺▼">
+            <button class="workflow-step" data-go="strategy"><span class="step-number">01</span><span><strong>璧勬枡涓庡畾浣?/strong><small id="workflowStrategyStatus">寰呭紑濮?/small></span></button><span class="step-connector" id="workflowConnectorOne"></span><button class="workflow-step" data-go="benchmark"><span class="step-number">02</span><span><strong>瀵规爣涓庢媶瑙?/strong><small id="workflowBenchmarkStatus">寰呭紑濮?/small></span></button><span class="step-connector" id="workflowConnectorTwo"></span><button class="workflow-step" data-go="copy"><span class="step-number">03</span><span><strong>鏂囨涓庡缓璁?/strong><small id="workflowCopyStatus">寰呭紑濮?/small></span></button><span class="step-connector" id="workflowConnectorThree"></span><button class="workflow-step" data-go="render"><span class="step-number">04</span><span><strong>鎴愮墖涓庡彂甯?/strong><small id="workflowRenderStatus">寰呭紑濮?/small></span></button>
+          </div>
+          <div class="summary-grid">
+            <article class="metric-card accent-teal">
+              <div class="metric-label">鏍稿績闂幆瀹屾垚搴?/div>
+              <div class="metric-value" id="completionValue">0%</div>
+              <div class="metric-foot">
+                宸插畬鎴?                <span class="metric-highlight" id="completedStepCount">0</span>
+                涓牳蹇冪幆鑺?              </div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-label">瀵规爣瑙嗛</div>
+              <div class="metric-value" id="benchmarkCount">00</div>
+              <div class="metric-foot">
+                鐪熷疄鎷嗚В
+                <span class="metric-highlight" id="benchmarkReadyCount">0</span>
+                鏉?              </div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-label">鍙敤绱犳潗</div>
+              <div class="metric-value" id="assetCount">00</div>
+              <div class="metric-foot">浠呯粺璁″凡钀界洏鏂囦欢</div>
+            </article>
+            <article class="metric-card accent-coral">
+              <div class="metric-label">鐢熸垚浠诲姟</div>
+              <div class="metric-value" id="taskCount">00</div>
+              <div class="metric-foot">鎴愬姛涓庡け璐ュ潎鍙拷韪?/div>
+            </article>
+          </div>
+          <div class="section-heading">
+            <div>
+              <div class="section-kicker">CREATION CAPABILITIES</div>
+              <h2>鍒涗綔鑳藉姏</h2>
+            </div>
+            <span class="step-status" id="stepStatus">0 / 4 鏍稿績鐜妭</span>
+          </div>
+          <div class="feature-grid" id="featureGrid"></div>
+          <div class="overview-bottom">
+            <section class="panel task-panel">
+              <div class="panel-header">
+                <div>
+              <div class="section-kicker">NEXT ACTIONS</div>
+                  <h2>涓嬩竴姝?/h2>
+                </div>
+                <span class="live-badge">褰撳墠椤圭洰</span>
+              </div>
+              <div class="next-action-list" id="nextActionList"></div>
+            </section>
+            <section class="panel output-panel">
+              <div class="panel-header">
+                <div>
+              <div class="section-kicker">LATEST OUTPUT</div>
+                  <h2>鏈€杩戜骇鍑?/h2>
+                </div>
+                <button class="quiet-button" data-go="history">鏌ョ湅鍏ㄩ儴</button>
+              </div>
+              <div id="latestOutput"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="content-view hidden" id="strategyView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">01 / IP PROFILE</div>
+              <h2>IP 妗ｆ涓庡垱浣滃畾浣?/h2>
+              <p>寤虹珛闂ㄩ潰銆佷笟鍔°€佸鎴蜂笌琛ㄨ揪鏂瑰紡鐨勪笓灞炴。妗堬紝浣滀负鍚庣画鍒涗綔鍙傝€冦€?/p>
+            </div>
+            <span class="live-badge">缁撴瀯鍖栬祫鏂?/span>
+          </div>
+          <div class="workspace-grid">
+            <section class="panel profile-panel">
+              <div class="panel-header">
+                <div>
+                  <div class="section-kicker">PROFILE INTAKE</div>
+                  <h2>IP 鍩虹璧勬枡</h2>
+                </div>
+                <button class="quiet-button" id="saveProfileButton">
+                  淇濆瓨妗ｆ
+                </button>
+              </div>
+              <div class="form-grid">
+                <label class="field field-span-2"
+                  ><span>韬唤瀹氫綅</span
+                  ><input
+                    id="identityInput"
+                    placeholder="濉啓鏈汉鎴栧搧鐗岀殑鐪熷疄韬唤" /></label
+                ><label class="field field-span-2"
+                  ><span>涓氬姟涓庢湇鍔¤寖鍥?/span
+                  ><input
+                    id="businessInput"
+                    placeholder="鎵€鍦ㄤ笟鍔°€佹湇鍔¤竟鐣屽拰浜や粯鏂瑰紡" /></label
+                ><label class="field field-span-2"
+                  ><span>鏍稿績浜у搧 / 鏈嶅姟</span
+                  ><input
+                    id="productsInput"
+                    placeholder="鍏蜂綋鍗栦粈涔堛€佽В鍐充粈涔堥棶棰? /></label
+                ><label class="field"
+                  ><span>鐩爣瀹㈡埛</span
+                  ><input id="customersInput" placeholder="瀹㈡埛鐢诲儚" /></label
+                ><label class="field"
+                  ><span>琛ㄨ揪椋庢牸</span
+                  ><input
+                    id="styleInput"
+                    placeholder="濉啓瀹為檯琛ㄨ揪椋庢牸" /></label
+                ><label class="field field-span-2"
+                  ><span>瀹㈡埛鐥涚偣</span
+                  ><textarea
+                    id="painPointsInput"
+                    rows="2"
+                    placeholder="瀹㈡埛鍦ㄨ喘涔板墠鏈€鎷呭績浠€涔?
+                  ></textarea></label
+                ><label class="field field-span-2"
+                  ><span>妗堜緥涓庤儗涔?/span
+                  ><textarea
+                    id="casesInput"
+                    rows="2"
+                    placeholder="鍙～鍐欏彲楠岃瘉鐨勬渚嬨€佺粨鏋滄垨浜や粯鑳藉姏"
+                  ></textarea>
+                </label>
+              </div>
+              <div class="panel-footer">
+                <span class="save-hint" id="profileHint"
+                  >璧勬枡浼氫繚瀛樺埌褰撳墠椤圭洰</span
+                ><button class="primary-button small" id="positioningButton">
+                  鐢熸垚 IP 瀹氫綅 鈫?                </button>
+              </div>
+            </section>
+            <section class="panel positioning-panel">
+              <div class="panel-header">
+                <div>
+                  <div class="section-kicker">POSITIONING TABLE</div>
+                  <h2>IP 瀹氫綅琛?/h2>
+                </div>
+                <span class="live-badge" id="positioningBadge">寰呯敓鎴?/span>
+              </div>
+              <div class="positioning-result">
+                <div class="result-block dark-result">
+                  <span class="result-label">涓€鍙ヨ瘽浜鸿</span
+                  ><strong id="personaValue">鈥?/strong>
+                  <p id="promiseValue">鈥?/p>
+                </div>
+                <div class="result-block">
+                  <span class="result-label">韬唤 / 鏍稿績浜у搧 / 鐩爣瀹㈡埛</span>
+                  <div class="profile-summary">
+                    <p id="identityValue">鈥?/p>
+                    <p id="coreProductValue">鈥?/p>
+                    <p id="targetCustomerValue">鈥?/p>
+                  </div>
+                </div>
+                <div class="result-block">
+                  <span class="result-label">瀹㈡埛鐥涚偣</span>
+                  <div class="tag-list" id="painPointTags"></div>
+                </div>
+                <div class="result-block">
+                  <span class="result-label">宸紓鍖栬〃杈?/span>
+                  <p id="differentiatorValue">鈥?/p>
+                </div>
+                <div class="result-block">
+                  <span class="result-label">鍙寔缁唴瀹规柟鍚?/span>
+                  <div class="tag-list" id="angleTags"></div>
+                </div>
+                <div class="result-block">
+                  <span class="result-label">骞冲彴鎼滅储璇?/span>
+                  <div class="keyword-list" id="keywordList"></div>
+                </div>
+                <div class="result-block">
+                  <span class="result-label">閫傚悎瀵规爣鐨勮处鍙风被鍨?/span>
+                  <div class="account-list" id="accountList"></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="content-view hidden" id="benchmarkView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">02 / VIRAL REMIX</div>
+              <h2>鐖嗘澶嶅埢</h2>
+              <p>杈撳叆鐖嗘瑙嗛閾炬帴锛屾媶瑙ｆ枃妗堜笌瑙嗛缁撴瀯鍚庤浆鍏ヨ嚜宸辩殑鍒涗綔娴佺▼銆?/p>
+            </div>
+            <span class="live-badge">FFmpeg 姘斿彛 路 妯″瀷缁撴瀯</span>
+          </div>
+          <section class="panel">
+            <div class="benchmark-input-row">
+              <textarea
+                id="benchmarkInput"
+                rows="2"
+                placeholder="绮樿创鎶栭煶 / 灏忕孩涔?/ 瑙嗛鍙峰垎浜枃妗堟垨瑙嗛鐩撮摼"
+              ></textarea><select id="platformSelect">
+                <option>鎶栭煶</option>
+                <option>灏忕孩涔?/option>
+                <option>瑙嗛鍙?/option>
+                <option>鍏朵粬</option></select
+              ><button
+                class="secondary-button small"
+                id="benchmarkUploadButton"
+              >
+                涓婁紶瑙嗛</button
+              ><input
+                id="benchmarkFileInput"
+                type="file"
+                hidden
+                accept="video/*"
+              /><button
+                class="primary-button small"
+                id="analyzeBenchmarkButton"
+              >
+                鍔犲叆鎷嗚В闃熷垪
+              </button>
+            </div>
+            <div class="ingest-note">
+              <span class="status-dot ok"></span>
+              鏀寔浠庢暣娈靛垎浜枃妗堣嚜鍔ㄦ彁鍙栭摼鎺ワ紱鍙楃櫥褰曢檺鍒剁殑鍐呭闇€鍦ㄥ悗鍙伴厤缃?Cookie 鏂囦欢鎴栨祻瑙堝櫒鏉ユ簮銆?            </div>
+            <div class="benchmark-list large" id="benchmarkList"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <div><div class="section-kicker">DOUYIN ACCOUNT PROFILE</div><h2>鎶栭煶璐﹀彿绾ф媶瑙?/h2></div>
+              <span class="soft-badge">鐪熷疄鍏紑浣滃搧</span>
+            </div>
+            <div class="account-analysis-form">
+              <input id="accountAnalysisInput" placeholder="濉啓鎶栭煶璐﹀彿鍚嶇О銆佷富椤甸摼鎺ユ垨璐﹀彿鏍囪瘑" />
+              <button class="primary-button" id="accountAnalysisButton">璇诲彇浣滃搧骞舵媶瑙?/button>
+            </div>
+            <p class="field-hint">閰嶇疆 TikHub 鍚庯紝鎸変富椤甸摼鎺ユ垨鎶栭煶鍙疯鍙栫湡瀹炲叕寮€浣滃搧骞堕€愭潯鎷嗚В銆傛湭閰嶇疆 API Key 鏃朵細鏄庣‘鎻愮ず锛屼笉浼氫互椤圭洰鍐呭浐瀹氫袱鏉¤棰戜吉瑁呬负璐﹀彿鍒嗘瀽銆?/p>
+            <div class="account-analysis-list" id="accountAnalysisList"></div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="copyView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">03 / AI COPY</div>
+              <h2>AI 鏂囨鍒涗綔</h2>
+              <p>鍙傝€冭嚜宸辩殑琛ㄨ揪鍜岀垎娆剧粨鏋勶紝鐢熸垚鍙户缁紪杈戠殑鍘熷垱鏂囨銆?/p>
+            </div>
+            <button class="primary-button" id="copyButton">
+              閲嶆柊鐢熸垚鏁村鏂囨
+            </button>
+          </div>
+          <section class="panel copy-editor-panel">
+            <div class="copy-toolbar">
+              <div class="copy-mode-group">
+                <span class="copy-control-label">鐢熸垚妯″紡</span>
+                <div class="copy-modes">
+                <button class="copy-mode active" data-copy-mode="standard">
+                  鏍囧噯鍙ｆ挱</button
+                ><button class="copy-mode" data-copy-mode="qa">
+                  闂瓟鑴氭湰
+                </button>
+                </div>
+              </div>
+              <span class="quality-pill">鍘熷垱鏀瑰啓 路 鍚堣妫€鏌?/span>
+            </div>
+            <div class="copy-source-controls">
+              <label class="field">
+                <span>鍗婃垚鍝佹枃妗堬紙鍙€夛級</span>
+                <textarea id="copyDraftInput" rows="4" placeholder="绮樿创鏈啓瀹岀殑鏂囨锛孉I 浼氫繚鐣欏凡鎻愪緵鐨勪簨瀹炲苟缁х画鍒涗綔"></textarea>
+              </label>
+              <div class="copy-source-options">
+                <label class="check-row"><input id="copyUseHistoryInput" type="checkbox" checked />鍙傝€冩湰浜烘渶杩戠殑鏂囨椋庢牸</label>
+                <label class="check-row"><input id="copyInheritTitleInput" type="checkbox" checked />鏈夌垎娆炬媶瑙ｆ椂娌跨敤鍘熸爣棰?/label>
+                <small>鍘嗗彶鍐呭浠呯敤浜庤姘斾笌鑺傚鍙傝€冿紱鐩镐技搴︽鏌ヨ寖鍥翠负褰撳墠璐﹀彿鐨勬湰鍦版枃妗堝簱銆?/small>
+              </div>
+            </div>
+            <div class="copy-benchmark-references" id="copyBenchmarkReferences"></div>
+            <div id="copyContent" class="copy-content rich"></div>
+            <div class="panel-footer">
+              <span class="save-hint">浠呭鍑哄綋鍓嶉」鐩凡鐢熸垚鍐呭</span
+              ><button class="secondary-button" id="copyExportButton">
+                瀵煎嚭鏂囨鍖?              </button>
+            </div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="libraryView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">COPY LIBRARY</div>
+              <h2>鏂囨搴?/h2>
+              <p>闆嗕腑鏌ョ湅銆佸垱寤哄拰缁存姢鎵€鏈夐」鐩枃妗堬紝AI 鐢熸垚缁撴灉浼氳嚜鍔ㄧ暀瀛樺湪杩欓噷銆?/p>
+            </div>
+            <div class="view-heading-actions">
+              <span class="soft-badge" id="copyLibraryCount">0 绡囨枃妗?/span>
+              <button class="primary-button" id="createCopyButton">锛?鏂板缓鏂囨</button>
+            </div>
+          </div>
+          <div class="asset-toolbar copy-library-toolbar">
+            <input id="copyLibrarySearchInput" placeholder="鎼滅储鏍囬銆佹鏂囨垨椤圭洰" />
+            <select id="copyLibraryProjectFilter" aria-label="鎸夐」鐩瓫閫夋枃妗?><option value="">鍏ㄩ儴椤圭洰</option></select>
+            <span class="toolbar-count" id="copyLibraryVisibleCount">0 绡囩粨鏋?/span>
+          </div>
+          <div class="copy-library-list" id="copyLibraryList"></div>
+        </section>
+
+        <section class="content-view hidden" id="mediaView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">04 / DIGITAL HUMAN</div>
+              <h2>鏁板瓧浜恒€佸０闊充笌灏侀潰</h2>
+              <p>褰㈣薄銆佸０闊冲拰灏侀潰鍥惧湪鍚屼竴澶勯厤缃苟澶嶇敤锛屽彛鎾瑷€鍦ㄦ垚鐗囨椂閫夋嫨銆?/p>
+            </div>
+            <span class="live-badge">鎺堟潈鐘舵€佸崟鐙褰?/span>
+          </div>
+          <div class="dual-grid">
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="section-kicker">AVATAR</div>
+                  <h2>鏁板瓧浜哄舰璞″簱</h2>
+                </div>
+              </div>
+              <div class="form-grid">
+                <label class="field"
+                  ><span>褰㈣薄鍚嶇О</span
+                  ><input
+                    id="avatarNameInput"
+                    placeholder="濉啓褰㈣薄鍚嶇О" /></label
+                ><label class="field"
+                  ><span>鏁板瓧浜烘ā鏉?/span
+                  ><select id="avatarPoseInput">
+                    <option>绔欑珛</option>
+                    <option>鍧愬Э</option>
+                    <option>璧板姩</option>
+                  </select></label
+                ><label class="field"
+                  ><span>鍛堢幇椋庢牸</span
+                  ><select id="avatarStyleInput">
+                    <option>鑷劧鍙ｆ挱</option>
+                    <option>涓撲笟璁茶В</option>
+                    <option>褰辫璐ㄦ劅</option>
+                  </select></label
+                ><label class="field"
+                  ><span>鎺堟潈鐘舵€?/span
+                  ><select id="avatarConsentInput">
+                    <option value="no">寰呰ˉ鍏呮巿鏉?/option>
+                    <option value="yes">鏈汉宸叉巿鏉?/option>
+                  </select></label
+                ><label class="field field-span-2"
+                  ><span>鍙傝€冭棰?/span
+                  ><select id="avatarVideoAssetInput"></select
+                  ><small class="field-hint"
+                    >杩欓噷鍙垱寤哄苟淇濆瓨褰㈣薄锛屼笉浼氱敓鎴愭垚鐗囥€?/small
+                  ></label
+              </div>
+              <button class="primary-button full" id="avatarCreateButton">
+                浠呭垱寤哄舰璞?              </button>
+              <div class="mini-list" id="avatarList"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="section-kicker">VOICE CLONE</div>
+                  <h2>澹伴煶鍏嬮殕</h2>
+                </div>
+              </div>
+              <div class="form-grid">
+                <label class="field"
+                  ><span>闊宠壊鍚嶇О</span
+                  ><input
+                    id="voiceNameInput"
+                    placeholder="濉啓闊宠壊鍚嶇О" /></label
+                ><label class="field"
+                  ><span>鎯呯华琛ㄨ揪</span
+                  ><select id="voiceEmotionInput">
+                    <option>鑷劧</option>
+                    <option>涓撲笟</option>
+                    <option>鏈夋劅鏌撳姏</option>
+                    <option>骞抽潤</option>
+                  </select></label
+                ><label class="field field-span-2"
+                  ><span>绱犳潗搴撳０闊虫牱鏈?/span
+                  ><select id="voiceAudioAssetInput"></select></label
+                ><label class="field field-span-2"
+                  ><span>澶栭儴澹伴煶鏍锋湰锛堝彲閫夛級</span
+                  ><input
+                    id="voiceSampleInput"
+                    placeholder="涔熷彲濉啓鏈満璺緞鎴栧彲鐩存帴璁块棶鐨勬枃浠跺湴鍧€"
+                /></label>
+              </div>
+              <label class="check-row"
+                ><input id="voiceConsentInput" type="checkbox" />
+                鎴戠‘璁ゆ嫢鏈夎澹伴煶鐨勪娇鐢ㄦ巿鏉?/label
+              ><button class="primary-button full" id="voiceButton">
+                浠呭厠闅嗗苟淇濆瓨澹伴煶
+              </button>
+              <div class="mini-list" id="voiceList"></div>
+            </section>
+          </div>
+          <section class="panel image-studio-panel">
+            <div class="panel-header">
+              <div>
+                <div class="section-kicker">IMAGE STUDIO</div>
+                <h2>鏂囩敓鍥?/ 灏侀潰涓庨厤鍥?/h2>
+              </div>
+            </div>
+            <div class="image-form-row">
+              <input
+                id="imagePromptInput"
+                placeholder="鎻忚堪瑕佺湡瀹炵敓鎴愮殑灏侀潰鎴栭厤鍥?
+              /><select id="imageStyleInput">
+                <option>鐪熷疄鍟嗕笟鎰?/option>
+                <option>鏉傚織缂栬緫鎰?/option>
+                <option>杞绘澗鐢熸椿鎰?/option>
+                <option>鏋佺畝浜у搧鎰?/option></select
+              ><select id="imageAspectRatioInput" aria-label="image aspect ratio">
+                <option value="1:1">1:1</option>
+                <option value="9:16">9:16</option>
+                <option value="16:9">16:9</option>
+                <option value="3:4">3:4</option>
+                <option value="4:3">4:3</option>
+                <option value="3:2">3:2</option>
+                <option value="2:3">2:3</option></select
+              ><button class="primary-button small" id="imageButton">
+                鐢熸垚閰嶅浘
+              </button>
+            </div>
+            <div class="image-reference-section">
+              <div class="image-reference-heading">
+                <div><strong>鍙傝€冨浘</strong><small id="imageReferenceSummary">鏈€夋嫨 路 鏈€澶?4 寮?/small></div>
+                <button class="secondary-button small" type="button" id="imageReferenceUploadButton">涓婁紶鍙傝€冨浘</button>
+                <input id="imageReferenceUploadInput" type="file" accept="image/*" multiple hidden />
+              </div>
+              <div class="image-reference-picker" id="imageReferencePicker"></div>
+            </div>
+            <div class="cover-frame-row">
+              <select id="coverFrameSourceInput"></select>
+              <label><span>鏃堕棿鐐癸紙绉掞級</span><input id="coverFrameTimeInput" type="number" min="0" step="0.1" value="0" /></label>
+              <button class="secondary-button" id="coverFrameButton">鎴彇瑙嗛灏侀潰甯?/button>
+            </div>
+            <div class="image-output-grid" id="imageOutputGrid"></div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="assetsView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">05 / ASSET LIBRARY</div>
+              <h2>绱犳潗搴?/h2>
+              <p>
+                浜у搧銆佸満鏅€佹渚嬨€佷汉鐗╁拰鐢熸椿绱犳潗缁熶竴绠＄悊锛屽悗缁彲琚ā鏉胯嚜鍔ㄨ皟鐢ㄣ€?              </p>
+            </div>
+            <button class="primary-button" id="assetUploadButton">
+              锛?娣诲姞绱犳潗</button
+            ><input
+              id="assetFileInput"
+              type="file"
+              hidden
+              multiple
+              accept="image/*,video/*,audio/*"
+            />
+          </div>
+          <div class="asset-toolbar">
+            <input
+              id="assetSearchInput"
+              placeholder="鎼滅储绱犳潗鍚嶇О鎴栨爣绛?
+            /><select id="assetKindFilter">
+              <option>鍏ㄩ儴绫诲瀷</option>
+              <option>鍦烘櫙</option>
+              <option>浜у搧</option>
+              <option>妗堜緥</option>
+              <option>浜虹墿</option>
+              <option>AI鐢熸垚</option>
+              <option>鍏朵粬</option></select
+            ><span class="toolbar-count" id="assetToolbarCount">00 涓礌鏉?/span>
+          </div>
+          <div class="asset-grid" id="assetGrid"></div>
+        </section>
+
+        <section class="content-view hidden" id="renderView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">06 / VIDEO WORKSHOP</div>
+              <h2>瑙嗛宸ュ潑</h2>
+              <p>绱犳潗鍓緫涓庢暟瀛椾汉鍙ｆ挱</p>
+            </div>
+          </div>
+          <section class="jianying-root-bar hidden" id="jianyingRootBar" aria-label="鍓槧鑽夌淇濆瓨浣嶇疆">
+            <div class="jianying-root-copy">
+              <span class="section-kicker">JIANYING DRAFT LOCATION</span>
+              <strong>鍓槧鑽夌淇濆瓨浣嶇疆</strong>
+            </div>
+            <div class="jianying-root-controls">
+              <label class="sr-only" for="jianyingRootInput">鍓槧鑽夌淇濆瓨璺緞</label>
+              <input id="jianyingRootInput" type="text" value="" placeholder="D:\JianyingPro Drafts" autocomplete="off" spellcheck="false">
+              <button class="secondary-button" id="saveJianyingRootButton" type="button" title="淇濆瓨杈撳叆鐨勮崏绋胯矾寰?>淇濆瓨璺緞</button>
+              <button class="secondary-button" id="selectJianyingRootButton" type="button" title="鍦ㄨ繍琛屽悗绔湇鍔＄殑鐢佃剳涓婃墦寮€鐩綍閫夋嫨鍣?>娴忚鏈満</button>
+            </div>
+          </section>
+          <div class="production-mode-switcher" role="tablist" aria-label="瑙嗛鍒朵綔绫诲瀷">
+            <button class="production-mode-tab active" id="clipProductionTab" type="button" role="tab" aria-selected="true" aria-controls="clipProductionPanel" data-production-mode="clip">
+              <span class="production-mode-symbol" aria-hidden="true">鍓?/span>
+              <span><strong>绱犳潗鍓緫</strong><small>瑙嗛鐗囨銆侀厤闊充笌瀛楀箷</small></span>
+            </button>
+            <button class="production-mode-tab" id="digitalProductionTab" type="button" role="tab" aria-selected="false" aria-controls="digitalProductionPanel" data-production-mode="digital">
+              <span class="production-mode-symbol" aria-hidden="true">浜?/span>
+              <span><strong>鏁板瓧浜哄彛鎾?/strong><small>褰㈣薄銆佸０闊充笌鏂囨</small></span>
+            </button>
+          </div>
+
+          <div class="production-mode-panel" id="clipProductionPanel" role="tabpanel" aria-labelledby="clipProductionTab" data-production-panel="clip">
+            <div class="production-panel-heading">
+              <div><div class="section-kicker">MATERIAL EDIT</div><h2>绱犳潗鍓緫鎴愮墖</h2></div>
+            </div>
+            <section class="panel render-settings">
+              <div class="template-grid extended" id="templateGrid" aria-label="瑙嗛鍓緫妯℃澘"></div>
+              <div class="settings-row">
+                <div class="field render-asset-field"
+                  ><span>瑙嗛鐗囨锛堟寜鍒楄〃椤哄簭鎷兼帴锛?/span
+                  ><div class="render-asset-picker" id="renderAssetPicker"></div
+                  ><small class="field-hint" id="renderAssetSummary">璇疯嚦灏戦€夋嫨涓€鏉＄湡瀹炶棰戠礌鏉?/small></div
+                ><label class="field"
+                  ><span>瑙嗛妯℃澘</span
+                  ><select id="renderTemplateInput"></select></label
+                ><label class="field"
+                  ><span>鏃堕暱</span
+                  ><select id="renderDurationInput">
+                    <option>15s</option>
+                    <option>30s</option>
+                    <option>45s</option>
+                    <option>60s</option>
+                  </select></label
+                ><label class="field"
+                  ><span>鐢诲箙</span
+                  ><select id="renderRatioInput">
+                    <option>9:16</option>
+                    <option>1:1</option>
+                    <option>3:4</option>
+                    <option>16:9</option>
+                  </select></label
+                ><label class="field"
+                  ><span>鍛堢幇缁勫悎</span
+                  ><select id="renderModeInput">
+                    <option>澶氱礌鏉愰『搴忔嫾鎺?/option>
+                  </select></label
+                ><label class="field template-extra template-extra-talking-head hidden"
+                  ><span>姘斿彛闃堝€?/span
+                  ><input id="renderGapThresholdInput" type="number" min="0.05" max="2" step="0.01" value="0.10" />
+                  ><small class="field-hint">鐩搁偦璇嶉棿鍋滈】杈惧埌姝ゆ椂闀挎墠鍓垏銆?/small></label
+                ><label class="field template-extra template-extra-talking-head hidden"
+                  ><span>淇濈暀杈硅窛</span
+                  ><input id="renderGapPaddingInput" type="number" min="0" max="0.5" step="0.01" value="0.03" />
+                  ><small class="field-hint">姘斿彛涓ょ淇濈暀鐨勮嚜鐒跺懠鍚告椂闂淬€?/small></label
+                ><label class="field template-extra template-extra-industry-viral hidden"
+                  ><span>琛屼笟 / 璧涢亾</span
+                  ><input id="renderIndustryInput" placeholder="渚嬪锛氶楗€佹暀鑲层€佸灞? />
+                  ><small class="field-hint">鐢ㄤ簬鎻愬崌琛屼笟鍏抽敭璇嶇墖娈电殑楂樺厜璇勫垎銆?/small></label
+                ><label class="field"
+                  ><span>閰嶉煶杞?/span
+                  ><select id="renderAudioAssetInput"></select
+                  ><small class="field-hint">鍙敤绱犳潗搴撲腑鐨勭湡瀹為煶棰戞浛鎹㈠師瑙嗛闊宠建銆?/small></label
+                ><label class="field field-span-2"
+                  ><span>瀛楀箷鏂囨</span
+                  ><textarea id="renderSubtitleInput" rows="4" placeholder="姣忚涓€娈靛瓧骞曪紱鐢熸垚鍚庡彲涓嬭浇 SRT 瀛楀箷鏂囦欢"></textarea></label
+                >
+              </div>
+              <div class="production-submit-row">
+                <button class="primary-button" id="renderButton">鐢熸垚绱犳潗瑙嗛</button>
+              </div>
+            </section>
+          </div>
+
+          <div class="production-mode-panel hidden" id="digitalProductionPanel" role="tabpanel" aria-labelledby="digitalProductionTab" data-production-panel="digital">
+            <div class="production-panel-heading">
+              <div><div class="section-kicker">DIGITAL HUMAN</div><h2>鏁板瓧浜哄彛鎾垚鐗?/h2></div>
+            </div>
+            <section class="panel digital-render-panel">
+              <div class="digital-render-grid">
+                <div class="digital-render-column">
+                  <div class="form-section-heading"><span>01</span><strong>褰㈣薄涓庡０闊?/strong></div>
+                  <div class="form-grid">
+                    <label class="field"><span>宸蹭繚瀛樺舰璞?/span><select id="digitalAvatarSelect"></select></label>
+                    <label class="field"><span>宸蹭繚瀛樺０闊?/span><select id="digitalVoiceSelect"></select></label>
+                    <label class="field"><span>鍙ｆ挱璇█</span><select id="digitalRenderLanguageInput"><option value="zh-CN">鏅€氳瘽</option></select><small class="field-hint" id="digitalLanguageHint">鍏朵粬璇█浼氬厛鐢熸垚鐩爣璇█鍙ｆ挱绋匡紝鍐嶆彁浜?TTS銆?/small></label>
+                    <label class="field"><span>鎺堟潈鐘舵€?/span><select id="digitalConsentInput"><option value="no">寰呰ˉ鍏呮巿鏉?/option><option value="yes">鏈汉宸叉巿鏉?/option></select></label>
+                  </div>
+                </div>
+                <div class="digital-render-column">
+                  <div class="form-section-heading"><span>02</span><strong>鍙ｆ挱鍐呭</strong></div>
+                  <div class="form-grid">
+                    <label class="field field-span-2"><span>鍙ｆ挱鏂囨</span><textarea id="digitalScriptInput" rows="5" placeholder="杈撳叆鏁板瓧浜鸿璁茶堪鐨勫唴瀹?></textarea></label>
+                    <label class="field field-span-2"><span>鐪熷疄椹卞姩闊抽锛堝彲閫夛級</span><select id="digitalAudioAssetInput"></select><small class="field-hint">閫夋嫨闊抽鏃跺彲涓嶅～鍐欏彛鎾枃妗堛€?/small></label>
+                    <label class="field field-span-2"><span>鎴愮墖鍚嶇О</span><input id="digitalRenderNameInput" placeholder="渚嬪锛氫骇鍝佷粙缁嶅彛鎾? /></label>
+                  </div>
+                </div>
+              </div>
+              <div class="production-submit-row">
+                <button class="primary-button" id="digitalHumanButton">鐢熸垚鏁板瓧浜鸿棰?/button>
+              </div>
+            </section>
+          </div>
+
+          <section class="panel output-panel">
+            <div class="panel-header">
+              <div>
+                <div class="section-kicker">OUTPUTS</div>
+                <h2 id="outputPanelTitle">绱犳潗瑙嗛缁撴灉</h2>
+              </div>
+            </div>
+            <div class="output-list" id="outputList"></div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="publishView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">07 / ACCOUNT PUBLISH</div>
+              <h2>璐﹀彿鍙戝竷</h2>
+              <p>閫夋嫨鐪熷疄鎴愮墖骞跺彂甯冨埌宸叉壂鐮佹巿鏉冪殑骞冲彴锛涢獙璇佺爜銆侀鎺ф垨骞冲彴纭浼氫繚鐣欎负寰呬汉宸ュ鐞嗐€?/p>
+            </div>
+            <button class="secondary-button" data-go="account">绠＄悊骞冲彴鎺堟潈</button>
+          </div>
+          <section class="panel publish-composer">
+            <label class="field publish-source-field"><span>閫夋嫨鐪熷疄鎴愮墖</span><select id="publishSourceOutputSelect"></select><small class="field-hint">娓呭崟灏嗚褰曡繖涓垚鐗囩殑鐪熷疄璁块棶鍦板潃鍜屽钩鍙伴€傞厤鍙傛暟銆?/small></label>
+            <div class="form-grid publish-fields">
+              <label class="field field-span-2"><span>鍙戝竷鏍囬</span><input id="publishTitleInput" maxlength="100" placeholder="濉啓骞冲彴鍙戝竷鏍囬" /></label>
+              <label class="field field-span-2"><span>璇濋鏍囩</span><input id="publishTagsInput" placeholder="澶氫釜鏍囩鐢ㄩ€楀彿鍒嗛殧" /><small class="field-hint">鏈€澶氬彇鍓?10 涓爣绛撅紝涓嶉渶瑕佽緭鍏?#銆?/small></label>
+              <label class="field"><span>鍙戝竷灏侀潰</span><select id="publishCoverAssetSelect"><option value="">鐢卞钩鍙版垨鍙戝竷鏈嶅姟鑷姩鎴彇</option></select></label>
+              <label class="field hidden" id="publishScheduleField"><span>瀹氭椂鍙戝竷鏃堕棿</span><input id="publishScheduleInput" type="datetime-local" /><small class="field-hint">蹇呴』鏅氫簬褰撳墠鏃堕棿 2 灏忔椂銆?/small></label>
+            </div>
+            <div class="publish-mode-group" aria-label="鍙戝竷鏂瑰紡">
+              <label class="publish-mode-option selected"><input type="radio" name="publishMode" value="immediate" checked /><strong>绔嬪嵆鍙戝竷</strong><small>瀹屾垚涓婁紶鍚庣洿鎺ユ彁浜?/small></label>
+              <label class="publish-mode-option"><input type="radio" name="publishMode" value="draft" /><strong>淇濆瓨鑽夌</strong><small>B绔欏拰鐧惧鍙蜂笉鏀寔</small></label>
+              <label class="publish-mode-option"><input type="radio" name="publishMode" value="scheduled" /><strong>瀹氭椂鍙戝竷</strong><small>鎻愬墠鑷冲皯 2 灏忔椂</small></label>
+            </div>
+            <div class="publish-section-heading"><div><strong>鐩爣骞冲彴</strong><small id="publishPlatformSummary">璇诲彇鎺堟潈鐘舵€佷腑</small></div><button class="quiet-button" type="button" id="refreshPublishConnectionsButton">鍒锋柊鐘舵€?/button></div>
+            <div class="platform-grid publish-platform-grid" id="publishPlatformGrid"></div>
+            <div class="publish-submit-row">
+              <button class="secondary-button" id="publishPackageButton">鐢熸垚鍙戝竷鍖?/button>
+              <button class="primary-button" id="platformPublishButton">鍙戝竷鍒板凡閫夊钩鍙?/button>
+            </div>
+            <p class="field-hint publish-risk-hint">鑷姩鍙戝竷渚濊禆骞冲彴椤甸潰鍜屾湰鏈烘壂鐮佺櫥褰曟€併€傜櫥褰曡繃鏈熴€侀獙璇佺爜銆佷簩娆￠獙璇併€侀鎺ф垨椤甸潰鏀圭増鏃讹紝缁撴灉浼氶€愬钩鍙版樉绀轰负澶辫触鎴栧緟浜哄伐澶勭悊銆?/p>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="section-kicker">PUBLICATION RESULTS</div>
+                <h2>鑷姩鍙戝竷璁板綍</h2>
+              </div>
+              <span class="soft-badge" id="publishAttemptCount">0 娆″彂甯?/span>
+            </div>
+            <div class="publish-attempt-list" id="publishAttemptList"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="section-kicker">PACKAGES</div>
+                <h2>鍙戝竷鍙傛暟娓呭崟</h2>
+              </div>
+              <span class="soft-badge blue">JSON 鍙鍑?/span>
+            </div>
+            <div class="publish-list" id="publishList"></div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="accountView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">08 / ACCOUNT & TEAM</div>
+              <h2>璐﹀彿涓庡洟闃?/h2>
+              <p>涓汉璐﹀彿鍙垱寤烘渶澶?3 涓?IP 妗ｆ锛涗紒涓氱増鍙寜甯綅绠＄悊鎴愬憳銆佹潈闄愪笌绠楀姏棰濆害銆?/p>
+            </div>
+            <span class="live-badge" id="accountModeBadge">涓汉璐﹀彿</span>
+          </div>
+          <div class="dual-grid">
+            <section class="panel">
+              <div class="panel-header"><div><div class="section-kicker">ENTERPRISE WORKSPACE</div><h2>浼佷笟宸ヤ綔绌洪棿</h2></div><button class="quiet-button" id="saveOrganizationButton">淇濆瓨璁剧疆</button></div>
+              <div id="organizationEmpty" class="empty-state">灏氭湭鍒涘缓浼佷笟宸ヤ綔绌洪棿</div>
+              <div id="organizationContent" class="hidden">
+                <div class="form-grid">
+                  <label class="field field-span-2"><span>浼佷笟鍚嶇О</span><input id="organizationNameInput" placeholder="濉啓浼佷笟鎴栧洟闃熷悕绉? /></label>
+                  <label class="field"><span>甯綅鏁伴噺</span><input id="organizationSeatsInput" min="1" type="number" /></label>
+                  <label class="field"><span>浼佷笟绠楀姏鎬婚</span><input id="organizationQuotaInput" min="0" type="number" /></label>
+                </div>
+                <div class="team-summary" id="teamSummary"></div>
+              </div>
+              <button class="primary-button full" id="createOrganizationButton">寮€閫氫紒涓氬伐浣滅┖闂?/button>
+            </section>
+            <section class="panel">
+              <div class="panel-header"><div><div class="section-kicker">PLATFORM ACCOUNTS</div><h2>骞冲彴璐﹀彿鎺堟潈</h2></div><button class="quiet-button" id="refreshPlatformConnectionsButton">鍒锋柊鐘舵€?/button></div>
+              <p class="field-hint platform-login-note">鎺堟潈鏃跺唴缃彂甯冩ā鍧椾細鎵撳紑骞冲彴鍒涗綔鑰呴〉闈紝璇峰湪寮瑰嚭鐨勬祻瑙堝櫒涓壂鐮併€傜郴缁熸寜褰撳墠璐﹀彿闅旂鐧诲綍鎬侊紝涓嶄繚瀛樺钩鍙板瘑鐮併€?/p>
+              <div class="connection-list" id="platformConnectionList"></div>
+            </section>
+          </div>
+          <section class="panel" id="teamMembersPanel">
+            <div class="panel-header"><div><div class="section-kicker">SEATS & PERMISSIONS</div><h2>鎴愬憳甯綅涓庢潈闄?/h2></div></div>
+            <div class="team-member-form" role="group" aria-label="娣诲姞鍥㈤槦鎴愬憳">
+              <label class="team-member-form-field team-member-account-field"><span>鎴愬憳璐﹀彿</span><input id="teamMemberAccountInput" aria-label="鎴愬憳鐧诲綍璐﹀彿" autocomplete="off" placeholder="杈撳叆鎴愬憳鐧诲綍璐﹀彿" /></label>
+              <label class="team-member-form-field"><span>绠楀姏棰濆害</span><input id="teamMemberQuotaInput" aria-label="鎴愬憳绠楀姏棰濆害" type="number" min="0" placeholder="0" /></label>
+              <fieldset class="permission-picker team-member-permission-field"><legend>鍒濆鏉冮檺</legend><label><input type="checkbox" value="鍒涗綔" checked />鍒涗綔</label><label><input type="checkbox" value="绱犳潗" checked />绱犳潗</label><label><input type="checkbox" value="鍙戝竷" checked />鍙戝竷</label></fieldset>
+              <button class="primary-button" id="addTeamMemberButton" type="button">娣诲姞鎴愬憳</button>
+            </div>
+            <div class="team-member-list-header" aria-hidden="true"><span class="team-member-column">鎴愬憳</span><span>绠楀姏棰濆害</span><span>寮€鏀炬潈闄?/span><span class="team-member-action-column">鎿嶄綔</span></div>
+            <div class="team-member-list" id="teamMemberList"></div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="supportView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">09 / SUPPORT & BENEFITS</div>
+              <h2>宸ュ崟涓庢潈鐩?/h2>
+              <p>鎻愪氦浣跨敤闂銆佹煡鐪嬪鐞嗚繘搴︼紝鎴栦娇鐢ㄥ崱瀵嗗厬鎹㈢畻鍔涚Н鍒嗐€?/p>
+            </div>
+            <span class="soft-badge blue" id="accountPointsBadge">0 绉垎</span>
+          </div>
+          <div class="dual-grid">
+            <section class="panel">
+              <div class="panel-header"><div><div class="section-kicker">SUPPORT TICKET</div><h2>鎻愪氦宸ュ崟</h2></div></div>
+              <div class="form-grid"><label class="field"><span>闂绫诲瀷</span><select id="ticketCategoryInput"><option>璐﹀彿涓庢潈闄?/option><option>鍒涗綔涓庣敓鎴?/option><option>绱犳潗涓庢垚鐗?/option><option>鍙戝竷涓庡钩鍙?/option><option>鍏朵粬</option></select></label><label class="field"><span>宸ュ崟鏍囬</span><input id="ticketSubjectInput" placeholder="绠€瑕佹弿杩伴棶棰? /></label><label class="field field-span-2"><span>闂鎻忚堪</span><textarea id="ticketMessageInput" rows="5" placeholder="鎻忚堪闂鐜拌薄銆佸彂鐢熸椂闂翠笌鏈熸湜缁撴灉"></textarea></label></div>
+              <button class="primary-button" id="createTicketButton">鎻愪氦宸ュ崟</button>
+            </section>
+            <section class="panel">
+              <div class="panel-header"><div><div class="section-kicker">REDEEM</div><h2>鍗″瘑鍏戞崲</h2></div></div>
+              <div class="redeem-box"><input id="couponCodeInput" placeholder="杈撳叆鍗″瘑" /><button class="primary-button" id="redeemCouponButton">鍏戞崲鏉冪泭</button></div>
+              <p class="field-hint">鍏戞崲鎴愬姛鍚庯紝绠楀姏绉垎灏嗙珛鍗宠鍏ュ綋鍓嶈处鍙枫€?/p>
+            </section>
+          </div>
+          <section class="panel"><div class="panel-header"><div><div class="section-kicker">TICKET HISTORY</div><h2>鎴戠殑宸ュ崟</h2></div></div><div class="ticket-list" id="ticketList"></div></section>
+        </section>
+
+        <section class="content-view hidden" id="templatesView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">08 / CUSTOM REQUESTS</div>
+              <h2>瀹㈡埛涓撳睘妯℃澘寮€鍙戦渶姹?/h2>
+              <p>鎻愪氦鍙傝€冩潵婧愩€侀鏈熸晥鏋滃拰浣跨敤鑼冨洿锛岀敱鍚庡彴璇勪及骞跺紑鍙戯紱杩欓噷涓嶄細鐩存帴鐢熸垚涓€涓笉鍙敤鐨勬ā鏉裤€?/p>
+            </div>
+            <span class="live-badge">闇€姹傜櫥璁?/span>
+          </div>
+          <section class="panel">
+            <div class="form-grid custom-template-form">
+              <label class="field"
+                ><span>妯℃澘鍚嶇О</span
+                ><input
+                  id="customTemplateNameInput"
+                  placeholder="濉啓妯℃澘鍚嶇О" /></label
+              ><label class="field"
+                ><span>寮€鏀捐寖鍥?/span
+                ><select id="customTemplateAccessInput">
+                  <option>浠呭綋鍓嶅鎴?/option>
+                  <option>褰撳墠宸ヤ綔绌洪棿</option>
+                  <option>鍐呴儴娴嬭瘯</option>
+                </select></label
+              ><label class="field field-span-2"
+                ><span>鍙傝€冭棰戦摼鎺?/span
+                ><input
+                  id="customTemplateRefInput"
+                  placeholder="绮樿创鍙闂殑鐪熷疄鍙傝€冭棰戦摼鎺?
+              /></label><label class="field field-span-2"><span>鏁堟灉涓庝氦浠樿姹?/span><textarea id="customTemplateRequirementInput" rows="4" placeholder="璇存槑鐢婚潰缁撴瀯銆佸瓧骞曟牱寮忋€佹暟瀛椾汉浣嶇疆銆佺礌鏉愯鍒欏拰鏈熸湜鏃堕暱"></textarea></label>
+            </div>
+            <button class="primary-button" id="customTemplateButton">
+              鎻愪氦瀹氬埗闇€姹?            </button>
+          </section>
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="section-kicker">REQUEST RECORDS</div>
+                <h2>闇€姹傝褰?/h2>
+              </div>
+            </div>
+            <div class="custom-template-list" id="customTemplateList"></div>
+          </section>
+        </section>
+
+        <section class="content-view hidden" id="historyView">
+          <div class="view-heading">
+            <div>
+              <div class="section-kicker">TASK HISTORY</div>
+              <h2>鐢熸垚璁板綍</h2>
+              <p>鏌ョ湅鍥剧墖銆佽棰戙€佹暟瀛椾汉涓庡彂甯冧换鍔＄殑澶勭悊鐘舵€佸拰澶辫触鍘熷洜銆?/p>
+            </div>
+          </div>
+          <div class="history-list full" id="historyList"></div>
+        </section>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+    <div class="modal-backdrop hidden" id="projectModal" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle" aria-hidden="true">
+      <div class="modal">
+        <div class="modal-header">
+          <div>
+            <div class="section-kicker">NEW PROJECT</div>
+            <h2 id="projectModalTitle">鍒涘缓鍐呭椤圭洰</h2>
+          </div>
+          <button class="icon-button" id="closeModal" data-dialog-close aria-label="鍏抽棴鍒涘缓椤圭洰">脳</button>
+        </div>
+        <label class="field"
+          ><span>椤圭洰鍚嶇О</span
+          ><input id="newProjectName" placeholder="濉啓椤圭洰鍚嶇О" /></label
+        ><label class="field"
+          ><span>琛屼笟</span
+          ><input id="newProjectIndustry" placeholder="濉啓瀹為檯琛屼笟" /></label
+        ><label class="field"
+          ><span>鐩爣</span
+          ><select id="newProjectPurpose">
+            <option>鑾峰</option>
+            <option>绉嶈崏</option>
+            <option>鎷涘晢</option>
+            <option>鍝佺墝瀹ｄ紶</option>
+          </select></label
+        ><button class="primary-button full" id="createProjectButton">
+          鍒涘缓骞惰繘鍏ラ」鐩?        </button>
+      </div>
+    </div>
+    <div class="modal-backdrop hidden" id="copyLibraryModal" role="dialog" aria-modal="true" aria-labelledby="copyLibraryModalTitle" aria-hidden="true">
+      <form class="modal copy-library-editor-modal" id="copyLibraryForm">
+        <div class="modal-header">
+          <div>
+            <div class="section-kicker">COPY EDITOR</div>
+            <h2 id="copyLibraryModalTitle">鏂板缓鏂囨</h2>
+          </div>
+          <button class="icon-button" id="closeCopyLibraryModal" data-dialog-close type="button" aria-label="鍏抽棴鏂囨缂栬緫">脳</button>
+        </div>
+        <div class="form-grid">
+          <label class="field"><span>鎵€灞為」鐩?/span><select id="copyLibraryProjectInput" required></select></label>
+          <label class="field"><span>鏂囨绫诲瀷</span><select id="copyLibraryModeInput"><option value="standard">鏍囧噯鍙ｆ挱</option><option value="qa">闂瓟鑴氭湰</option></select></label>
+          <label class="field field-span-2"><span>鏂囨鏍囬</span><input id="copyLibraryTitleInput" maxlength="120" placeholder="濉啓渚夸簬妫€绱㈢殑鏂囨鏍囬" required /></label>
+          <label class="field field-span-2"><span>姝ｆ枃鍐呭</span><textarea id="copyLibraryTextInput" rows="12" maxlength="20000" placeholder="濉啓瀹屾暣鏂囨锛涢棶绛旇剼鏈缓璁瘡琛屼竴鍙? required></textarea></label>
+        </div>
+        <div class="modal-actions">
+          <button class="secondary-button" id="cancelCopyLibraryModal" type="button">鍙栨秷</button>
+          <button class="primary-button" id="saveCopyLibraryButton" type="submit">淇濆瓨鏂囨</button>
+        </div>
+      </form>
+    </div>
+    <div
+      class="modal-backdrop hidden"
+      id="assetPreviewModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="assetPreviewTitle"
+      aria-hidden="true"
+    >
+      <div class="modal asset-preview-modal">
+        <div class="modal-header">
+          <div>
+            <div class="section-kicker">ASSET PREVIEW</div>
+            <h2 id="assetPreviewTitle">绱犳潗棰勮</h2>
+          </div>
+          <button
+            class="icon-button"
+            id="closeAssetPreview"
+            data-dialog-close
+            aria-label="鍏抽棴棰勮"
+          >
+            脳
+          </button>
+        </div>
+        <div class="asset-preview-body" id="assetPreviewBody"></div>
+        <div class="asset-preview-meta" id="assetPreviewMeta"></div>
+      </div>
+    </div>
+    <script src="/runtime-config.js"></script>
+    <script src="/ui-components.js" type="module"></script>
+    <script src="/optical-glass.js?v=20260827-switch-drag2" type="module"></script>
+    <script src="/liquid-glass.js?v=20260827-lit-rim2" type="module"></script>
+    <script src="/app.js" type="module"></script>
+    <script src="/vendor/gsap.min.js"></script>
+    <script src="/liquid-motion.js?v=20260827-switch-drag1"></script>
+  </body>
+</html>

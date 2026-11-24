@@ -1,0 +1,47 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#eaf1ff" />
+    <meta name="description" content="鐧诲綍杈版€滱I鍐呭鍒涗綔涓庤处鍙风鐞嗗伐浣滃彴銆? />
+    <title>鐧诲綍 路 杈版€滱I</title>
+    <link rel="icon" type="image/png" href="/assets/brand/chensi-mark-blue.png" />
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/admin.css" />
+    <link rel="stylesheet" href="/liquid-glass.css" />
+    <link rel="stylesheet" href="/liquid-system.css" />
+    <link rel="stylesheet" href="/admin-liquid.css" />
+    <link rel="stylesheet" href="/liquid-overhaul.css" />
+    <link rel="stylesheet" href="/optical-glass.css?v=20260827-lit-rim2" />
+  </head>
+  <body class="auth-page">
+    <main class="auth-shell">
+      <section class="auth-brand">
+        <img class="auth-brand-logo" src="/assets/brand/chensi-logo-white.png" alt="杈版€滱I" width="960" height="430" />
+        <div class="section-kicker">CHENSI AI CONTENT OS</div>
+        <h1 class="sr-only">杈版€滱I</h1>
+        <p>鍐呭鍒涗綔銆佽处鍙峰彂甯冧笌杩愯惀鍚庡彴浣跨敤鍚屼竴濂楄处鍙峰拰鏁版嵁銆?/p>
+        <div class="auth-status"><span class="status-dot ok"></span>鏈湴瀹夊叏浼氳瘽</div>
+      </section>
+      <section class="auth-form-panel">
+        <div class="section-kicker" id="authKicker">ACCOUNT ACCESS</div>
+        <h2 id="authTitle">鐧诲綍宸ヤ綔鍙?/h2>
+        <p class="auth-hint" id="authHint">浣跨敤绠＄悊鍛樺垱寤虹殑璐﹀彿鐧诲綍銆?/p>
+        <form id="authForm">
+          <label class="field setup-only hidden"><span>绠＄悊鍛樺鍚?/span><input id="displayNameInput" name="displayName" autocomplete="name" placeholder="鐢ㄤ簬鍚庡彴灞曠ず" /></label>
+          <label class="field"><span>璐﹀彿</span><input id="accountInput" name="username" autocomplete="username" required placeholder="閭銆佹墜鏈哄彿鎴栬嚜瀹氫箟璐﹀彿" /></label>
+          <label class="field"><span>瀵嗙爜</span><input id="passwordInput" name="password" type="password" autocomplete="current-password" minlength="8" required placeholder="鑷冲皯 8 浣? /></label>
+          <button class="primary-button full" id="authButton" type="submit">鐧诲綍</button>
+        </form>
+        <div class="auth-error" id="authError" role="alert"></div>
+      </section>
+    </main>
+    <script src="/runtime-config.js"></script>
+    <script src="/optical-glass.js?v=20260827-lit-rim2" type="module"></script>
+    <script src="/liquid-glass.js?v=20260827-lit-rim2" type="module"></script>
+    <script src="/login.js" type="module"></script>
+    <script src="/vendor/gsap.min.js"></script>
+    <script src="/liquid-motion.js?v=20260827-switch-drag1"></script>
+  </body>
+</html>
