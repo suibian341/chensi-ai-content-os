@@ -1,0 +1,136 @@
+/**
+ * Plan-only vlog renderer.
+ *
+ * Runs the auto-edit decision set and returns it *without rendering*, so a
+ * caller that can reach a renderer the service cannot (Aliyun IMS, another
+ * region, another account) can execute the plan itself.
+ *
+ * This exists so the heavy compute can move to the cloud without moving the
+ * algorithm: the plan is ~20 ms of pure computation, while the encode is what
+ * needs concurrency.
+ */
+
+import { ProviderError } from '../lib/http.js';
+import { buildVlogPlan, planToTimeline } from './vlog-planner.js';
+
+/**
+ * Wrapper identifying a placeholder that stands in for a real media URL.
+ *
+ * The plan-only path cannot always emit a fetchable URL: the production bucket is
+ * private, so a plain or CDN-signed link is refused by IMS. In that case the
+ * compiler still has to run unchanged, so it is fed these tokens instead and the
+ * caller swaps each one for an IMS `MediaId` it obtained itself.
+ */
+export const MEDIA_ID_TOKEN_PREFIX = 'chensi-media-id:';
+
+/** Matches any media-id token inside a compiled Timeline, however deeply nested. */
+export const MEDIA_ID_TOKEN_PATTERN = /^chensi-media-id:([A-Za-z0-9_-]+)$/;
+
+export function isMediaIdToken(value) {
+  return MEDIA_ID_TOKEN_PATTERN.test(String(value || ''));
+}
+
+/**
+ * Resolve an asset to a URL the caller's renderer can fetch.
+ *
+ * The render service holds no OSS credentials and must not need any: it only
+ * describes storage. `VIDEO_RENDER_OSS_PUBLIC_BASE` supplies the bucket's public
+ * base, and each asset's `storageKey` (which the main application already sends,
+ * and which IS the OSS object key when it runs in oss storage mode) is appended.
+ *
+ * Pass `mediaIdToken: true` when the caller will register the assets with IMS
+ * itself. The compiler is untouched either way — it only ever sees the string
+ * this function returns.
+ */
+export function createAssetUrlResolver({
+  publicBase = String(process.env.VIDEO_RENDER_OSS_PUBLIC_BASE || '').trim(),
+  assetUrlPrefix = String(process.env.VIDEO_RENDER_OSS_ASSET_PREFIX || '').trim(),
+  mediaIdToken = false,
+} = {}) {
+  return function urlFor(asset) {
+    const raw = String(asset?.ossUrl || asset?.publicUrl || '').trim();
+    if (/^https?:\/\//i.test(raw)) return raw;
+
+    const key = String(asset?.ossKey || asset?.storageKey || '').trim().replace(/^\/+/, '');
+    if (!key) return null;
+    if (/^https?:\/\//i.test(key)) return key;
+
+    // A token carries the asset id, which is exactly the key the caller already
+    // uses for its own assets, so no extra mapping has to travel with the plan.
+    if (mediaIdToken) {
+      const id = String(asset?.id || '').trim();
+      return id ? `${MEDIA_ID_TOKEN_PREFIX}${id}` : null;
+    }
+
+    // The main application already stores the fully-qualified key, so a prefix
+    // is only needed for deployments that namespace it separately.
+    const prefix = assetUrlPrefix.replace(/^\/+|\/+$/g, '');
+    const fullKey = key.startsWith(`${prefix}/`) || !prefix ? key : `${prefix}/${key}`;
+    if (!publicBase) return null;
+    return `${publicBase.replace(/\/+$/, '')}/${fullKey.split('/').map(encodeURIComponent).join('/')}`;
+  };
+}
+
+export async function renderVlogPlan(task, input, project, { onProgress = async () => {} } = {}) {
+  // Tokens by default, because the caller is the only party that can sign a URL
+  // IMS will accept: the production bucket is private and IMS refuses CDN-authed
+  // links. `VIDEO_RENDER_OSS_PUBLIC_BASE` still switches on real URLs for
+  // deployments whose bucket is public.
+  const publicBase = String(process.env.VIDEO_RENDER_OSS_PUBLIC_BASE || '').trim();
+  const urlFor = createAssetUrlResolver({ mediaIdToken: !publicBase });
+  const built = await buildVlogPlan(task, input, project, { onProgress });
+
+  const ratio = input.ratio || '9:16';
+  const compiled = planToTimeline(built, { urlFor, ratio });
+  await onProgress(48, `方案已生成（${built.plan.length} 段 / ${compiled.meta.transitions} 转场）`);
+
+  // No file is produced: the caller renders it. `storageKey` is left empty so
+  // the job result carries the plan rather than pointing at a missing file.
+  return {
+    provider: 'vlog-plan',
+    model: built.transcription?.language || null,
+    externalTaskId: null,
+    planOnly: true,
+    output: {
+      filename: null,
+      storageKey: null,
+      sizeBytes: null,
+      durationSeconds: compiled.meta.durationSeconds,
+      ratio,
+      template: 'vlog',
+      templateLabel: 'AI 自动剪辑（仅方案）',
+      algorithm: '主视频时间线语义素材匹配',
+      planOnly: true,
+      segmentCount: built.plan.length,
+      // Whether `imsTimeline` carries `chensi-media-id:<assetId>` placeholders
+      // (the caller must swap in MediaIds) or fetchable URLs.
+      mediaIdTokens: !publicBase,
+      mediaIdTokenPrefix: MEDIA_ID_TOKEN_PREFIX,
+      // everything the caller needs to render elsewhere
+      imsTimeline: compiled.timeline,
+      imsTimelineMeta: compiled.meta,
+      autoMatchPlan: built.plan,
+      transitions: compiled.transitions,
+      imsTransitionRotation: compiled.imsTransitionRotation,
+      transcriptText: compiled.transcriptText,
+      subtitleText: String(input.subtitleText || compiled.transcriptText || '').trim(),
+      timedWords: compiled.timedWords,
+      mainAssetId: String(built.mainAsset.id),
+      narrationAssetId: built.narrationAsset ? String(built.narrationAsset.id) : null,
+      editWindow: built.window,
+      sourceDurationSeconds: built.mainDuration,
+      transcriptionMode: compiled.timedWords.length ? 'audio-word-timestamps' : 'script-fallback',
+      pipelineStages: ['主视频语音识别', '字幕语义分段', '素材语义匹配', 'IMS 时间线生成'],
+      editSummary: `仅方案 · ${built.plan.length} 段 · ${compiled.meta.transitions} 个转场 · ${compiled.meta.durationSeconds}s`,
+    },
+  };
+}
+
+/** Fail fast when the caller asked for a timeline but no base URL is configured. */
+export function assertPlanResolverConfigured() {
+  if (!String(process.env.VIDEO_RENDER_OSS_PUBLIC_BASE || '').trim()) {
+    throw new ProviderError('VLOG_PLAN_STORAGE_BASE_MISSING',
+      '生成 IMS 时间线需要配置 VIDEO_RENDER_OSS_PUBLIC_BASE（如 https://<bucket>.oss-cn-shenzhen.aliyuncs.com）',
+      { status: 503 });
+  }
+}

@@ -1,0 +1,18 @@
+.env
+node_modules/
+runtime-data/
+*.log
+# ---- 通用追加 ----
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+dist/
+demo-output/
+.venv/
+.env.*
+!.env.example

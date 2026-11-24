@@ -1,0 +1,17 @@
+services:
+  video-render:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "4399:4399"
+    environment:
+      VIDEO_RENDER_API_KEY: "${VIDEO_RENDER_API_KEY:?set VIDEO_RENDER_API_KEY}"
+      VIDEO_RENDER_QUEUE_CONCURRENCY: "1"
+      VIDEO_RENDER_JOB_TIMEOUT_MS: "2700000"
+    volumes:
+      - render-data:/data
+      - whisper-models:/models
+
+volumes:
+  render-data:
+  whisper-models:

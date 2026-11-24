@@ -1,0 +1,426 @@
+/**
+ * Aliyun IMS / VOD Timeline compiler.
+ *
+ * The private render service decides EVERYTHING in pure JS (asset matching,
+ * shot boundaries, transitions, subtitle cues). This module does not make any
+ * creative decision — it only translates those already-decided plans into the
+ * Aliyun Timeline JSON so the cloud renders what the local service would have
+ * rendered.
+ *
+ * Why it lives next to the existing engine instead of replacing it:
+ *   algorithm layer  (tiktok-vlog / autoclip / breathcut)  -> untouched
+ *   execution layer  (common.js ffmpeg calls)              -> this module
+ * Both executors consume the same plan, so the cloud path can be switched on
+ * per request and reverted without touching the algorithms.
+ */
+
+import { ProviderError } from '../lib/http.js';
+
+// ---------------------------------------------------------------------------
+// Transition mapping
+//
+// The private service names transitions after the ffmpeg xfade filter
+// (TRANSITION_FILTERS in common.js). IMS accepts those names at submit time but
+// rejects the whole `slide*` family later, during the render, with
+// InvalidTimelineFormat — so the vocabulary has to be mapped, not passed through.
+//
+// Measured on the live service (render to completion, not just submit):
+//   ACCEPTED : wiperight wipedown wipeup wipeleft fade random perlin
+//              circleopen windowslice heart  (+ case variants wipeRight, ...)
+//   REJECTED : slideleft slideright slideup slidedown
+//              fadein fadeout dissolve left right up down
+//              circleclose horzopen vertopen boxopen zoomin crossopen
+//              star smoothleft smoothright
+//
+// The slide* names are mapped to the same-direction wipe so the local intent
+// (direction of motion) is preserved. This is the one place where the cloud
+// output is knowingly NOT identical to the local renderer.
+// ---------------------------------------------------------------------------
+export const TRANSITION_SUBTYPE = {
+  SLIDE_LEFT: 'wipeleft',      // local 'slideleft' is unsupported by IMS
+  SLIDE_RIGHT: 'wiperight',
+  SLIDE_UP: 'wipeup',
+  SLIDE_DOWN: 'wipedown',
+  WIPE_DOWN: 'wipedown',       // local name is accepted as-is
+  WIPE_UP: 'wipeup',
+  WIPE_RIGHT: 'wiperight',
+  CUT: null,
+};
+
+/** Local transition name -> the name the local ffmpeg renderer actually uses. */
+export const LOCAL_TRANSITION_NAMES = {
+  SLIDE_LEFT: 'slideleft',
+  SLIDE_RIGHT: 'slideright',
+  SLIDE_UP: 'slideup',
+  SLIDE_DOWN: 'slidedown',
+  WIPE_DOWN: 'wipedown',
+  WIPE_UP: 'wipeup',
+  WIPE_RIGHT: 'wiperight',
+};
+
+/** Transitions verified to RENDER on IMS (submit-time acceptance is not enough). */
+export const IMS_SUPPORTED_TRANSITIONS = [
+  // wipe family — same names the local renderer already emits
+  'wiperight', 'wipedown', 'wipeup', 'wipeleft',
+  // replacements for the unsupported slide family, verified render-complete
+  'fade', 'circleopen', 'windowslice', 'perlin',
+  // extras available if more variety is wanted later
+  'random', 'heart',
+];
+
+/**
+ * The rotation used when running on IMS.
+ *
+ * The local service rotates 7 types (AUTO_EDIT_TRANSITION_TYPES). Four of them
+ * are the slide family, which IMS rejects during render, so they are replaced
+ * here by verified-working names. Same count, same 0.24s duration, same
+ * deterministic rotation — only the visual character of four slots changes.
+ */
+export const IMS_TRANSITION_ROTATION = [
+  'wipeleft',     // stands in for SLIDE_LEFT
+  'wiperight',    // stands in for SLIDE_RIGHT
+  'fade',         // stands in for SLIDE_UP
+  'circleopen',   // stands in for SLIDE_DOWN
+  'wipedown',     // WIPE_DOWN, native
+  'wipeup',       // WIPE_UP, native
+  'wiperight',    // WIPE_RIGHT, native
+];
+
+// Cosmetic chain the local service applies when enhance is on.
+// Kept here so the divergence is explicit and reviewable rather than implicit.
+export const LOCAL_ENHANCEMENT_CHAIN = 'eq=contrast=1.04,unsharp=5:5:0.35:5:5:0,cas=strength=0.18';
+export const ENHANCEMENT_MAPPING_NOTE =
+  'Aliyun Timeline has no per-clip unsharp/cas equivalent. contrast maps to '
+  + 'Filter(custom) brightness/contrast/saturation; sharpness has no verified '
+  + 'counterpart. Verify before claiming pixel parity.';
+
+const CANVAS = {
+  '9:16': { width: 1080, height: 1920 },
+  '16:9': { width: 1920, height: 1080 },
+  '1:1': { width: 1080, height: 1080 },
+  '3:4': { width: 1080, height: 1440 },
+};
+
+/**
+ * Refuse to emit a clip whose In/Out and TimelineIn/TimelineOut are not written
+ * as a pair.
+ *
+ * Aliyun documents that setting only one of the two makes the service use the
+ * full original asset duration. That has produced six-figure-second single-job
+ * bills. Because our plans carry source times and timeline times in separate
+ * fields, a compiler bug here is a billing incident, not a visual glitch.
+ */
+export function assertClipBounds(clip, label) {
+  const hasIn = clip.In !== undefined && clip.In !== null;
+  const hasOut = clip.Out !== undefined && clip.Out !== null;
+  const hasTin = clip.TimelineIn !== undefined && clip.TimelineIn !== null;
+  const hasTout = clip.TimelineOut !== undefined && clip.TimelineOut !== null;
+
+  if (hasIn !== hasOut) {
+    throw new ProviderError('VOD_TIMELINE_BOUNDS_UNPAIRED',
+      `${label}: In/Out must be set together (got In=${clip.In} Out=${clip.Out})`, { status: 500 });
+  }
+  if (hasTin !== hasTout) {
+    throw new ProviderError('VOD_TIMELINE_BOUNDS_UNPAIRED',
+      `${label}: TimelineIn/TimelineOut must be set together`, { status: 500 });
+  }
+  if (!hasIn && !hasTin) return;                     // whole asset, first position — fine
+  if (!hasIn || !hasTin) {
+    throw new ProviderError('VOD_TIMELINE_BOUNDS_INCOMPLETE',
+      `${label}: source bounds and timeline bounds must both be present`, { status: 500 });
+  }
+
+  const sourceSpan = Number(clip.Out) - Number(clip.In);
+  const timelineSpan = Number(clip.TimelineOut) - Number(clip.TimelineIn);
+  if (!(sourceSpan > 0) || !(timelineSpan > 0)) {
+    throw new ProviderError('VOD_TIMELINE_SPAN_INVALID',
+      `${label}: non-positive span (source=${sourceSpan} timeline=${timelineSpan})`, { status: 500 });
+  }
+  // The local renderer muxes source[i] onto timeline[i] at 1x. Any mismatch
+  // means the compiler mis-mapped a field, so refuse rather than bill for it.
+  if (Math.abs(sourceSpan - timelineSpan) > 0.05) {
+    throw new ProviderError('VOD_TIMELINE_SPAN_MISMATCH',
+      `${label}: source span ${sourceSpan.toFixed(3)}s != timeline span ${timelineSpan.toFixed(3)}s`,
+      { status: 500 });
+  }
+}
+
+/**
+ * Refuse to submit a timeline whose expected output duration exceeds a ceiling.
+ * Second line of defence for the same billing risk as assertClipBounds.
+ */
+export function assertTotalDuration(durationSeconds, { maxSeconds = 600 } = {}) {
+  const total = Number(durationSeconds);
+  if (!Number.isFinite(total) || total <= 0) {
+    throw new ProviderError('VOD_TIMELINE_EMPTY', `compiled timeline has no duration (${durationSeconds})`, { status: 500 });
+  }
+  if (total > maxSeconds) {
+    throw new ProviderError('VOD_TIMELINE_TOO_LONG',
+      `compiled timeline is ${total.toFixed(1)}s, ceiling is ${maxSeconds}s`, { status: 400 });
+  }
+  return total;
+}
+
+function round3(value) {
+  return Math.round(Number(value) * 1000) / 1000;
+}
+
+function resolveUrl(assetId, urlById, label) {
+  const url = urlById.get(String(assetId));
+  if (!url) {
+    throw new ProviderError('VOD_TIMELINE_ASSET_UNRESOLVED',
+      `${label}: asset ${assetId} has no OSS URL / MediaId mapping`, { status: 400 });
+  }
+  return url;
+}
+
+function transitionEffect(name, durationSeconds) {
+  const subtype = TRANSITION_SUBTYPE[name] ?? null;
+  if (!subtype) return null;
+  const duration = Number(durationSeconds) || 0;
+  // A transition shorter than two frames cannot be expressed; the local
+  // renderer drops those too (see effectiveTransitionDuration in tiktok-vlog).
+  if (duration < 1 / 15) return null;
+  return { Type: 'Transition', SubType: subtype, Duration: round3(duration) };
+}
+
+/**
+ * vlog: main narration + semantically matched b-roll shots + transitions.
+ *
+ * Local pipeline this mirrors (tiktok-vlog.js):
+ *   optional intro (main video 0..materialStart, crop:false, muted)
+ *   -> one normalizeSegment per plan entry (crop:true, muted, start=assetStartSeconds)
+ *   -> optional tail (main video materialEnd..end, crop:false, muted)
+ *   -> concatSegmentsWithTransitions(plan transitions)
+ *   -> replaceAudioTrack(narration or main)
+ *   -> burnSubtitles
+ *
+ * @param {object} args
+ * @param {object} args.window            from autoEditWindow()
+ * @param {Array}  args.plan              from buildAutoEditPlan()
+ * @param {Map}    args.urlById           assetId -> OSS URL / MediaId
+ * @param {string} args.mainAssetId       main video asset id
+ * @param {?string} args.narrationAssetId audio asset id, or null to reuse main
+ * @param {string} args.ratio             '9:16' | '16:9' | '1:1' | '3:4'
+ * @param {number} args.durationSeconds   expected finished length
+ * @param {object} [args.subtitle]        { fileUrl } or { cues } — see notes
+ */
+export function compileVlogTimeline({
+  window,
+  plan,
+  urlById,
+  mainAssetId,
+  narrationAssetId = null,
+  ratio = '9:16',
+  durationSeconds,
+  subtitle = null,
+  maxSeconds = 600,
+}) {
+  if (!Array.isArray(plan) || !plan.length) {
+    throw new ProviderError('VOD_TIMELINE_EMPTY', 'auto-edit plan is empty', { status: 400 });
+  }
+  const mainUrl = resolveUrl(mainAssetId, urlById, 'main video');
+
+  const clips = [];
+  let cursor = 0;
+
+  // 1) intro: main video head kept untouched (crop:false => pad, not crop)
+  const materialStart = Number(window?.materialStartSeconds) || 0;
+  if (materialStart > 0) {
+    clips.push({
+      MediaURL: mainUrl,
+      In: 0,
+      Out: round3(materialStart),
+      TimelineIn: 0,
+      TimelineOut: round3(materialStart),
+      // crop:false in the local renderer == fit inside frame with padding
+      ScaleMode: 'fit',
+      Mute: true,
+    });
+    cursor = materialStart;
+  }
+
+  // 2) one clip per planned shot
+  for (let index = 0; index < plan.length; index += 1) {
+    const item = plan[index];
+    const shotDuration = Number(item.timelineEndSeconds) - Number(item.timelineStartSeconds);
+    const assetStart = Number(item.assetStartSeconds);
+    const clip = {
+      MediaURL: resolveUrl(item.assetId, urlById, `plan[${index}]`),
+      In: round3(assetStart),
+      Out: round3(assetStart + shotDuration),
+      TimelineIn: round3(cursor),
+      TimelineOut: round3(cursor + shotDuration),
+      ScaleMode: 'crop',                 // crop:true in the local renderer
+      Mute: true,                        // plan sets muteAudio:true for b-roll
+    };
+    const effect = transitionEffect(item.transition, item.transitionDurationSeconds);
+    if (effect) clip.Effects = [effect];
+    assertClipBounds(clip, `plan[${index}] (${item.segmentId || index})`);
+    clips.push(clip);
+    cursor += shotDuration;
+  }
+
+  // 3) tail: main video ending kept untouched (crop:false)
+  const tail = Number(window?.sourceTailSeconds) || 0;
+  if (tail > 0) {
+    const materialEnd = Number(window.materialEndSeconds);
+    clips.push({
+      MediaURL: mainUrl,
+      In: round3(materialEnd),
+      Out: round3(materialEnd + tail),
+      TimelineIn: round3(cursor),
+      TimelineOut: round3(cursor + tail),
+      ScaleMode: 'fit',
+      Mute: true,
+    });
+    cursor += tail;
+  }
+
+  assertTotalDuration(cursor, { maxSeconds });
+
+  const timeline = { VideoTracks: [{ VideoTrackClips: clips }] };
+
+  // 4) narration audio: the local renderer replaces the whole track with the
+  //    narration file (or the main video's own audio) across the full duration.
+  const audioUrl = resolveUrl(narrationAssetId || mainAssetId, urlById, 'narration audio');
+  timeline.AudioTracks = [{
+    AudioTrackClips: [{
+      MediaURL: audioUrl,
+      TimelineIn: 0,
+      TimelineOut: round3(cursor),
+    }],
+  }];
+
+  if (subtitle) timeline.SubtitleTracks = [buildSubtitleTrack(subtitle)];
+
+  return {
+    timeline,
+    // Reported by the service so callers keep the same contract shape.
+    meta: {
+      durationSeconds: round3(cursor),
+      // 'crop' vs 'fit' is the local crop:true/false semantics.
+      canvas: CANVAS[ratio] || CANVAS['9:16'],
+      shotCount: plan.length,
+      transitions: plan
+        .map((item) => transitionEffect(item.transition, item.transitionDurationSeconds))
+        .filter(Boolean).length,
+      enhancement: LOCAL_ENHANCEMENT_CHAIN,
+    },
+  };
+}
+
+/**
+ * talking-head (pause removal) and industry-viral (highlight picks) share one
+ * shape: N keep-intervals cut from a SINGLE source video, concatenated with
+ * hard cuts, then subtitles burned.
+ *
+ * @param {object} args
+ * @param {Array<{start:number,end:number}>} args.keeps  ordered keep intervals
+ * @param {string} args.sourceAssetId
+ * @param {Map}    args.urlById
+ * @param {string} args.ratio
+ * @param {object} [args.subtitle]
+ */
+export function compileSingleSourceTimeline({
+  keeps,
+  sourceAssetId,
+  urlById,
+  ratio = '9:16',
+  subtitle = null,
+  maxSeconds = 600,
+}) {
+  if (!Array.isArray(keeps) || !keeps.length) {
+    throw new ProviderError('VOD_TIMELINE_EMPTY', 'no keep intervals to render', { status: 400 });
+  }
+  const url = resolveUrl(sourceAssetId, urlById, 'source video');
+
+  const clips = [];
+  let cursor = 0;
+  keeps.forEach((interval, index) => {
+    const start = Number(interval.start);
+    const end = Number(interval.end);
+    const span = end - start;
+    if (!(span > 0)) return;
+    const clip = {
+      MediaURL: url,
+      In: round3(start),
+      Out: round3(end),
+      TimelineIn: round3(cursor),
+      TimelineOut: round3(cursor + span),
+      ScaleMode: 'crop',                 // all three call sites pass crop:true
+    };
+    assertClipBounds(clip, `keep[${index}]`);
+    clips.push(clip);
+    cursor += span;
+  });
+
+  if (!clips.length) {
+    throw new ProviderError('VOD_TIMELINE_EMPTY', 'every keep interval was zero-length', { status: 400 });
+  }
+  assertTotalDuration(cursor, { maxSeconds });
+
+  const timeline = { VideoTracks: [{ VideoTrackClips: clips }] };
+  timeline.AudioTracks = [{
+    AudioTrackClips: clips.map((clip) => ({
+      MediaURL: clip.MediaURL,
+      In: clip.In,
+      Out: clip.Out,
+      TimelineIn: clip.TimelineIn,
+      TimelineOut: clip.TimelineOut,
+    })),
+  }];
+  if (subtitle) timeline.SubtitleTracks = [buildSubtitleTrack(subtitle)];
+
+  return {
+    timeline,
+    meta: {
+      durationSeconds: round3(cursor),
+      canvas: CANVAS[ratio] || CANVAS['9:16'],
+      segmentCount: clips.length,
+      transitions: 0,                    // local renderer uses concat (hard cuts)
+      enhancement: LOCAL_ENHANCEMENT_CHAIN,
+    },
+  };
+}
+
+/**
+ * Subtitle track.
+ *
+ * Two shapes are accepted and they are NOT equivalent in fidelity:
+ *   { fileUrl }  -> external subtitle file (ASS/SRT). Highest fidelity: the
+ *                   local subtitle engine already produced exact styling.
+ *   { cues }     -> explicit text clips. Use when external files are rejected.
+ * Both are unverified against the live service; see the notes in the session.
+ */
+function buildSubtitleTrack(subtitle) {
+  if (subtitle.fileUrl) {
+    return { SubtitleTrackClips: [{ MediaURL: subtitle.fileUrl }] };
+  }
+  if (Array.isArray(subtitle.cues) && subtitle.cues.length) {
+    return {
+      SubtitleTrackClips: subtitle.cues.map((cue) => ({
+        Type: 'Text',
+        Content: String(cue.text ?? ''),
+        TimelineIn: round3(cue.start),
+        TimelineOut: round3(cue.end),
+        ...(cue.fontSize ? { FontSize: Number(cue.fontSize) } : {}),
+      })),
+    };
+  }
+  throw new ProviderError('VOD_TIMELINE_SUBTITLE_INVALID',
+    'subtitle needs either fileUrl or a non-empty cues array', { status: 400 });
+}
+
+/**
+ * How the local service renders each template, in the order the ffmpeg calls
+ * happen. Kept as data so the cloud executor and its tests can assert that the
+ * compiled timeline preserves the same shape.
+ */
+export const LOCAL_PIPELINE_SHAPE = {
+  vlog: ['intro?', 'shots[]', 'tail?', 'concatWithTransitions', 'replaceAudioTrack', 'burnSubtitles'],
+  'talking-head': ['keeps[]', 'concat', 'burnSubtitles'],
+  'industry-viral': ['highlights[]', 'concat', 'burnSubtitles'],
+};
+
+export const CANVAS_DIMENSIONS = CANVAS;

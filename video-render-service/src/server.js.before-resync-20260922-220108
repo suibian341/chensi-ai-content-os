@@ -1,0 +1,1228 @@
+import http from 'node:http';
+import path from 'node:path';
+import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createReadStream, createWriteStream } from 'node:fs';
+import * as fs from 'node:fs/promises';
+import { statfs } from 'node:fs/promises';
+import { Readable, Transform } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
+import { getProviderConfig, commandAvailable } from './providers/config.js';
+import { renderVideo } from './video-engine/index.js';
+import { resolveStorageKey, safeFilename } from './lib/storage.js';
+import { runWithRenderSignal } from './lib/render-context.js';
+import { BackgroundMusicError, createBackgroundMusicLibrary, isBackgroundMusicId } from './lib/background-music.js';
+
+const TERMINAL_STATES = new Set(['completed', 'failed', 'canceled']);
+// `vlog-plan` is the plan-only variant of `vlog`: it returns the compiled IMS
+// Timeline instead of a file, for callers that render on Aliyun IMS.
+const SUPPORTED_TEMPLATES = new Set(['vlog', 'talking-head', 'industry-viral', 'vlog-plan']);
+const ASSET_ID_PATTERN = /^a_([a-f0-9]{64})$/;
+
+function shortId(value, length = 12) {
+  const text = String(value || '');
+  return text.length > length ? `${text.slice(0, length)}...` : text;
+}
+
+function logValue(value) {
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return JSON.stringify(String(value ?? ''));
+}
+
+function logEvent(logger, level, event, fields = {}) {
+  const write = typeof logger?.[level] === 'function'
+    ? logger[level].bind(logger)
+    : typeof logger?.log === 'function'
+      ? logger.log.bind(logger)
+      : null;
+  if (!write) return;
+  const details = Object.entries(fields)
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .map(([key, value]) => `${key}=${logValue(value)}`)
+    .join(' ');
+  write(`[video-render] ${new Date().toISOString()} ${level.toUpperCase()} ${event}${details ? ` ${details}` : ''}`);
+}
+
+function progressBar(progress, width = 20) {
+  const completed = Math.round((Math.max(0, Math.min(100, progress)) / 100) * width);
+  return `${'#'.repeat(completed)}${'-'.repeat(width - completed)}`;
+}
+
+function elapsedMs(job) {
+  const started = Date.parse(job.startedAt || '');
+  return Number.isFinite(started) ? Math.max(0, Date.now() - started) : 0;
+}
+
+function logJobProgress(logger, job, { force = false } = {}) {
+  const progress = Math.max(0, Math.min(100, Math.round(Number(job.progress) || 0)));
+  const stage = String(job.stage || '');
+  if (!force && job.lastLoggedProgress === progress && job.lastLoggedStage === stage) return;
+  job.lastLoggedProgress = progress;
+  job.lastLoggedStage = stage;
+  logEvent(logger, 'info', 'job.progress', {
+    job: job.id,
+    tenant: shortId(job.tenantKey, 8),
+    template: job.template,
+    bar: progressBar(progress),
+    progress,
+    stage,
+    elapsedMs: elapsedMs(job),
+  });
+}
+
+class ServiceError extends Error {
+  constructor(code, message, status = 400) {
+    super(message);
+    this.code = code;
+    this.status = status;
+  }
+}
+
+function sha256Text(value) {
+  return createHash('sha256').update(String(value)).digest('hex');
+}
+
+function tenantIdentity(req) {
+  const raw = String(req.headers['x-render-tenant'] || '').trim();
+  if (!raw || raw.length > 180) throw new ServiceError('TENANT_REQUIRED', 'A valid render tenant is required', 400);
+  return sha256Text(raw).slice(0, 32);
+}
+
+function isAuthorized(req, apiKeys) {
+  const match = String(req.headers.authorization || '').match(/^Bearer\s+(.+)$/i);
+  if (!match || !apiKeys.length) return false;
+  const supplied = Buffer.from(sha256Text(match[1].trim()), 'hex');
+  return apiKeys.some((key) => timingSafeEqual(supplied, Buffer.from(sha256Text(key), 'hex')));
+}
+
+function json(res, status, payload) {
+  const body = Buffer.from(JSON.stringify(payload));
+  res.writeHead(status, {
+    'content-type': 'application/json; charset=utf-8',
+    'content-length': body.length,
+    'cache-control': 'no-store',
+  });
+  res.end(body);
+}
+
+// Result URLs stay relative for direct clients (they already know the origin they
+// called, and the existing adapter resolves them). They become absolute only when
+// the request arrived through a reverse proxy that identified itself, so a proxied
+// client receives ready-to-use download links.
+function publicBaseUrl(req) {
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+  const forwardedHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim();
+  const proxied = forwardedProto === 'https' || forwardedProto === 'http' || Boolean(forwardedHost);
+  if (!proxied) return '';
+  const host = forwardedHost || String(req.headers.host || '').trim();
+  if (!/^[A-Za-z0-9.\-]+(?::\d{1,5})?$/.test(host)) return '';
+  return `${forwardedProto === 'http' || forwardedProto === 'https' ? forwardedProto : 'https'}://${host}`;
+}
+
+function publicError(error) {
+  if (error instanceof ServiceError || error instanceof BackgroundMusicError) {
+    return { status: error.status, code: error.code, message: error.message };
+  }
+  return { status: 500, code: 'INTERNAL_ERROR', message: 'The render service could not process the request' };
+}
+
+async function readJson(req, maxBytes) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > maxBytes) throw new ServiceError('REQUEST_TOO_LARGE', 'Request body is too large', 413);
+    chunks.push(chunk);
+  }
+  if (!size) return {};
+  try {
+    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('object required');
+    return value;
+  } catch {
+    throw new ServiceError('INVALID_JSON', 'Request body must be a JSON object', 400);
+  }
+}
+
+function assetStorageKey(tenantKey, assetId) {
+  const match = String(assetId || '').match(ASSET_ID_PATTERN);
+  if (!match) throw new ServiceError('ASSET_ID_INVALID', 'Asset id is invalid', 400);
+  return `${tenantKey}/assets/${match[1]}.bin`;
+}
+
+function assetImportUrl(value, baseUrl) {
+  let parsed;
+  try {
+    parsed = new URL(String(value || ''), baseUrl);
+  } catch {
+    throw new ServiceError('ASSET_IMPORT_URL_INVALID', 'Asset import URL is invalid', 400);
+  }
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password) {
+    throw new ServiceError('ASSET_IMPORT_URL_INVALID', 'Asset import URL must use HTTPS without embedded credentials', 400);
+  }
+  return parsed;
+}
+
+async function fetchImportedAsset(fetchImpl, sourceUrl, signal) {
+  let current = assetImportUrl(sourceUrl);
+  for (let redirects = 0; redirects <= 3; redirects += 1) {
+    let response;
+    try {
+      response = await fetchImpl(current, {
+        method: 'GET',
+        redirect: 'manual',
+        headers: { accept: 'application/octet-stream' },
+        signal,
+      });
+    } catch (error) {
+      if (signal.aborted) throw error;
+      throw new ServiceError('ASSET_IMPORT_UNREACHABLE', 'Unable to download the source asset', 502);
+    }
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      const location = response.headers.get('location');
+      if (!location || redirects === 3) throw new ServiceError('ASSET_IMPORT_REDIRECT_INVALID', 'Asset import redirected too many times', 502);
+      current = assetImportUrl(location, current);
+      continue;
+    }
+    if (!response.ok || !response.body) {
+      throw new ServiceError('ASSET_IMPORT_HTTP_ERROR', `Source asset returned HTTP ${response.status}`, 502);
+    }
+    return response;
+  }
+  throw new ServiceError('ASSET_IMPORT_REDIRECT_INVALID', 'Asset import redirected too many times', 502);
+}
+
+function publicJob(job, baseUrl = '') {
+  const result = job.status === 'completed' ? job.publicResult : null;
+  // Keep result URLs relative. The main application resolves them against its
+  // configured service base URL and also accepts absolute URLs defensively.
+  const absolute = (value) => value;
+  return {
+    id: job.id,
+    status: job.status,
+    progress: job.progress,
+    stage: job.stage,
+    createdAt: job.createdAt,
+    startedAt: job.startedAt,
+    completedAt: job.completedAt,
+    error: job.error,
+    result: result && result.output
+      ? {
+        ...result,
+        output: {
+          ...result.output,
+          contentUrl: absolute(result.output.contentUrl),
+          subtitleUrl: absolute(result.output.subtitleUrl),
+        },
+      }
+      : result,
+  };
+}
+
+function cleanOutput(output = {}) {
+  const cleaned = { ...output };
+  for (const key of [
+    'filePath',
+    'storageKey',
+    'subtitleStorageKey',
+    'algorithm',
+    'pipelineStages',
+    'transitionPolicy',
+    'scoreThreshold',
+    'maxHighlights',
+    'gapThreshold',
+    'gapPadding',
+    'editSummary',
+    'outline',
+    'clusters',
+  ]) delete cleaned[key];
+  cleaned.autoMatchPlan = Array.isArray(output.autoMatchPlan)
+    ? output.autoMatchPlan.map((item) => ({
+      assetId: item.assetId,
+      assetCategory: item.assetCategory,
+      timelineStartSeconds: item.timelineStartSeconds,
+      timelineEndSeconds: item.timelineEndSeconds,
+      durationSeconds: item.durationSeconds,
+      assetStartSeconds: item.assetStartSeconds,
+      assetEndSeconds: item.assetEndSeconds,
+      transition: item.transition,
+      transitionDurationSeconds: item.transitionDurationSeconds,
+    }))
+    : null;
+  cleaned.highlights = Array.isArray(output.highlights)
+    ? output.highlights.map((item) => ({
+      id: item.id,
+      start: item.start,
+      end: item.end,
+      title: item.title,
+      text: item.text,
+    }))
+    : null;
+  return cleaned;
+}
+
+function sanitizeAssetReference(reference, storageKey) {
+  const tags = Array.isArray(reference.tags)
+    ? reference.tags.map((item) => String(item).slice(0, 120)).slice(0, 50)
+    : [];
+  return {
+    id: String(reference.id || '').slice(0, 180),
+    name: safeFilename(reference.name, 'asset.bin'),
+    mimeType: String(reference.mimeType || 'application/octet-stream').slice(0, 100),
+    kind: String(reference.kind || '').slice(0, 120),
+    tags,
+    description: String(reference.description || '').slice(0, 4_000),
+    autoEditCategory: String(reference.autoEditCategory || '').slice(0, 120),
+    category: String(reference.category || '').slice(0, 120),
+    highlightScore: Number(reference.highlightScore) || 0,
+    sha256: String(reference.sha256 || '').slice(0, 64),
+    contentHash: String(reference.contentHash || '').slice(0, 180),
+    visualFingerprint: String(reference.visualFingerprint || '').slice(0, 180),
+    perceptualHash: String(reference.perceptualHash || '').slice(0, 180),
+    sourceOutputId: String(reference.sourceOutputId || '').slice(0, 180),
+    sourceType: String(reference.sourceType || '').slice(0, 120),
+    createdAt: String(reference.createdAt || '').slice(0, 80),
+    storageKey,
+  };
+}
+
+async function hashFile(filePath) {
+  const hash = createHash('sha256');
+  let sizeBytes = 0;
+  for await (const chunk of createReadStream(filePath)) {
+    hash.update(chunk);
+    sizeBytes += chunk.length;
+  }
+  return { sha256: hash.digest('hex'), sizeBytes };
+}
+
+function parseRange(value, size) {
+  const match = String(value || '').match(/^bytes=(\d*)-(\d*)$/);
+  if (!match) return null;
+  let start;
+  let end;
+  if (!match[1]) {
+    const suffix = Number(match[2]);
+    if (!Number.isInteger(suffix) || suffix <= 0) return null;
+    start = Math.max(0, size - suffix);
+    end = size - 1;
+  } else {
+    start = Number(match[1]);
+    end = match[2] ? Number(match[2]) : size - 1;
+  }
+  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || start >= size || end < start) return null;
+  return { start, end: Math.min(end, size - 1) };
+}
+
+async function serveFile(req, res, file) {
+  const stat = await fs.stat(file.filePath).catch(() => null);
+  if (!stat?.isFile()) throw new ServiceError('RESULT_NOT_FOUND', 'Render result is no longer available', 404);
+  const headers = {
+    'accept-ranges': 'bytes',
+    'content-type': file.mimeType,
+    'cache-control': 'private, max-age=86400, immutable',
+    etag: `"${file.sha256}"`,
+    'content-disposition': `inline; filename*=UTF-8''${encodeURIComponent(file.filename)}`,
+  };
+  const rangeValue = req.headers.range;
+  if (rangeValue) {
+    const range = parseRange(rangeValue, stat.size);
+    if (!range) {
+      res.writeHead(416, { ...headers, 'content-range': `bytes */${stat.size}` });
+      res.end();
+      return;
+    }
+    res.writeHead(206, {
+      ...headers,
+      'content-range': `bytes ${range.start}-${range.end}/${stat.size}`,
+      'content-length': range.end - range.start + 1,
+    });
+    if (req.method === 'HEAD') res.end();
+    else createReadStream(file.filePath, { start: range.start, end: range.end }).pipe(res);
+    return;
+  }
+  res.writeHead(200, { ...headers, 'content-length': stat.size });
+  if (req.method === 'HEAD') res.end();
+  else createReadStream(file.filePath).pipe(res);
+}
+
+function validateJobPayload(payload) {
+  const template = String(payload.template || payload.input?.template || '').trim();
+  if (!SUPPORTED_TEMPLATES.has(template)) throw new ServiceError('TEMPLATE_INVALID', 'Unsupported render template', 400);
+  if (!payload.input || typeof payload.input !== 'object' || Array.isArray(payload.input)) {
+    throw new ServiceError('INPUT_REQUIRED', 'Render input is required', 400);
+  }
+  if (!payload.project || typeof payload.project !== 'object' || Array.isArray(payload.project)) {
+    throw new ServiceError('PROJECT_REQUIRED', 'Project metadata is required', 400);
+  }
+  const assets = Array.isArray(payload.project.assets) ? payload.project.assets : [];
+  if (!assets.length || assets.length > 500) throw new ServiceError('ASSETS_INVALID', 'One to 500 assets are required', 400);
+  return { template, assets };
+}
+
+export function createRenderService({ config = getProviderConfig(), logger = console, fetchImpl = fetch } = {}) {
+  const jobs = new Map();
+  const pendingUploads = new Map();
+  const queue = [];
+  const backgroundMusic = createBackgroundMusicLibrary(config);
+  let activeJobs = 0;
+  let closed = false;
+
+  const lookupJob = (id, tenantKey) => {
+    const job = jobs.get(id);
+    if (!job || job.tenantKey !== tenantKey) throw new ServiceError('JOB_NOT_FOUND', 'Render job was not found', 404);
+    return job;
+  };
+
+  const removeJobFiles = async (job) => {
+    await Promise.all(Object.values(job.files || {}).map((file) => fs.rm(file.filePath, { force: true }).catch(() => {})));
+  };
+
+  const protectedStorageFiles = () => {
+    const protectedFiles = new Set();
+    for (const job of jobs.values()) {
+      if (!TERMINAL_STATES.has(job.status)) {
+        for (const filePath of job.assetFilePaths || []) protectedFiles.add(path.resolve(filePath));
+      }
+      for (const file of Object.values(job.files || {})) {
+        if (file?.filePath) protectedFiles.add(path.resolve(file.filePath));
+      }
+    }
+    for (const [key, pending] of pendingUploads) {
+      if (pending.expiresAt < Date.now()) {
+        pendingUploads.delete(key);
+        continue;
+      }
+      if (pending.filePath) protectedFiles.add(path.resolve(pending.filePath));
+    }
+    return protectedFiles;
+  };
+
+  const sweepDirectory = async (directory, cutoff, protectedFiles) => {
+    const entries = await fs.readdir(directory, { withFileTypes: true }).catch((error) => {
+      if (error?.code === 'ENOENT') return [];
+      throw error;
+    });
+    let removedFiles = 0;
+    let removedBytes = 0;
+    for (const entry of entries) {
+      if (!entry.isFile()) continue;
+      const filePath = path.join(directory, entry.name);
+      if (protectedFiles.has(path.resolve(filePath))) continue;
+      const stat = await fs.stat(filePath).catch(() => null);
+      if (!stat?.isFile() || stat.mtimeMs >= cutoff) continue;
+      await fs.rm(filePath, { force: true });
+      removedFiles += 1;
+      removedBytes += stat.size;
+    }
+    if (removedFiles) await fs.rmdir(directory).catch(() => {});
+    return { removedFiles, removedBytes };
+  };
+
+  const sweepStorage = async () => {
+    const rootEntries = await fs.readdir(config.storage.root, { withFileTypes: true }).catch((error) => {
+      if (error?.code === 'ENOENT') return [];
+      throw error;
+    });
+    const protectedFiles = protectedStorageFiles();
+    const now = Date.now();
+    let removedFiles = 0;
+    let removedBytes = 0;
+    for (const entry of rootEntries) {
+      if (!entry.isDirectory()) continue;
+      for (const [folder, ttlMs] of [
+        ['assets', config.service.assetTtlMs],
+        ['generated', config.service.completedJobTtlMs],
+      ]) {
+        const result = await sweepDirectory(
+          path.join(config.storage.root, entry.name, folder),
+          now - ttlMs,
+          protectedFiles,
+        );
+        removedFiles += result.removedFiles;
+        removedBytes += result.removedBytes;
+      }
+      await fs.rmdir(path.join(config.storage.root, entry.name)).catch(() => {});
+    }
+    if (removedFiles) logEvent(logger, 'info', 'storage.cleanup', { files: removedFiles, bytes: removedBytes });
+    return { removedFiles, removedBytes };
+  };
+
+  // Walks the storage root (all tenants, every subfolder) and reports each file
+  // with its size and mtime. Used by the pressure sweep, which has to consider
+  // age across the whole root rather than per-tenant TTL buckets.
+  const collectStorageFiles = async () => {
+    const files = [];
+    const walk = async (directory) => {
+      const entries = await fs.readdir(directory, { withFileTypes: true }).catch(() => []);
+      for (const entry of entries) {
+        const entryPath = path.join(directory, entry.name);
+        if (entry.isDirectory()) {
+          await walk(entryPath);
+          continue;
+        }
+        if (!entry.isFile()) continue;
+        const stat = await fs.stat(entryPath).catch(() => null);
+        if (stat?.isFile()) files.push({ filePath: entryPath, size: stat.size, mtimeMs: stat.mtimeMs });
+      }
+    };
+    await walk(config.storage.root);
+    return files;
+  };
+
+  // Enforces a hard ceiling on total storage. Deletes the OLDEST unprotected
+  // files first (assets before generated, since a finished video is what the
+  // caller is still waiting for) until usage falls to the target watermark.
+  const enforceStorageQuota = async () => {
+    const limit = config.storage.maxTotalBytes;
+    if (!limit || limit <= 0) return { totalBytes: 0, removedFiles: 0, removedBytes: 0 };
+    const protectedFiles = protectedStorageFiles();
+    let files = await collectStorageFiles();
+    let totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+    if (totalBytes <= limit) return { totalBytes, removedFiles: 0, removedBytes: 0 };
+
+    const configRoot = path.resolve(config.storage.root);
+    // Layout is <root>/<tenant>/<assets|generated>/<file>, so the folder is
+    // segment 1 (0 is the tenant, 2 is the filename). Indexing 2 read the
+    // filename, so this always reported "not generated" and eviction picked
+    // files in arbitrary order instead of preferring regenerable assets.
+    const isGenerated = (filePath) => path.relative(configRoot, filePath).split(path.sep)[1] === 'generated';
+    const candidates = files
+      .filter((file) => !protectedFiles.has(path.resolve(file.filePath)))
+      .sort((left, right) => (
+        Number(isGenerated(left.filePath)) - Number(isGenerated(right.filePath))
+        || left.mtimeMs - right.mtimeMs
+        // Without a final tiebreak, equal mtimes leave the order up to the
+        // directory walk, which made eviction pick an arbitrary file type.
+        || left.filePath.localeCompare(right.filePath)
+      ));
+
+    const target = Math.floor(limit * 0.8);
+    let removedFiles = 0;
+    let removedBytes = 0;
+    for (const file of candidates) {
+      if (totalBytes <= target) break;
+      await fs.rm(file.filePath, { force: true }).catch(() => {});
+      totalBytes -= file.size;
+      removedFiles += 1;
+      removedBytes += file.size;
+    }
+    logEvent(logger, 'warn', 'storage.quota', {
+      limit, target, totalBytes, files: removedFiles, bytes: removedBytes, protected: protectedFiles.size,
+    });
+    return { totalBytes, removedFiles, removedBytes };
+  };
+
+  // `.import-*.tmp` files land inside <tenant>/assets/ while a remote import is
+  // streaming. A completed import renames them, but a killed process leaves them
+  // behind, where they occupy the same budget as real assets for a full TTL.
+  const sweepStaleImportTemps = async () => {
+    const entries = await fs.readdir(config.storage.root, { withFileTypes: true }).catch(() => []);
+    const now = Date.now();
+    let removedFiles = 0;
+    let removedBytes = 0;
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const assetsDir = path.join(config.storage.root, entry.name, 'assets');
+      const files = await fs.readdir(assetsDir).catch(() => []);
+      for (const name of files) {
+        if (!name.includes('.tmp')) continue;
+        const filePath = path.join(assetsDir, name);
+        const stat = await fs.stat(filePath).catch(() => null);
+        if (!stat?.isFile() || now - stat.mtimeMs < 60 * 60_000) continue;
+        await fs.rm(filePath, { force: true }).catch(() => {});
+        removedFiles += 1;
+        removedBytes += stat.size;
+      }
+    }
+    if (removedFiles) logEvent(logger, 'info', 'storage.tmp.cleanup', { files: removedFiles, bytes: removedBytes });
+    return { removedFiles, removedBytes };
+  };
+
+  const pumpQueue = () => {
+    if (closed) return;
+    while (activeJobs < config.service.queueConcurrency && queue.length) {
+      const job = queue.shift();
+      if (!job || job.status !== 'queued') continue;
+      activeJobs += 1;
+      void runJob(job).finally(() => {
+        activeJobs -= 1;
+        pumpQueue();
+      });
+    }
+  };
+
+  const runJob = async (job) => {
+    job.status = 'running';
+    job.startedAt = new Date().toISOString();
+    job.stage = 'Preparing render';
+    job.progress = Math.max(2, job.progress);
+    job.controller = new AbortController();
+    logEvent(logger, 'info', 'job.started', {
+      job: job.id,
+      tenant: shortId(job.tenantKey, 8),
+      template: job.template,
+      assets: job.project.assets.length,
+      active: activeJobs,
+      waiting: queue.filter((item) => item.status === 'queued').length,
+    });
+    logJobProgress(logger, job, { force: true });
+    const timeout = setTimeout(() => {
+      job.timedOut = true;
+      logEvent(logger, 'warn', 'job.timeout', {
+        job: job.id,
+        tenant: shortId(job.tenantKey, 8),
+        template: job.template,
+        timeoutMs: config.service.jobTimeoutMs,
+      });
+      job.controller.abort();
+    }, config.service.jobTimeoutMs);
+    try {
+      const result = await runWithRenderSignal(job.controller.signal, () => renderVideo(
+        { id: job.id },
+        { ...job.input, template: job.template },
+        job.project,
+        {
+          onProgress: async (progress, stage) => {
+            if (job.status !== 'running') return;
+            const next = Math.max(job.progress, Math.min(95, Math.round(Number(progress) || 0)));
+            job.progress = next;
+            job.stage = String(stage || job.stage).slice(0, 180);
+            logJobProgress(logger, job);
+          },
+        },
+      ));
+      if (job.cancelRequested || job.timedOut) {
+        job.status = 'canceled';
+        job.stage = job.timedOut ? 'Render timed out' : 'Render canceled';
+        job.error = { code: job.timedOut ? 'RENDER_TIMEOUT' : 'RENDER_CANCELED', message: job.stage };
+        logEvent(logger, 'warn', 'job.canceled', {
+          job: job.id,
+          tenant: shortId(job.tenantKey, 8),
+          template: job.template,
+          reason: job.stage,
+          elapsedMs: elapsedMs(job),
+        });
+        return;
+      }
+      job.progress = Math.max(job.progress, 96);
+      job.stage = 'Validating output';
+      logJobProgress(logger, job);
+      const outputPath = resolveStorageKey(result.output.storageKey);
+      const videoHash = await hashFile(outputPath);
+      const files = {
+        video: {
+          filePath: outputPath,
+          filename: safeFilename(result.output.filename, 'output.mp4'),
+          mimeType: 'video/mp4',
+          ...videoHash,
+        },
+      };
+      if (result.output.subtitleStorageKey) {
+        const subtitlePath = resolveStorageKey(result.output.subtitleStorageKey);
+        const subtitleHash = await hashFile(subtitlePath);
+        files.subtitle = {
+          filePath: subtitlePath,
+          filename: safeFilename(result.output.subtitleFilename, 'subtitles.srt'),
+          mimeType: String(result.output.subtitleFormat || '').toLowerCase() === 'ass'
+            ? 'text/x-ass; charset=utf-8'
+            : 'application/x-subrip; charset=utf-8',
+          ...subtitleHash,
+        };
+      }
+      job.files = files;
+      job.publicResult = {
+        provider: 'private-video-render-service',
+        model: result.model || null,
+        externalTaskId: job.id,
+        output: {
+          ...cleanOutput(result.output),
+          filename: files.video.filename,
+          sizeBytes: files.video.sizeBytes,
+          sha256: files.video.sha256,
+          contentUrl: `/v1/render-jobs/${job.id}/content`,
+          subtitleFilename: files.subtitle?.filename || null,
+          subtitleSha256: files.subtitle?.sha256 || null,
+          subtitleUrl: files.subtitle ? `/v1/render-jobs/${job.id}/subtitles` : null,
+        },
+      };
+      job.status = 'completed';
+      job.progress = 100;
+      job.stage = 'Render completed';
+      logJobProgress(logger, job);
+      logEvent(logger, 'info', 'job.completed', {
+        job: job.id,
+        tenant: shortId(job.tenantKey, 8),
+        template: job.template,
+        elapsedMs: elapsedMs(job),
+        outputBytes: files.video.sizeBytes,
+        subtitles: Boolean(files.subtitle),
+      });
+    } catch (error) {
+      const canceled = job.cancelRequested || job.timedOut || error?.code === 'RENDER_CANCELED';
+      job.status = canceled ? 'canceled' : 'failed';
+      const failureCode = String(error?.code || 'RENDER_FAILED').slice(0, 120);
+      const failureMessage = String(error?.message || 'Render failed').slice(0, 500);
+      job.stage = job.timedOut ? 'Render timed out' : canceled ? 'Render canceled' : failureMessage;
+      job.error = {
+        code: job.timedOut ? 'RENDER_TIMEOUT' : canceled ? 'RENDER_CANCELED' : failureCode,
+        message: job.timedOut ? 'Render timed out' : canceled ? 'Render canceled' : failureMessage,
+      };
+      logEvent(logger, canceled ? 'warn' : 'error', canceled ? 'job.canceled' : 'job.failed', {
+        job: job.id,
+        tenant: shortId(job.tenantKey, 8),
+        template: job.template,
+        code: error?.code || job.error.code,
+        error: error?.message || job.stage,
+        elapsedMs: elapsedMs(job),
+      });
+      await removeJobFiles(job);
+    } finally {
+      clearTimeout(timeout);
+      job.completedAt = new Date().toISOString();
+      job.controller = null;
+      job.input = null;
+      job.project = null;
+    }
+  };
+
+  // statfs reports ENOENT when the path itself is missing, and the storage root is
+  // created lazily by the first write. Ensure it exists before probing so a fresh
+  // install is not mistaken for an unreadable disk.
+  const storageFreeBytes = async () => {
+    await fs.mkdir(config.storage.root, { recursive: true }).catch(() => {});
+    const info = await statfs(config.storage.root);
+    return info.bavail * info.bsize;
+  };
+
+  // Called before accepting bytes. When space is tight we first give the quota
+  // sweep a chance to reclaim, and only refuse if that was not enough — so a
+  // transient spike frees itself instead of failing the caller outright.
+  const ensureUploadSpace = async (incomingBytes = 0) => {
+    const floor = config.storage.minFreeBytes;
+    if (!floor || floor <= 0) return;
+    let free;
+    try {
+      free = await storageFreeBytes();
+    } catch {
+      // Fail CLOSED: if free space cannot be determined we must not accept an
+      // upload, otherwise the service keeps writing until the disk is full and
+      // every later upload, render and log write dies with a bare ENOSPC.
+      logEvent(logger, 'error', 'storage.probe.failed', { root: config.storage.root });
+      throw new ServiceError('STORAGE_UNAVAILABLE', 'Render storage is not readable', 507);
+    }
+    if (free - incomingBytes >= floor) return;
+    logEvent(logger, 'warn', 'storage.pressure', { freeBytes: free, floor, incomingBytes });
+    await enforceStorageQuota().catch(() => {});
+    await sweepStorage().catch(() => {});
+    await sweepStaleImportTemps().catch(() => {});
+    try {
+      free = await storageFreeBytes();
+    } catch {
+      throw new ServiceError('STORAGE_UNAVAILABLE', 'Render storage is not readable', 507);
+    }
+    if (free - incomingBytes < Math.floor(floor / 2)) {
+      throw new ServiceError(
+        'STORAGE_FULL',
+        'Render storage is out of space; retry after cleanup',
+        507,
+      );
+    }
+  };
+
+  const prepareAsset = async (req, res, tenantKey) => {
+    const payload = await readJson(req, config.service.maxJsonBytes);
+    const sha256 = String(payload.sha256 || '').trim().toLowerCase();
+    const sizeBytes = Number(payload.sizeBytes);
+    if (!/^[a-f0-9]{64}$/.test(sha256)) throw new ServiceError('ASSET_HASH_INVALID', 'Asset SHA-256 is invalid', 400);
+    if (!Number.isSafeInteger(sizeBytes) || sizeBytes <= 0 || sizeBytes > config.storage.maxBytes) {
+      throw new ServiceError('ASSET_SIZE_INVALID', 'Asset size is invalid', 400);
+    }
+    const assetId = `a_${sha256}`;
+    const storageKey = assetStorageKey(tenantKey, assetId);
+    const filePath = resolveStorageKey(storageKey);
+    const stat = await fs.stat(filePath).catch(() => null);
+    const exists = Boolean(stat?.isFile() && stat.size === sizeBytes);
+    // Only a cache miss will actually consume new space.
+    if (!exists) await ensureUploadSpace(sizeBytes);
+    const pendingKey = `${tenantKey}:${assetId}`;
+    const pending = {
+      assetId,
+      sha256,
+      sizeBytes,
+      name: safeFilename(payload.name, 'asset.bin'),
+      mimeType: String(payload.mimeType || 'application/octet-stream').slice(0, 100),
+      filePath,
+      expiresAt: Date.now() + 15 * 60_000,
+    };
+    if (!exists) {
+      pendingUploads.set(pendingKey, pending);
+    } else {
+      // The mtime is the cache's last-access timestamp and drives orphan cleanup.
+      await fs.utimes(filePath, new Date(), new Date()).catch(() => {});
+      pendingUploads.set(pendingKey, pending);
+    }
+    logEvent(logger, 'info', 'asset.prepared', {
+      tenant: shortId(tenantKey, 8),
+      asset: shortId(assetId),
+      bytes: sizeBytes,
+      cache: exists ? 'hit' : 'miss',
+    });
+    json(res, 200, {
+      assetId,
+      exists,
+      uploadUrl: exists ? null : `/v1/assets/${assetId}/content`,
+    });
+  };
+
+  const uploadAsset = async (req, res, tenantKey, assetId) => {
+    const key = `${tenantKey}:${assetId}`;
+    const pending = pendingUploads.get(key);
+    if (!pending || pending.expiresAt < Date.now()) {
+      pendingUploads.delete(key);
+      throw new ServiceError('ASSET_PREPARE_REQUIRED', 'Prepare the asset before uploading it', 409);
+    }
+    const declaredLength = Number(req.headers['content-length']);
+    if (Number.isFinite(declaredLength) && declaredLength !== pending.sizeBytes) {
+      throw new ServiceError('ASSET_SIZE_MISMATCH', 'Asset size does not match prepare request', 400);
+    }
+    const storageKey = assetStorageKey(tenantKey, assetId);
+    const destination = resolveStorageKey(storageKey);
+    await fs.mkdir(path.dirname(destination), { recursive: true });
+    const temporary = `${destination}.${process.pid}.${randomUUID()}.tmp`;
+    const hash = createHash('sha256');
+    let sizeBytes = 0;
+    const verifier = new Transform({
+      transform(chunk, encoding, callback) {
+        sizeBytes += chunk.length;
+        if (sizeBytes > pending.sizeBytes || sizeBytes > config.storage.maxBytes) {
+          callback(new ServiceError('ASSET_SIZE_MISMATCH', 'Uploaded asset is larger than expected', 400));
+          return;
+        }
+        hash.update(chunk);
+        callback(null, chunk);
+      },
+    });
+    try {
+      logEvent(logger, 'info', 'asset.upload.started', {
+        tenant: shortId(tenantKey, 8),
+        asset: shortId(assetId),
+        bytes: pending.sizeBytes,
+      });
+      await pipeline(req, verifier, createWriteStream(temporary, { flags: 'wx' }));
+      const digest = hash.digest('hex');
+      if (sizeBytes !== pending.sizeBytes || digest !== pending.sha256) {
+        throw new ServiceError('ASSET_INTEGRITY_FAILED', 'Uploaded asset failed integrity verification', 400);
+      }
+      const existing = await fs.stat(destination).catch(() => null);
+      if (existing?.isFile() && existing.size === sizeBytes) await fs.rm(temporary, { force: true });
+      else {
+        if (existing) await fs.rm(destination, { force: true });
+        await fs.rename(temporary, destination);
+      }
+      pendingUploads.delete(key);
+      logEvent(logger, 'info', 'asset.upload.completed', {
+        tenant: shortId(tenantKey, 8),
+        asset: shortId(assetId),
+        bytes: sizeBytes,
+      });
+      json(res, 201, { assetId, sizeBytes, sha256: digest });
+    } finally {
+      await fs.rm(temporary, { force: true }).catch(() => {});
+    }
+  };
+
+  const importAsset = async (req, res, tenantKey) => {
+    const payload = await readJson(req, config.service.maxJsonBytes);
+    const expectedSha256 = String(payload.sha256 || '').trim().toLowerCase();
+    const expectedSize = Number(payload.sizeBytes);
+    if (expectedSha256 && !/^[a-f0-9]{64}$/.test(expectedSha256)) {
+      throw new ServiceError('ASSET_HASH_INVALID', 'Asset SHA-256 is invalid', 400);
+    }
+    if (!Number.isSafeInteger(expectedSize) || expectedSize <= 0 || expectedSize > config.storage.maxBytes) {
+      throw new ServiceError('ASSET_SIZE_INVALID', 'Asset size is invalid', 400);
+    }
+    // A cache hit costs nothing; only a real fetch writes new bytes.
+    const willWrite = !(expectedSha256 && await fs
+      .stat(resolveStorageKey(assetStorageKey(tenantKey, `a_${expectedSha256}`)))
+      .then((item) => item.isFile() && item.size === expectedSize)
+      .catch(() => false));
+    if (willWrite) await ensureUploadSpace(expectedSize);
+    const sourceUrl = assetImportUrl(payload.sourceUrl).toString();
+    if (expectedSha256) {
+      const cachedAssetId = `a_${expectedSha256}`;
+      const cachedPath = resolveStorageKey(assetStorageKey(tenantKey, cachedAssetId));
+      const cached = await fs.stat(cachedPath).catch(() => null);
+      if (cached?.isFile() && cached.size === expectedSize) {
+        const now = new Date();
+        await fs.utimes(cachedPath, now, now).catch(() => {});
+        logEvent(logger, 'info', 'asset.import.cached', {
+          tenant: shortId(tenantKey, 8),
+          asset: shortId(cachedAssetId),
+          bytes: expectedSize,
+        });
+        json(res, 200, { assetId: cachedAssetId, exists: true, sizeBytes: expectedSize, sha256: expectedSha256 });
+        return;
+      }
+    }
+
+    const importDirectory = resolveStorageKey(`${tenantKey}/assets`);
+    await fs.mkdir(importDirectory, { recursive: true });
+    const temporary = path.join(importDirectory, `.import-${process.pid}-${randomUUID()}.tmp`);
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, config.service.assetImportTimeoutMs);
+    const onDisconnect = () => {
+      if (!res.writableEnded) controller.abort();
+    };
+    res.once('close', onDisconnect);
+    const hash = createHash('sha256');
+    let sizeBytes = 0;
+    const verifier = new Transform({
+      transform(chunk, encoding, callback) {
+        sizeBytes += chunk.length;
+        if (sizeBytes > expectedSize || sizeBytes > config.storage.maxBytes) {
+          callback(new ServiceError('ASSET_SIZE_MISMATCH', 'Imported asset is larger than expected', 400));
+          return;
+        }
+        hash.update(chunk);
+        callback(null, chunk);
+      },
+    });
+    try {
+      logEvent(logger, 'info', 'asset.import.started', {
+        tenant: shortId(tenantKey, 8),
+        bytes: expectedSize,
+        sourceHost: new URL(sourceUrl).hostname,
+      });
+      const response = await fetchImportedAsset(fetchImpl, sourceUrl, controller.signal);
+      const declaredLength = Number(response.headers.get('content-length'));
+      if (Number.isFinite(declaredLength) && declaredLength !== expectedSize) {
+        throw new ServiceError('ASSET_SIZE_MISMATCH', 'Source asset size does not match the import request', 400);
+      }
+      await pipeline(Readable.fromWeb(response.body), verifier, createWriteStream(temporary, { flags: 'wx' }), { signal: controller.signal });
+      const sha256 = hash.digest('hex');
+      if (sizeBytes !== expectedSize || (expectedSha256 && sha256 !== expectedSha256)) {
+        throw new ServiceError('ASSET_INTEGRITY_FAILED', 'Imported asset failed integrity verification', 400);
+      }
+      const assetId = `a_${sha256}`;
+      const destination = resolveStorageKey(assetStorageKey(tenantKey, assetId));
+      const existing = await fs.stat(destination).catch(() => null);
+      if (existing?.isFile() && existing.size === sizeBytes) {
+        await fs.rm(temporary, { force: true });
+      } else {
+        if (existing) await fs.rm(destination, { force: true });
+        await fs.rename(temporary, destination);
+      }
+      logEvent(logger, 'info', 'asset.import.completed', {
+        tenant: shortId(tenantKey, 8),
+        asset: shortId(assetId),
+        bytes: sizeBytes,
+      });
+      res.removeListener('close', onDisconnect);
+      json(res, 201, { assetId, exists: false, sizeBytes, sha256 });
+    } catch (error) {
+      if (timedOut) throw new ServiceError('ASSET_IMPORT_TIMEOUT', 'Asset import timed out', 408);
+      if (controller.signal.aborted && !res.writableEnded) throw new ServiceError('ASSET_IMPORT_CANCELED', 'Asset import was canceled', 499);
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+      res.removeListener('close', onDisconnect);
+      await fs.rm(temporary, { force: true }).catch(() => {});
+    }
+  };
+
+  const createJob = async (req, res, tenantKey, baseUrl = '') => {
+    const payload = await readJson(req, config.service.maxJsonBytes);
+    const { template, assets } = validateJobPayload(payload);
+    const mappedAssets = [];
+    for (const reference of assets) {
+      const originalId = String(reference?.id || '').trim();
+      if (!originalId || originalId.length > 180) throw new ServiceError('ASSET_REFERENCE_INVALID', 'Asset reference id is invalid', 400);
+      const remoteAssetId = String(reference.remoteAssetId || '').trim();
+      const storageKey = assetStorageKey(tenantKey, remoteAssetId);
+      const filePath = resolveStorageKey(storageKey);
+      const stat = await fs.stat(filePath).catch(() => null);
+      if (!stat?.isFile()) throw new ServiceError('ASSET_NOT_READY', 'A referenced asset has not been uploaded', 409);
+      const now = new Date();
+      await fs.utimes(filePath, now, now).catch(() => {});
+      mappedAssets.push(sanitizeAssetReference(reference, storageKey));
+      pendingUploads.delete(`${tenantKey}:${remoteAssetId}`);
+    }
+    const jobId = `job_${randomUUID().replace(/-/g, '')}`;
+    const projectHash = sha256Text(String(payload.project.id || 'project')).slice(0, 24);
+    const input = { ...payload.input, template };
+    delete input.videoSample;
+    delete input.backgroundMusicPath;
+    delete input.backgroundMusicName;
+    const backgroundMusicId = String(input.backgroundMusicId || '').trim();
+    if (backgroundMusicId) {
+      if (!isBackgroundMusicId(backgroundMusicId)) {
+        throw new ServiceError('BACKGROUND_MUSIC_ID_INVALID', 'Background music id is invalid', 400);
+      }
+      const selectedMusic = await backgroundMusic.resolve(backgroundMusicId);
+      if (!selectedMusic) throw new ServiceError('BACKGROUND_MUSIC_NOT_FOUND', 'Selected background music is no longer available', 409);
+      const volume = input.backgroundMusicVolume === undefined ? 0.18 : Number(input.backgroundMusicVolume);
+      if (!Number.isFinite(volume) || volume < 0 || volume > 1) {
+        throw new ServiceError('BACKGROUND_MUSIC_VOLUME_INVALID', 'Background music volume must be between 0 and 1', 400);
+      }
+      input.backgroundMusicId = selectedMusic.id;
+      input.backgroundMusicName = selectedMusic.name;
+      input.backgroundMusicPath = selectedMusic.filePath;
+      input.backgroundMusicVolume = Math.round(volume * 1000) / 1000;
+    } else {
+      delete input.backgroundMusicId;
+      delete input.backgroundMusicVolume;
+    }
+    const history = Array.isArray(payload.project.outputs)
+      ? payload.project.outputs.slice(0, 12).map((item) => ({
+        id: String(item?.id || '').slice(0, 180),
+        template: String(item?.template || '').slice(0, 80),
+        autoMatchPlan: Array.isArray(item?.autoMatchPlan) ? item.autoMatchPlan.slice(0, 500) : null,
+      }))
+      : [];
+    const job = {
+      id: jobId,
+      tenantKey,
+      status: 'queued',
+      progress: 1,
+      stage: 'Queued',
+      createdAt: new Date().toISOString(),
+      startedAt: null,
+      completedAt: null,
+      error: null,
+      publicResult: null,
+      files: {},
+      assetFilePaths: [...new Set(mappedAssets.map((asset) => resolveStorageKey(asset.storageKey)))],
+      backgroundMusicId: input.backgroundMusicId || null,
+      input,
+      template,
+      project: {
+        id: `${tenantKey}-${projectHash}`,
+        name: String(payload.project.name || 'video').slice(0, 180),
+        assets: mappedAssets,
+        outputs: history,
+      },
+    };
+    jobs.set(jobId, job);
+    queue.push(job);
+    logEvent(logger, 'info', 'job.queued', {
+      job: job.id,
+      tenant: shortId(job.tenantKey, 8),
+      template: job.template,
+      assets: mappedAssets.length,
+      waiting: queue.filter((item) => item.status === 'queued').length,
+    });
+    pumpQueue();
+    json(res, 202, publicJob(job, baseUrl));
+  };
+
+  const cancelJob = async (res, job, baseUrl = '') => {
+    if (TERMINAL_STATES.has(job.status)) {
+      const released = publicJob(job, baseUrl);
+      jobs.delete(job.id);
+      await removeJobFiles(job);
+      logEvent(logger, 'info', 'job.released', {
+        job: job.id,
+        tenant: shortId(job.tenantKey, 8),
+        template: job.template,
+      });
+      json(res, 200, { ...released, released: true });
+      return;
+    }
+    job.cancelRequested = true;
+    if (job.status === 'queued') {
+      job.status = 'canceled';
+      job.progress = 0;
+      job.stage = 'Render canceled';
+      job.completedAt = new Date().toISOString();
+      job.error = { code: 'RENDER_CANCELED', message: job.stage };
+      job.input = null;
+      job.project = null;
+      logEvent(logger, 'warn', 'job.canceled', {
+        job: job.id,
+        tenant: shortId(job.tenantKey, 8),
+        template: job.template,
+        reason: 'canceled while queued',
+      });
+    } else {
+      logEvent(logger, 'warn', 'job.cancel.requested', {
+        job: job.id,
+        tenant: shortId(job.tenantKey, 8),
+        template: job.template,
+        progress: job.progress,
+      });
+      job.controller?.abort();
+    }
+    json(res, 202, publicJob(job, baseUrl));
+  };
+
+  const server = http.createServer(async (req, res) => {
+    const requestStartedAt = Date.now();
+    let requestPath = '';
+    let requestTenantKey = '';
+    let logRequest = false;
+    res.setHeader('x-content-type-options', 'nosniff');
+    res.setHeader('x-frame-options', 'DENY');
+    res.once('finish', () => {
+      if (!logRequest) return;
+      logEvent(logger, res.statusCode >= 400 ? 'warn' : 'info', 'http.request', {
+        method: req.method,
+        path: requestPath,
+        status: res.statusCode,
+        tenant: shortId(requestTenantKey, 8),
+        elapsedMs: Date.now() - requestStartedAt,
+      });
+    });
+    try {
+      const url = new URL(req.url || '/', 'http://render-service.local');
+      requestPath = url.pathname;
+      logRequest = ['POST', 'PUT', 'DELETE'].includes(req.method || '');
+      if (url.pathname === '/health' && req.method === 'GET') {
+        const ffmpegReady = config.media.enabled && commandAvailable(config.media.ffmpegPath);
+        const ffprobeReady = config.media.enabled && commandAvailable(config.media.ffprobePath);
+        json(res, ffmpegReady && ffprobeReady ? 200 : 503, {
+          status: ffmpegReady && ffprobeReady ? 'ready' : 'unavailable',
+          queue: { active: activeJobs, waiting: queue.filter((item) => item.status === 'queued').length },
+        });
+        return;
+      }
+      if (!isAuthorized(req, config.service.apiKeys)) throw new ServiceError('UNAUTHORIZED', 'Valid service credentials are required', 401);
+      const tenantKey = tenantIdentity(req);
+      requestTenantKey = tenantKey;
+      if (url.pathname === '/v1/background-music' && req.method === 'GET') {
+        json(res, 200, { items: await backgroundMusic.list() });
+        return;
+      }
+      if (url.pathname === '/v1/background-music' && req.method === 'POST') {
+        let name = String(req.headers['x-background-music-name'] || 'background-music.mp3');
+        try { name = decodeURIComponent(name); } catch {}
+        const result = await backgroundMusic.upload(req, {
+          name,
+          mimeType: String(req.headers['content-type'] || 'application/octet-stream').split(';')[0],
+          declaredLength: req.headers['content-length'],
+        });
+        logEvent(logger, 'info', result.created ? 'background-music.uploaded' : 'background-music.reused', {
+          music: shortId(result.music.id),
+          bytes: result.music.sizeBytes,
+          durationSeconds: result.music.durationSeconds,
+        });
+        json(res, result.created ? 201 : 200, result.music);
+        return;
+      }
+      const backgroundMusicMatch = url.pathname.match(/^\/v1\/background-music\/(bgm_[a-f0-9]{32})(?:\/(content))?$/);
+      if (backgroundMusicMatch) {
+        const record = await backgroundMusic.resolve(backgroundMusicMatch[1]);
+        if (!record) throw new ServiceError('BACKGROUND_MUSIC_NOT_FOUND', 'Background music was not found', 404);
+        if (backgroundMusicMatch[2] && (req.method === 'GET' || req.method === 'HEAD')) {
+          await serveFile(req, res, {
+            filePath: record.filePath,
+            filename: record.name,
+            mimeType: record.mimeType,
+            sizeBytes: record.sizeBytes,
+            sha256: record.sha256,
+          });
+          return;
+        }
+        if (!backgroundMusicMatch[2] && req.method === 'DELETE') {
+          const removed = await backgroundMusic.remove(record.id, {
+            isInUse: (id) => [...jobs.values()].some((job) => job.backgroundMusicId === id && !TERMINAL_STATES.has(job.status)),
+          });
+          logEvent(logger, 'info', 'background-music.deleted', { music: shortId(removed.id), bytes: removed.sizeBytes });
+          json(res, 200, removed);
+          return;
+        }
+      }
+      if (url.pathname === '/v1/assets/prepare' && req.method === 'POST') {
+        await prepareAsset(req, res, tenantKey);
+        return;
+      }
+      if (url.pathname === '/v1/assets/import' && req.method === 'POST') {
+        await importAsset(req, res, tenantKey);
+        return;
+      }
+      const assetMatch = url.pathname.match(/^\/v1\/assets\/(a_[a-f0-9]{64})\/content$/);
+      if (assetMatch && req.method === 'PUT') {
+        await uploadAsset(req, res, tenantKey, assetMatch[1]);
+        return;
+      }
+      if (url.pathname === '/v1/render-jobs' && req.method === 'POST') {
+        await createJob(req, res, tenantKey, publicBaseUrl(req));
+        return;
+      }
+      const jobMatch = url.pathname.match(/^\/v1\/render-jobs\/(job_[a-f0-9]{32})(?:\/(content|subtitles))?$/);
+      if (jobMatch) {
+        const job = lookupJob(jobMatch[1], tenantKey);
+        if (!jobMatch[2] && req.method === 'GET') {
+          json(res, 200, publicJob(job, publicBaseUrl(req)));
+          return;
+        }
+        if (!jobMatch[2] && req.method === 'DELETE') {
+          await cancelJob(res, job, publicBaseUrl(req));
+          return;
+        }
+        if (job.status !== 'completed') throw new ServiceError('RESULT_NOT_READY', 'Render result is not ready', 409);
+        const file = jobMatch[2] === 'subtitles' ? job.files.subtitle : job.files.video;
+        if (!file) throw new ServiceError('RESULT_NOT_FOUND', 'Requested render result was not found', 404);
+        if (req.method === 'GET' || req.method === 'HEAD') {
+          await serveFile(req, res, file);
+          return;
+        }
+      }
+      throw new ServiceError('NOT_FOUND', 'Endpoint was not found', 404);
+    } catch (error) {
+      const output = publicError(error);
+      logEvent(logger, output.status >= 500 ? 'error' : 'warn', 'http.error', {
+        method: req.method,
+        path: requestPath || req.url,
+        status: output.status,
+        code: output.code,
+        error: error?.message || output.message,
+        tenant: shortId(requestTenantKey, 8),
+        elapsedMs: Date.now() - requestStartedAt,
+      });
+      if (!res.headersSent && !res.destroyed && !res.writableEnded) json(res, output.status, { error: { code: output.code, message: output.message } });
+      else if (!res.destroyed) res.destroy();
+    }
+  });
+  // Large source videos can take longer than Node's five-minute default to upload.
+  server.requestTimeout = config.service.requestTimeoutMs;
+
+  const runCleanup = () => {
+    const cutoff = Date.now() - config.service.completedJobTtlMs;
+    for (const [id, job] of jobs) {
+      if (!TERMINAL_STATES.has(job.status) || Date.parse(job.completedAt || '') >= cutoff) continue;
+      jobs.delete(id);
+      void removeJobFiles(job);
+    }
+    for (const [key, pending] of pendingUploads) {
+      if (pending.expiresAt < Date.now()) pendingUploads.delete(key);
+    }
+    // Order matters: reclaim by age first (cheap, expected), then drop leftover
+    // import temps, and only then enforce the hard ceiling on what is left.
+    void (async () => {
+      await sweepStaleImportTemps();
+      await sweepStorage();
+      await enforceStorageQuota();
+    })().catch((error) => {
+      logEvent(logger, 'error', 'storage.cleanup.failed', { error: error?.message || error });
+    });
+  };
+  const cleanupIntervalMs = Math.max(1_000, Math.min(
+    config.service.completedJobTtlMs,
+    config.service.assetTtlMs,
+    10 * 60_000,
+  ));
+  const cleanup = setInterval(runCleanup, cleanupIntervalMs);
+  cleanup.unref();
+  runCleanup();
+
+  server.once('close', () => {
+    closed = true;
+    clearInterval(cleanup);
+    for (const job of jobs.values()) job.controller?.abort();
+  });
+  return server;
+}

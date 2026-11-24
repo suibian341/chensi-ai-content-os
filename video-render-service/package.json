@@ -1,0 +1,11 @@
+{
+  "name": "chensi-video-render-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "smoke:adapter": "node scripts/smoke-main-adapter.mjs"
+  }
+}

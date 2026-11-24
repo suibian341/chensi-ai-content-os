@@ -1,0 +1,221 @@
+/**
+ * Auto-edit plan computation, without any rendering.
+ *
+ * Extracted from tiktok-vlog.js so the plan can be produced on its own and sent
+ * to a different renderer. Measured cost is ~20 ms and ~63 MB for a 208-asset
+ * project, so this runs comfortably on a small host — the expensive parts of a
+ * job are transcription and the encode, not this.
+ *
+ * Everything here is a pure decision: which asset, where to cut, which
+ * transition. Nothing reads media bytes, so the caller decides how to execute it
+ * (local ffmpeg, IMS Timeline, or anything else).
+ */
+
+import { ProviderError } from '../lib/http.js';
+import { findSource, probeDuration } from '../providers/media.js';
+import { transcribeWords } from './whisper.js';
+import { compileVlogTimeline, TRANSITION_SUBTYPE, IMS_TRANSITION_ROTATION } from './aliyun-timeline.js';
+import {
+  AUTO_EDIT_MAX_SHOT_SECONDS,
+  AUTO_EDIT_MIN_SHOT_SECONDS,
+  autoEditWindow,
+  autoEditShotTimeline,
+  buildAutoEditPlan,
+  isAutoEditOutputAsset,
+  scriptTimeline,
+} from './tiktok-vlog.js';
+
+function finite(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+/**
+ * Build the full auto-edit decision set for a vlog job.
+ *
+ * @returns plan, the shot timeline, the edit window, and the resolved asset map
+ *          so a caller can render through any backend without recomputing.
+ */
+export async function buildVlogPlan(task, input, project, {
+  onProgress = async () => {},
+  mediaConfig,
+  translate = async () => {},
+  transcription: suppliedTranscription = null,
+} = {}) {
+  const config = mediaConfig || {
+    ffmpegPath: process.env.VIDEO_RENDER_FFMPEG_PATH || 'ffmpeg',
+    ffprobePath: process.env.VIDEO_RENDER_FFPROBE_PATH || 'ffprobe',
+    timeoutMs: finite(process.env.VIDEO_RENDER_MEDIA_TIMEOUT_MS, 30 * 60_000),
+  };
+
+  // ---- main asset ---------------------------------------------------------
+  const ids = [...new Set([
+    ...(Array.isArray(input.videoAssetIds) ? input.videoAssetIds : []),
+    input.videoAssetId,
+  ].filter(Boolean).map(String))];
+  if (ids.length > 1) {
+    throw new ProviderError('VIDEO_MAIN_ASSET_COUNT_INVALID',
+      'AI 自动剪辑只需选择一条主视频，其他视频会从素材库自动匹配', { status: 400 });
+  }
+  const mainSource = ids.length
+    ? await findSource({ assetId: ids[0], assets: project.assets, mimePrefix: 'video/', timeoutMs: config.timeoutMs })
+    : await findSource({ explicit: input.videoSample, assets: project.assets, mimePrefix: 'video/', timeoutMs: config.timeoutMs });
+  if (!mainSource?.filePath) {
+    throw new ProviderError('VIDEO_ASSET_REQUIRED', '请先选择一条数字人主视频', { status: 400 });
+  }
+  const mainAsset = (project.assets || []).find((item) => String(item.id) === String(mainSource.assetId));
+  if (isAutoEditOutputAsset(mainAsset, project.outputs)) {
+    throw new ProviderError('VIDEO_AUTO_EDIT_RECURSIVE_SOURCE',
+      '自动剪辑成片不能再次作为主视频，请选择原始视频或数字人口播成片', { status: 400 });
+  }
+  await onProgress(12, '主视频已读取');
+
+  // ---- candidate b-roll ---------------------------------------------------
+  const candidateAssets = (project.assets || []).filter((asset) => (
+    asset.id !== mainSource.assetId
+    && asset.storageKey
+    && String(asset.mimeType || '').startsWith('video/')
+    && !isAutoEditOutputAsset(asset, project.outputs)
+  ));
+  if (!candidateAssets.length) {
+    throw new ProviderError('VIDEO_BROLL_REQUIRED',
+      '素材库还没有可自动匹配的辅助视频，请至少再上传一条视频素材', { status: 400 });
+  }
+  const candidateSources = await Promise.all(candidateAssets.map((asset) => (
+    findSource({ assetId: asset.id, assets: project.assets, mimePrefix: 'video/', timeoutMs: config.timeoutMs })
+  )));
+  const [mainDuration, candidateDurations] = await Promise.all([
+    probeDuration(mainSource.filePath, config),
+    Promise.all(candidateSources.map((source) => probeDuration(source.filePath, config))),
+  ]);
+  await onProgress(24, '候选素材已读取');
+
+  // ---- transcription (local; IMS has no equivalent for the shot planner) ---
+  const window = autoEditWindow(mainDuration, {
+    materialStartSeconds: input.materialStartSeconds,
+    sourceTailSeconds: input.sourceTailSeconds,
+  });
+  let transcription = suppliedTranscription
+    || (Array.isArray(input.transcriptWords)
+      ? { words: input.transcriptWords, text: input.transcriptText || '' }
+      : null);
+  if (!transcription) {
+    try {
+      transcription = await transcribeWords(mainSource.filePath, {
+        language: String(input.language || '').split(/[-_]/)[0] || undefined,
+      });
+    } catch (error) {
+      if (error?.code === 'RENDER_CANCELED') throw error;
+      // A supplied script still gives deterministic semantic timing.
+    }
+  }
+  const timedWords = Array.isArray(transcription?.words) ? transcription.words : [];
+  const transcriptText = String(transcription?.text
+    || timedWords.map((item) => item.word || item.text || '').join('')).trim();
+  const semanticText = transcriptText || String(input.subtitleText || '').trim();
+  const timeline = scriptTimeline({ ...window, text: semanticText, words: timedWords });
+  await onProgress(36, '口播时间线已识别');
+
+  // ---- plan ---------------------------------------------------------------
+  const candidatesWithDuration = candidateAssets.map((asset, index) => ({
+    ...asset,
+    durationSeconds: candidateDurations[index],
+  }));
+  const shotTimeline = autoEditShotTimeline(timeline, candidatesWithDuration, {
+    minimumShotSeconds: AUTO_EDIT_MIN_SHOT_SECONDS,
+    maximumShotSeconds: AUTO_EDIT_MAX_SHOT_SECONDS,
+  });
+  const plan = buildAutoEditPlan({
+    ...window,
+    timeline: shotTimeline,
+    assets: candidatesWithDuration,
+    seed: input.matchSeed || task.id,
+    historyPlans: (project.outputs || [])
+      .filter((output) => output.template === 'vlog' && Array.isArray(output.autoMatchPlan))
+      .slice(0, 8)
+      .map((output) => output.autoMatchPlan),
+  });
+  if (!plan.length) {
+    throw new ProviderError('VIDEO_AUTO_MATCH_EMPTY',
+      '没有生成可用的自动素材匹配时间线', { status: 400 });
+  }
+
+  // Every asset the plan references, so the caller can resolve storage.
+  const byId = new Map();
+  for (const asset of [mainAsset, ...candidatesWithDuration]) {
+    if (asset?.id) byId.set(String(asset.id), asset);
+  }
+  await translate(42, `素材匹配方案已生成（${plan.length} 段）`);
+
+  return {
+    plan,
+    window,
+    shotTimeline,
+    mainAsset,
+    mainSource,
+    narrationAsset: input.audioAssetId
+      ? (project.assets || []).find((asset) => String(asset.id) === String(input.audioAssetId)) || null
+      : null,
+    assetById: byId,
+    transcription,
+    timedWords,
+    transcriptText,
+    semanticText,
+    mainDuration,
+  };
+}
+
+/**
+ * Turn a computed plan into an IMS Timeline.
+ *
+ * `urlFor(asset)` resolves an asset to something IMS can fetch — an OSS URL in
+ * production. Kept as a callback so the render service never needs OSS
+ * credentials merely to describe the work.
+ */
+export function planToTimeline(built, { urlFor, ratio = '9:16', maxSeconds = 600 }) {
+  const urlById = new Map();
+  const unresolved = [];
+  for (const [id, asset] of built.assetById) {
+    const url = urlFor(asset);
+    if (url) urlById.set(id, url);
+    else unresolved.push({ id, name: asset?.name || null, storageKey: asset?.storageKey || null });
+  }
+  const missing = built.plan.filter((item) => !urlById.has(String(item.assetId)));
+  if (missing.length) {
+    throw new ProviderError('ALIYUN_ASSET_NOT_IN_OSS',
+      `${missing.length} 个被选中的素材无法解析为可访问地址`,
+      {
+        status: 400,
+        details: {
+          unresolved: unresolved.slice(0, 10),
+          missingAssetNames: [...new Set(missing.map((i) => i.assetName))].slice(0, 5),
+        },
+      });
+  }
+
+  const { timeline, meta } = compileVlogTimeline({
+    window: built.window,
+    plan: built.plan,
+    urlById,
+    mainAssetId: String(built.mainAsset.id),
+    narrationAssetId: built.narrationAsset ? String(built.narrationAsset.id) : null,
+    ratio,
+    durationSeconds: built.window.durationSeconds,
+    maxSeconds: Math.max(60, Math.ceil(built.window.durationSeconds) + 5),
+  });
+
+  return {
+    timeline,
+    meta,
+    urlById,
+    transcriptText: built.transcriptText,
+    semanticText: built.semanticText,
+    timedWords: built.timedWords,
+    transitions: built.plan.map((item) => ({
+      type: item.transition,
+      subtype: TRANSITION_SUBTYPE[item.transition] ?? null,
+      duration: item.transitionDurationSeconds,
+    })),
+    imsTransitionRotation: IMS_TRANSITION_ROTATION,
+  };
+}

@@ -1,0 +1,121 @@
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import { createHash } from 'node:crypto';
+import { getProviderConfig } from '../providers/config.js';
+
+export class StorageError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.name = 'StorageError';
+    this.code = code;
+  }
+}
+
+async function renameWithRetry(source, destination) {
+  let lastError;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      await fs.rename(source, destination);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (!['EPERM', 'EACCES', 'EBUSY'].includes(error?.code) || attempt === 5) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 20 * (attempt + 1)));
+    }
+  }
+  throw lastError;
+}
+
+export function safeFilename(value, fallback = 'asset.bin') {
+  const base = path.basename(String(value || fallback)).normalize('NFKC');
+  const cleaned = base.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').replace(/^\.+/, '').trim();
+  return (cleaned || fallback).slice(0, 180);
+}
+
+export function resolveStorageKey(storageKey) {
+  const root = getProviderConfig().storage.root;
+  const key = String(storageKey || '').replace(/\\/g, '/');
+  if (process.env.VIDEO_RENDER_DEBUG_PLAN && !key) {
+    console.error('[key-debug] EMPTY KEY\n' + new Error('empty storageKey').stack);
+  }
+  if (!key || key.startsWith('/') || key.split('/').includes('..')) {
+    throw new StorageError('INVALID_STORAGE_KEY', '素材存储路径无效');
+  }
+  const resolved = path.resolve(root, ...key.split('/'));
+  const relative = path.relative(root, resolved);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new StorageError('INVALID_STORAGE_KEY', '素材存储路径越界');
+  }
+  return resolved;
+}
+
+function decodeBase64(value) {
+  const text = String(value || '').trim();
+  const encoded = text.includes(',') && text.startsWith('data:') ? text.slice(text.indexOf(',') + 1) : text;
+  if (!encoded || !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded.replace(/\s/g, ''))) {
+    throw new StorageError('INVALID_UPLOAD', '素材文件编码无效');
+  }
+  return Buffer.from(encoded, 'base64');
+}
+
+export async function saveAssetFile({ projectId, assetId, name, data }) {
+  const config = getProviderConfig().storage;
+  const buffer = decodeBase64(data);
+  if (!buffer.length) throw new StorageError('EMPTY_UPLOAD', '素材文件不能为空');
+  if (buffer.length > config.maxBytes) {
+    throw new StorageError('UPLOAD_TOO_LARGE', `素材文件不能超过 ${Math.round(config.maxBytes / 1024 / 1024)} MB`);
+  }
+  const filename = safeFilename(name);
+  const storageKey = `${safeFilename(projectId, 'project')}/${safeFilename(assetId, 'asset')}-${filename}`;
+  const destination = resolveStorageKey(storageKey);
+  const temporary = `${destination}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`;
+  await fs.mkdir(path.dirname(destination), { recursive: true });
+  try {
+    await fs.writeFile(temporary, buffer);
+    await renameWithRetry(temporary, destination);
+  } finally {
+    await fs.rm(temporary, { force: true }).catch(() => {});
+  }
+  return {
+    storageKey,
+    sizeBytes: buffer.length,
+    sha256: createHash('sha256').update(buffer).digest('hex')
+  };
+}
+
+export async function readAssetFile(asset) {
+  if (!asset?.storageKey) throw new StorageError('ASSET_FILE_MISSING', '该素材没有已保存的文件');
+  const filePath = resolveStorageKey(asset.storageKey);
+  const data = await fs.readFile(filePath);
+  return { filePath, data };
+}
+
+export async function statAssetFile(asset) {
+  if (!asset?.storageKey) throw new StorageError('ASSET_FILE_MISSING', '该素材没有已保存的文件');
+  const filePath = resolveStorageKey(asset.storageKey);
+  const stat = await fs.stat(filePath);
+  if (!stat.isFile()) throw new StorageError('ASSET_FILE_MISSING', '该素材文件不存在');
+  return { filePath, stat };
+}
+
+export async function deleteStoredFile(item) {
+  if (!item?.storageKey) return false;
+  const filePath = resolveStorageKey(item.storageKey);
+  await fs.rm(filePath, { force: true });
+  return true;
+}
+
+export async function prepareGeneratedFile({ projectId, taskId, name }) {
+  const filename = safeFilename(name, 'output.bin');
+  const storageKey = `${safeFilename(projectId, 'project')}/generated/${safeFilename(taskId, 'task')}-${filename}`;
+  const filePath = resolveStorageKey(storageKey);
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  return { filename, storageKey, filePath };
+}
+
+export function formatSize(sizeBytes) {
+  const bytes = Number(sizeBytes || 0);
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
